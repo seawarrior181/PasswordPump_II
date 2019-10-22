@@ -36,7 +36,7 @@
   - Data entry via rotary encoder or keyboard and serial monitor, or via client
     program running in Windows.
   - Accounts added in alphabetical order
-  - Store up to 125 sets of credentials
+  - Store up to 255 sets of credentials
   - Backup all accounts to a second encrypted external EEprom
   - Logout / de-authenticate via menu
   - Factory reset via menu (when authenticated)
@@ -56,20 +56,19 @@
   ====================  
     - = 28 outstanding
     x = fixed but needs testing
-    * = 48 fixed
-  - When updating an existing account via import KeePass, the linked list is
-    corrupted even though the account name isn't changed.  Go from 111 accounts
-    to 93 accounts when update Wachusette.
+    * = 49 fixed
+  - PC client isn't working correctly, the fields are not getting enabled.
   - Navigation back to previous menu needs work (EVENT_LONG_CLICK).
   - Fix defect in FindAccountPos; ERR: 033 when importing existing account
-  - Duplicate names freeze the MCU in the keepass import file (consecutive?)
+    (intermittent) 
   - Find Favorites freezes the MCU if there are no favorites (or shows garbage)
   - Entering Find Favorites when there are no Favorites yields undefined 
     behavior.
-  - When a username isn't specified in a keepass export file, the password isn't
-    populated at all (it's blank).
-  - Use FindAccountPos wherever you add a new set of credentials so that you're
-    updating if the credentials already exist.
+  - When a user name isn't specified in a keepass export file, the password 
+    isn't populated at all (it's blank).
+  - It's possible to enter a duplicate account name when entering credentials
+    via the rotary encoder.
+  - It's not possible to add a new account via the PC client.
   - Embedded quote in a CSV import file are not getting saved to the filed e.g.
     password.
   - When you import credentials with <CR><LF> in the account name bad things
@@ -96,6 +95,7 @@
   - If there are commas or double quotes in the text of a field we're trying to
     import, import breaks.
   - Some character loss when exporting to PPEXPORT.CSV and then re-importing.
+  x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x Should probably remove Keyboard ON/OFF from saved properties and always 
     default to Keyboard OFF; or make sure it is always OFF when backing up 
     EEProm.
@@ -108,6 +108,9 @@
   x we are only encrypting the first 16 characters of account name, user name 
     and password.  The sha256 block size is 16.
   x single click after Reset brings you to alpha edit mode
+  * When updating an existing account via import KeePass, the linked list is
+    corrupted even though the account name isn't changed.  Go from 111 accounts
+    to 93 accounts when update Wachusette.
   * Overflow probably causes automatic logout even when logoutTimeout is set to 
     0
   * When you put in a master password longer than the real master password
@@ -181,10 +184,8 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
-  - Build a PC UI for editing credentials.
   - Add a setting to indicate how many failed login attempts before factory 
     reset.
-  
   - Build a Windows client (in python) for editing credentials; 
     add/change/delete
   - Create a case.
@@ -192,7 +193,7 @@
   - Import KeePass .xml file
   - Import LastPass files
   - re-enter master password to authorize creds reset
-  - Accommodate a larger EEProm chip (512, 1024).  25LC512, 25LC1024.
+  - Allow the user to decide if they want to use a 25LC256, 25LC512 or 25LC1024.
   - Export to KeePass CSV format
   - Export to LastPass format
   - Implement error codes
@@ -231,6 +232,7 @@
     to improve write speed.
   x Enable decoy password feature, make it configurable
   x Replace AES-128 with AES-256
+  * Accommodate a larger EEProm chip (512)
   * Import Chrome passwords
   * Import PasswordPump .CSV file
   * Increase the website size to at least 96.
@@ -686,7 +688,7 @@ SOH  - 01   Read                            Account     NULL_TERM
 
 //- Defines
 
-#define BAUD_RATE                 115200                                        // Baud rate for the Serial monitor, best for 16MHz (was 38400)
+#define BAUD_RATE                 9600                                          // Baud rate for the Serial monitor, best for 16MHz (was 38400)
 
 #define ROTARY_PIN1               9                                             // Pin for ItsyBitsy SAMD51 M4
 #define ROTARY_PIN2               7                                             //   "                               
@@ -694,6 +696,16 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define RED_PIN                   5                                             // Pin locations for the RGB LED, must be PWM capable 
 #define BLUE_PIN                  13                                            //   "
 #define GREEN_PIN                 A4                                            //   "
+
+#define UNUSED_PIN1               A1
+#define UNUSED_PIN2               A2
+#define UNUSED_PIN3               A3
+#define UNUSED_PIN4               A5
+#define UNUSED_PIN5               2
+#define UNUSED_PIN6               3
+#define UNUSED_PIN7               4
+#define UNUSED_PIN8               1                                             // TX
+#define UNUSED_PIN9               0                                             // RX
 
 #define RANDOM_PIN                A0                                            // this pin must float; it's used to generate the seed for the random number generator
 
@@ -1407,6 +1419,16 @@ void setup() {                                                                  
   pinMode(BLUE_PIN,   OUTPUT);                                                  // "
   //pinMode(ROTARY_PIN1, INPUT_PULLUP);
   //pinMode(ROTARY_PIN2, INPUT_PULLUP);
+
+  pinMode(UNUSED_PIN1, OUTPUT);digitalWrite(UNUSED_PIN1, LOW);                  // set all unused pins as output and set them low (0.0v)
+  pinMode(UNUSED_PIN2, OUTPUT);digitalWrite(UNUSED_PIN2, LOW);
+  pinMode(UNUSED_PIN3, OUTPUT);digitalWrite(UNUSED_PIN3, LOW);
+  pinMode(UNUSED_PIN4, OUTPUT);digitalWrite(UNUSED_PIN4, LOW);
+  pinMode(UNUSED_PIN5, OUTPUT);digitalWrite(UNUSED_PIN5, LOW);
+  pinMode(UNUSED_PIN6, OUTPUT);digitalWrite(UNUSED_PIN6, LOW);
+  pinMode(UNUSED_PIN7, OUTPUT);digitalWrite(UNUSED_PIN7, LOW);
+  pinMode(UNUSED_PIN8, OUTPUT);digitalWrite(UNUSED_PIN8, LOW);
+  pinMode(UNUSED_PIN9, OUTPUT);digitalWrite(UNUSED_PIN9, LOW);
   
   //rotaryEncoder.begin(true);                                                  // enable INPUT_PULLUP on ROTARY_PIN1/2
   
