@@ -186,26 +186,25 @@
     * - implemented and tested
   - Add a setting to indicate how many failed login attempts before factory 
     reset.
+  - Make UN_PW_DELAY configurable
+  - Dim the display when it's not in use.
   - Build a Windows client (in python) for editing credentials; 
     add/change/delete
-  - Create a case.
   - Increase the display width by 1 more
+  - Implement error codes
+  - Create a case.
   - Import KeePass .xml file
   - Import LastPass files
-  - re-enter master password to authorize creds reset
-  - Allow the user to decide if they want to use a 25LC256, 25LC512 or 25LC1024.
-  - Export to KeePass CSV format
-  - Export to LastPass format
-  - Implement error codes
   - Learn how to set the lock bits
-  - Set all unused I/O pins as output, not connected to a resistor and best to 
-    set to zero logic low
   - Add the ability to fix a corrupt linked list.
   - Add the ability to pump a single tab or a single carriage return from the 
     menu.
   - Scroll the display when necessary
-  - Make UN_PW_DELAY configurable
   - Add a search capability that scrolls through the alphabet
+  - Export to KeePass CSV format
+  - Export to LastPass format
+  - re-enter master password to authorize creds reset
+  - Allow the user to decide if they want to use a 25LC256, 25LC512 or 25LC1024.
   ? Add a feature whereby the unit factory resets after two triple clicks, even
     if not yet authenticated. (commented out, caused problems)
   ? Add a feature whereby the unit logs out after two double clicks. (commented
@@ -232,6 +231,8 @@
     to improve write speed.
   x Enable decoy password feature, make it configurable
   x Replace AES-128 with AES-256
+  * Set all unused I/O pins as output, not connected to a resistor and best to 
+    set to zero logic low
   * Accommodate a larger EEProm chip (512)
   * Import Chrome passwords
   * Import PasswordPump .CSV file
@@ -954,10 +955,10 @@ char *currentMenu[MENU_SIZE];                                                   
 
 #define SEND_MENU_NUMBER          1
 #define SEND_MENU_ELEMENTS        9                                             // number of selections in the send credentials menu
-const char * const sendMenu[] =   {              "Send User & Password",        // menu picks appear only on the top line
-                                                 "Send Password <RET>",         // send the password followed by a carriage return
+const char * const sendMenu[] =   {              "Send Password <RET>",         // send the password followed by a carriage return
+                                                 "Send User & Password",        // send the user name then the password UN_PW_DELAY milliseconds later
                                                  "Send URL",                    // send the URL of the associated website
-                                                 "Send Username",               // send the user name
+                                                 "Send User Name",              // send the user name
                                                  "Send Pass (no <RET>)",
                                                  "Send Account",                // send the account name
                                                  "Edit Credentials",            // sends user to enterMenu menu
@@ -965,8 +966,8 @@ const char * const sendMenu[] =   {              "Send User & Password",        
                                                  "Send Old Password",           // send the previous password
                                                  ""                           };
 
-#define SEND_USER_AND_PASSWORD    0                                             // locations of the send credentials menu items
-#define SEND_PASSWORD             1
+#define SEND_PASSWORD             0                                             // locations of the send credentials menu items
+#define SEND_USER_AND_PASSWORD    1                                             
 #define SEND_WEBSITE              2
 #define SEND_USERNAME             3
 #define SEND_PASSWORD_NO_RET      4
