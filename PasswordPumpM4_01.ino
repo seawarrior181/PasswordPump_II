@@ -5644,4 +5644,62 @@ void loop () {
   }
 }
 
+----------------------------------------------------------------------------
+  void _lowlevel_ReadEncoder();
 
+// Digital pin definitions
+enum enDigitalPins
+{
+  // Rotary encoder input lines
+  dpInEncoderA=A0,
+  dpInEncoderB=A1,
+};
+
+volatile int position = 0;
+
+static void _ResetPins()
+{
+  // Rotary encoder input lines
+  // Configure as input, turn on pullup resistors
+    pinMode(dpInEncoderA, INPUT_PULLUP);
+    pinMode(dpInEncoderB, INPUT_PULLUP);
+    attachInterrupt(dpInEncoderA, _lowlevel_ReadEncoder, RISING);
+}
+
+
+void _lowlevel_ReadEncoder()
+{
+  position += digitalRead(dpInEncoderB) * 2 - 1; // if rotate is HIGH add one, else subtract one.
+}
+
+
+void setup()
+{
+  // configure the pins
+  _ResetPins();
+
+  // init serial communication
+  SerialUSB.begin(115200); 
+  SerialUSB.println("Ready to begin");
+}
+
+
+void loop()
+{
+  int last_pos = 0;
+  while(true){
+    if(position != last_pos){
+      SerialUSB.print(last_pos);
+      SerialUSB.print(" ");
+      SerialUSB.print(position);
+      SerialUSB.print(" ");
+      if(position > last_pos){
+	SerialUSB.println("+");
+      }
+      else{
+	SerialUSB.println("-");
+      }
+      last_pos = position;
+    }
+  }
+}
