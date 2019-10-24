@@ -5517,3 +5517,131 @@ void loop() {
   old_State = State; // the first position was changed
 }
 */
+
+
+
+/// Multiple Encoders
+///  Designed for hand-turned encoders, not accurate enough for motors
+///  Developed as an multi-encoder interface to a Nano
+
+//////////////// Prepare some global variables
+// number of encoders
+int numEnc = 2;
+// define the A pins on each encoder (in order)
+int encPinA[2] = {2, 6};
+// define the B pins on each encoder (in order)
+int encPinB[2] = {3, 7};
+// last mode of each pin (HIGH/LOW) for comparison - see if it changed
+int lastModeA[2];
+int lastModeB[2];
+// current mode of each encoder pin (HIGH/LOW)
+int curModeA[2];
+int curModeB[2];
+// current and last encoder positions
+int encPos[2];
+int encPosLast[2];
+// utility variables
+int change = 0;
+int c = 0;
+
+///////////////// Initialize the program
+void setup () {
+  Serial.begin(9600);
+  // set up each encoder's values
+  for (c = 0; c < numEnc; c++) {
+    // tell us what it is doing
+    Serial.print("Initializing encoder ");
+    Serial.println(c);
+    // set the pins form INPUT
+    pinMode(encPinA[c], INPUT);
+    pinMode(encPinB[c], INPUT);
+    // set the modes and positions - on first read, it may change position once
+    //   depending on how the encoders are sitting (having a HIGH position that
+    //   gets compared to the initial LOW setting here in the first iteration of
+    //   the loop).
+    lastModeA[c] = LOW;
+    lastModeB[c] = LOW;
+    curModeA[c] = LOW;
+    curModeB[c] = LOW;
+    encPos[c] = 0;
+    encPosLast[c] = 0;
+  }
+  Serial.println("---- Ready -------------------------------");
+}
+
+
+///////////////// Body of the program
+void loop () {
+  // read in current values
+  // set the change variable to 0.  If there is an encoder position change,
+  //   this gets changed to 1.  This lets a later portion of the loop that
+  //   a change has been made and it doesn't have to compare all the modes
+  //   again.
+  change = 0;
+  // loop through each of the encoders
+  for (c = 0; c < numEnc; c++) {
+    // read the current state of the current encoder's pins
+    curModeA[c] = digitalRead(encPinA[c]);
+    curModeB[c] = digitalRead(encPinB[c]);
+    // compare the four possible states to figure out what has happened
+    //   then encrement/decrement the current encoder's position
+    if (curModeA[c] != lastModeA[c]) {
+      if (curModeA[c] == LOW) {
+        if (curModeB[c] == LOW) {
+          encPos[c]--;
+        } else {
+          encPos[c]++;
+        }
+      } else {
+        if (curModeB[c] == LOW) {
+          encPos[c]++;
+        } else {
+          encPos[c]--;
+        }
+      }
+    }
+    if (curModeB[c] != lastModeB[c]) {
+      if (curModeB[c] == LOW) {
+        if (curModeA[c] == LOW) {
+          encPos[c]++;
+        } else {
+          encPos[c]--;
+        }
+      } else {
+        if (curModeA[c] == LOW) {
+          encPos[c]--;
+        } else {
+          encPos[c]++;
+        }
+      }
+    }
+    // set the current pin modes (HIGH/LOW) to be the last know pin modes
+    //   for the next loop to compare to
+    lastModeA[c] = curModeA[c];
+    lastModeB[c] = curModeB[c];
+    // if this encoder's position changed, flag the change variable so we
+    //   know about it later
+    if (encPos[c] != encPosLast[c]) {
+      change = 1;
+    }
+  }
+
+  if (change == 1) {
+    // if an encoder has changed, do something with that information
+    // here, I am just going to print all the encoder's positions
+    //   if any of them change
+    for (c = 0; c < numEnc; c++) {
+      Serial.print("  Position");
+      Serial.print(c);
+      Serial.print(": ");
+      Serial.print(encPos[c]);
+      encPosLast[c] = encPos[c];
+    }
+    Serial.println();
+    // debounce - if there has been a change, wait for a bit (so to speak) to let the
+    //   bounces settle - change to your liking
+    delay(100);
+  }
+}
+
+
