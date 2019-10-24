@@ -3007,7 +3007,7 @@ void switchToSendCredsMenu() {
   }
   memcpy(currentMenu, sendMenu, arraySize);
   elements = SEND_MENU_ELEMENTS;
-  position = SEND_USER_AND_PASSWORD;
+  position = SEND_PASSWORD;
   machineState = STATE_SEND_CREDS_MENU;
   ShowMenu(position, currentMenu, "    Credentials     ");
   readAcctFromEEProm(acctPosition, accountName);
