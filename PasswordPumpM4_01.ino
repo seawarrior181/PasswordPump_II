@@ -16,7 +16,7 @@
   Author:       Daniel J. Murphy
   Components:   RGB LED, SSD1306 128x32 LED  display, one momentary push button, 
                 one  rotary encoder,  2 4.7kohm  resistors  for  I2C,  3  220ohm 
-                resistors  for  the  RGB  LED,  2 25LC256 external EEprom chips, 
+                resistors  for  the  RGB  LED,  2 25LC512 external EEprom chips, 
                 custom PCB.
   Purpose
   =======
@@ -40,7 +40,7 @@
   - Backup all accounts to a second encrypted external EEprom
   - Logout / de-authenticate via menu
   - Factory reset via menu (when authenticated)
-  - Mandatory factory reset after 10 failed login attempts
+  - Mandatory factory reset after a customized number of failed login attempts
   - Automatic logout countdown
   - Configurable password display on or off
   - All passwords (except master password) are encrypted w/ AES256; master 
@@ -61,9 +61,6 @@
   - Navigation back to previous menu needs work (EVENT_LONG_CLICK).
   - Fix defect in FindAccountPos; ERR: 033 when importing existing account
     (intermittent) 
-  - Find Favorites freezes the MCU if there are no favorites (or shows garbage)
-  - Entering Find Favorites when there are no Favorites yields undefined 
-    behavior.
   - When a user name isn't specified in a keepass export file, the password 
     isn't populated at all (it's blank).
   - It's possible to enter a duplicate account name when entering credentials
@@ -73,8 +70,6 @@
     password.
   - When you import credentials with <CR><LF> in the account name bad things
     happen.
-  - The problem with the rotary encoder needs to be addressed.
-  - Menus should scroll around?
   - Add Web Site to the python client and test.
   - Nail down the menu / UI layout.  Invert the top line.
   - See if you can add one more char to the horizontal size of the SSD1306.
@@ -108,6 +103,10 @@
   x we are only encrypting the first 16 characters of account name, user name 
     and password.  The sha256 block size is 16.
   x single click after Reset brings you to alpha edit mode
+  * Entering Find Favorites when there are no Favorites yields undefined 
+    behavior.
+  * Find Favorites freezes the MCU if there are no favorites (or shows garbage)
+  * The problem with the rotary encoder needs to be addressed.
   * When updating an existing account via import KeePass, the linked list is
     corrupted even though the account name isn't changed.  Go from 111 accounts
     to 93 accounts when update Wachusette.
@@ -184,13 +183,10 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
-  - Add a setting to indicate how many failed login attempts before factory 
-    reset.
   - Make UN_PW_DELAY configurable
   - Dim the display when it's not in use.
   - Build a Windows client (in python) for editing credentials; 
     add/change/delete
-  - Increase the display width by 1 more
   - Implement error codes
   - Create a case.
   - Import KeePass .xml file
@@ -199,17 +195,19 @@
   - Add the ability to fix a corrupt linked list.
   - Add the ability to pump a single tab or a single carriage return from the 
     menu.
+  - Make the menus scroll around when the end is reached
   - Scroll the display when necessary
   - Add a search capability that scrolls through the alphabet
   - Export to KeePass CSV format
   - Export to LastPass format
   - re-enter master password to authorize creds reset
-  - Allow the user to decide if they want to use a 25LC256, 25LC512 or 25LC1024.
+  - Consolidate code in the import files sections
+  - A back space should be available during character input via rotary encoder.
   ? Add a feature whereby the unit factory resets after two triple clicks, even
     if not yet authenticated. (commented out, caused problems)
   ? Add a feature whereby the unit logs out after two double clicks. (commented
     out, caused problems)
-  x A back space should be available during character input via rotary encoder.
+  ? Increase the display width by 1 more (tried and this didn't work)
   x Add website to the Python client
   x Add an Import menu
   x Change master password (use both 25LC256 chips for this)
@@ -231,6 +229,12 @@
     to improve write speed.
   x Enable decoy password feature, make it configurable
   x Replace AES-128 with AES-256
+  * Add a menu for selecting the number of failed logins before reset (will this
+    make it easier to hack into the device?)
+  * Add a setting to indicate how many failed login attempts before factory 
+    reset.
+  * Remove the EEprom part number selection menu.
+  * Document how to burn the firmware outside of the Arduino IDE
   * Set all unused I/O pins as output, not connected to a resistor and best to 
     set to zero logic low
   * Accommodate a larger EEProm chip (512)
@@ -355,7 +359,6 @@
   - https://rweather.github.io/arduinolibs/index.html - AES and SHA library
   - https://github.com/LennartHennigs/Button2 - Used for the button on the 
     rotary encoder
-  - https://github.com/brianlow/Rotary - Used for the rotary encoder
   - https://github.com/arduino-libraries/Keyboard - Used to send characters to 
     the keyboard as if typed by the user
   - https://github.com/greiman/SSD1306Ascii/blob/master/examples/AvrI2c128x32/AvrI2c128x32.ino
@@ -426,10 +429,10 @@
                               Pin 1, Rotary Encoder Pins 2 & 5
     33      BAT               
 
-  - 2 25LC256 (External EEprom)
-    Tested Part: MICROCHIP - 25LC256-I/P - 256K SPI™ Bus Serial EEPROM DIP8
+  - 2 25LC512 (External EEprom)
+    Tested Part: MICROCHIP - 25LC512-I/P - 512K SPI™ Bus Serial EEPROM DIP8
 
-    25LC256 Primary
+    25LC512 Primary
     Number Name                 ConnectTo        Note
     1       CS                  pin 28 ItsyBitsy  Chip Select Input
     2       SO                  pin 13 ItsyBitsy  MISO - Serial Data Output
@@ -440,7 +443,7 @@
     7       HOLD                pin  2 ItsyBitsy  Hold Input
     8       Vcc                 pin  2 ItsyBitsy  Supply Voltage 
     
-    25LC256 Secondary
+    25LC512 Secondary
     Number Name                 ConnectTo        Note
     1       CS                  pin 27 ItsyBitsy  Chip Select Input
     2       SO                  pin 13 ItsyBitsy  MISO - Serial Data Output
@@ -492,7 +495,17 @@
   Sketch uses ? bytes (20%) of program storage space. Maximum is 507904 
   bytes. 
 
-  Menu Navigation                                                               // TODO: update this section
+  Burning The Firmware    TODO: update this after uploading the .elf file to 
+  ====================    github.  Incorporate this into the instructions for 
+                          uploading keepass and google password files.
+  cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\bin\
+  arm-none-eabi-size -A C:\Users\djmurphy\AppData\Local\Temp\arduino_build_354683\PasswordPumpM4_01.ino.elf
+  
+  cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.8.0-48-gb176eee
+  bossac -i -d --port=COM49 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_354683\PasswordPumpM4_01.ino.bin -R 
+
+  
+  Menu Navigation                                                               // TODO: update the states here...
   ===============
   Master Password                  STATE_ENTER_MASTER   ->STATE_SHOW_MAIN_MENU
   Find Favorite
@@ -503,7 +516,7 @@
       Send User & Pass             STATE_SEND_CREDS_MENU
       Send Password <RET>          STATE_SEND_CREDS_MENU
       Send URL
-      Send Username                STATE_SEND_CREDS_MENU
+      Send User Name               STATE_SEND_CREDS_MENU
       Send Pass (no <RET>)
       Send Account                 STATE_SEND_CREDS_MENU
       Edit Credentials             STATE_SEND_CREDS_MENU
@@ -544,7 +557,7 @@
       [same as under Find All Account]
   Add Account                      STATE_SHOW_MAIN_MENU
     Account Name                   STATE_EDIT_CREDS_MENU
-    Edit Username                  STATE_EDIT_CREDS_MENU
+    Edit User Name                 STATE_EDIT_CREDS_MENU
     Edit Password                  STATE_EDIT_CREDS_MENU
     Indicate Style                 STATE_EDIT_CREDS_MENU
     GeneratePasswrd                STATE_EDIT_CREDS_MENU
@@ -561,8 +574,8 @@
     Decoy Password
     RGB LED Intensity
     Timeout Minutes
+    Login Attempts
     Change Master Password
-    EEProm Part #
   Factory Reset [confirm]          STATE_SHOW_MAIN_MENU->STATE_CONFIRM_RESET
   
   Error Codes  TODO: add more error codes
@@ -576,7 +589,7 @@
   006 - Error showing credential values 
   007 - Unrecognized event
   008 - Invalid state when showing Off On menu
-  009 - Invalid part number selected
+  009 - Invalid login attempt maximum
   010 - Out of space
   011 - Corruption found
   012 - Out of space during import
@@ -584,7 +597,7 @@
   014 - Failed to mount FAT file system during import
   015 - Failed to initialize flash during import
   016 - Invalid RGB LED Intensity position
-  017 - Invalid EEProm part number
+  017 - Invalid maximum login attempt count
   018 - Invalid logout timeout value
   019 - Invalid keyboard, show password or decoy password value
   020 - Account name keeps encrypting to 255 in first char during import
@@ -636,7 +649,7 @@ SOH  - 01   Read                            Account     NULL_TERM
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-#define F_CPU                     120000000UL                                   // microcontroller clockspeed, max clock speed of ItsyBitsy M4 is 120MHz
+#define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
 #define __SAMD51__
 //#define SLOW_SPI
 #define DEBUG_ENABLED             0
@@ -645,17 +658,11 @@ SOH  - 01   Read                            Account     NULL_TERM
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 #include "Button2.h";                                                           // for the button on the rotary encoder https://github.com/LennartHennigs/Button2
-#include <Rotary.h>                                                             // for the rotary encoder https://github.com/brianlow/Rotary
 #include <Keyboard.h>                                                           // for simulating a USB keyboard and sending output to it https://github.com/arduino-libraries/Keyboard
-//#include <EEPROM.h>                                                           
-//#include <FlashAsEEPROM.h>
 #include <SHA256.h>                                                             // for hashing the master password https://rweather.github.io/arduinolibs/index.html
 #include <AES.h>                                                                // for encrypting credentials https://rweather.github.io/arduinolibs/index.html
-//#include "SSD1306Ascii.h"                                                     // compiles under SAMD51 but requires SSD1306AsciiAvrI2c.h
-//#include "SSD1306AsciiAvrI2c.h"                                               // won't compile under SAMD51
 #include <SPI.h>                                                                // https://github.com/SpenceKonde/arduino-tiny-841/blob/master/avr/libraries/SPI/SPI.cpp
 #include <Wire.h>
-//#include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "SdFat.h"                                                              // https://github.com/greiman/SdFat
 #include "Adafruit_SPIFlash.h"                                                  // https://github.com/adafruit/Adafruit_SPIFlash
@@ -669,14 +676,14 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define _BV(bit)                  (1 << (bit))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#define getLoginFailures          read_eeprom_byte(GET_ADDR_LOGIN_FAILURES)
+#define getLoginFailures          read_eeprom_byte(GET_ADDR_LOGIN_FAILURES)     // The number of login failures that have occurred since the last successful login.
 #define getResetFlag              read_eeprom_byte(GET_ADDR_RESET_FLAG)
 #define getShowPasswordsFlag      read_eeprom_byte(GET_ADDR_SHOW_PW)
 #define getKeyboardFlag           read_eeprom_byte(GET_ADDR_KEYBOARD_FLAG)
-#define getRGBLEDInt              read_eeprom_byte(GET_ADDR_RGB_LED_INT);
-#define getLogoutTimeout          read_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT);
-#define getEEPromPartNum          read_eeprom_byte(GET_ADDR_EEPROM_PART_NUM);
-#define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW);
+#define getRGBLEDInt              read_eeprom_byte(GET_ADDR_RGB_LED_INT)
+#define getLogoutTimeout          read_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT)
+#define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)     // The number of login attempts before we factory reset
+#define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
 
 #define KEEPASS_CSV               "KPEXPORT.CSV"
 #define KEEPASS_COLUMNS           5
@@ -694,9 +701,12 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define ROTARY_PIN1               9                                             // Pin for ItsyBitsy SAMD51 M4
 #define ROTARY_PIN2               7                                             //   "                               
 #define BUTTON_PIN                12                                            //   "                              
+
 #define RED_PIN                   5                                             // Pin locations for the RGB LED, must be PWM capable 
 #define BLUE_PIN                  13                                            //   "
 #define GREEN_PIN                 A4                                            //   "
+
+#define RANDOM_PIN                A0                                            // this pin must float; it's used to generate the seed for the random number generator
 
 #define UNUSED_PIN1               A1
 #define UNUSED_PIN2               A2
@@ -708,8 +718,6 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define UNUSED_PIN8               1                                             // TX
 #define UNUSED_PIN9               0                                             // RX
 
-#define RANDOM_PIN                A0                                            // this pin must float; it's used to generate the seed for the random number generator
-
 #define NO_LED_LIB_CHAR_WIDTH_PIX 6                                             // when entering chars via rotary encoder, the amount to advance the cursor for each character already entered
 #define FIXED_CHAR_SPACING        10                                            // when entering chars via rotary encoder, the fixed amount to advance the cursor
 
@@ -720,7 +728,7 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define NULL_TERM                 0x00                                          // The null terminator, NUL, ASCII 0, or '\0'                 
 
 #define SPI_SS_PRIMARY            11                                            // chip select primary (copy source)  (SPI)
-#define SPI_SS_SECONDARY          10                                            // chip select seconday (copy target)  (SPI)
+#define SPI_SS_SECONDARY          10                                            // chip select secondary (copy target)  (SPI)
 #define SPI_MOSI                  MOSI                                          // mosi (SPI)
 #define SPI_MISO                  MISO                                          // miso (SPI)
 #define SPI_SCK                   SCK                                           // clock (SPI)
@@ -746,9 +754,17 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define EEPROM_BLOCK_PROTECT_1    3
 
 #define RGB_LED_HIGH              254                                           // 255 = INITIAL_MEMORY_STATE_BYTE, so making this 254.
-#define RGB_LED_MEDIUM            64                                            // 128 was too bright
-#define RGB_LED_LOW               32                                            // 64 was too bright
+#define RGB_LED_MEDIUM            32                                            // 128 was too bright
+#define RGB_LED_LOW               8                                             // 64 was too bright
 #define RGB_LED_OFF               0
+#define RGB_LED_DEFAULT           RGB_LED_MEDIUM
+
+#define ATTEMPTS_3                3 
+#define ATTEMPTS_5                5
+#define ATTEMPTS_10               10
+#define ATTEMPTS_25               25
+#define ATTEMPTS_DEFAULT          ATTEMPTS_10
+
 
 #define MAX_ITERATION_COUNT       1048575
 
@@ -808,7 +824,7 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define HASHED_MASTER_PASSWORD_SZ (MASTER_PASSWORD_SIZE + MASTER_SALT_SIZE)     // 32 the size of the hashed master password (store MASTER_SALT+MASTER_PASSWORD hashed)
 #define RGB_LED_INTENSITY_SIZE    0x0001                                        // 1 byte
 #define LOGOUT_TIMEOUT_SIZE       0x0001                                        // 1 byte
-#define EEPROM_PART_NUM_SIZE      0x0001                                        // 1 byte
+#define LOGIN_ATTEMPTS_NUM_SIZE   0x0001                                        // 1 byte
 #define DECOY_PW_SIZE             0x0010                                        // 1 byte
 //------------------------------------------------------------------------------
 #define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (53 total, rounding up to 256)
@@ -824,8 +840,8 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define GET_ADDR_MASTER_HASH      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE) // store hashed master password
 #define GET_ADDR_RGB_LED_INT      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ) // store setting for RGB LED intensity
 #define GET_ADDR_LOGOUT_TIMEOUT   (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE) // store the setting for the automatic logout timeout
-#define GET_ADDR_EEPROM_PART_NUM  (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE) // store the setting for the EEProm part number
-#define GET_ADDR_DECOY_PW         (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + EEPROM_PART_NUM_SIZE) // store the setting for the decoy password setting
+#define GET_ADDR_LOGIN_ATTEM_NUM   (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE) // store the setting for the EEProm part number
+#define GET_ADDR_DECOY_PW         (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE) // store the setting for the decoy password setting
 
 //- Events
                                                                                 // Assumption here is that using #define instead of enum will save memory
@@ -835,17 +851,17 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define EVENT_ROTATE_CW           7                                             // turning the rotary encoder clockwise
 #define EVENT_ROTATE_CC           8                                             // turning the rotary encoder counter clockwise.
 #define EVENT_SHOW_MAIN_MENU      9                                             // to show the main menu
-#define EVENT_SHOW_EDIT_MENU      11                                            // to show the menu used for editing account name, username and password (creds)
+#define EVENT_SHOW_EDIT_MENU      11                                            // to show the menu used for editing account name, user name and password (creds)
 #define EVENT_RESET               12                                            // Factory Reset event
 #define EVENT_LOGOUT              13                                            // logging out of the device
 #define EVENT_BACKUP              14                                            // copying the content of the primary external EEprom to the backup EEprom
 #define EVENT_RESTORE             15                                            // restore from the backup EEprom to the primary EEprom
-#define EVENT_BACKUP_TO_FILE      16                                            // send all creds out through the keyboard for capture in a text editor
+#define EVENT_BACKUP_TO_FILE      16                                            // send all credentials out through the keyboard for capture in a text editor
 //#define EVENT_FIX_CORRUPTION    17                                            // fix a corrupt linked list
 #define EVENT_DELETE_ACCT         18                                            // delete an account
 #define EVENT_IMPORT_KEEPASS_CSV  19                                            // import a csv KeePass file
 #define EVENT_SHOW_SETTINGS_MENU  20                                            // to show the settings menu
-#define EVENT_SHOW_PART_NUM_MENU  21                                            // to show the set EEProm part number menu
+#define EVENT_SHOW_LG_ATTEM_MENU  21                                            // to show the set login attempts menu
 #define EVENT_SHOW_RGB_INT_MENU   22                                            // to show the set RGB LED intensity menu
 #define EVENT_SHOW_LOG_TIME_MENU  23                                            // to show the set automatic logout time menu
 #define EVENT_SHOW_OFF_ON_MENU    24                                            // to show the off/on menu
@@ -869,14 +885,14 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define STATE_ENTER_MASTER        1                                             // entering the master password
 #define STATE_SHOW_MAIN_MENU      2                                             // showing the main menu                              
 #define STATE_FIND_ACCOUNT        3                                             // searching for an account                           
-#define STATE_EDIT_STYLE          4                                             // editing the style for sending username and password
+#define STATE_EDIT_STYLE          4                                             // editing the style for sending user name and password
 #define STATE_EDIT_GROUPS         5                                             // assigning groups to credentials
-#define STATE_EDIT_USERNAME       6                                             // entering the username  
+#define STATE_EDIT_USERNAME       6                                             // entering the user name  
 #define STATE_EDIT_PASSWORD       7                                             // entering the password                              
 #define STATE_EDIT_WEBSITE        8
 #define STATE_EDIT_CREDS_MENU     9                                             // showing the edit menu                              
-#define STATE_EDIT_ACCOUNT        10                                            // entering the account name                          
-#define STATE_SEND_CREDS_MENU     11                                            // showing the menu that sends creds via keyboard     
+#define STATE_EDIT_ACCOUNT        10                                            // entering the account name; if you change this also change it in PassPumpGUI.py                          
+#define STATE_SEND_CREDS_MENU     11                                            // showing the menu that sends credentials via keyboard     
 #define STATE_CONFIRM_BACK_EEPROM 12                                            // confirming an action                               
 #define STATE_CONFIRM_RESTORE     13                                            // confirming restore from backup EEprom              
 //#define STATE_CONFIRM_FIX_CORRUPT 13                                          // confirming fix corruption function                 
@@ -884,7 +900,7 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define STATE_CONFIRM_RESET       16                                            // confirming factory reset                           
 #define STATE_CONFIRM_IMP_KP_CSV  17                                            // confirming import KeePass csv file
 #define STATE_MENU_SETTINGS       18                                            // in the settings menu
-#define STATE_MENU_PART_NUM       19                                            // setting the EEProm part number menu
+#define STATE_MENU_LOGIN_ATTEM    19                                            // setting the login attempts before factory reset menu
 #define STATE_MENU_RGB_INTENSITY  20                                            // setting the RGB LED intensity menu
 #define STATE_MENU_LOGOUT_TIMEOUT 21                                            // setting the logout timeout value menu
 #define STATE_MENU_OFF_ON         22                                            // setting Off or On
@@ -912,7 +928,7 @@ SOH  - 01   Read                            Account     NULL_TERM
                                                                                 
 #define MAX_IDLE_TIME             3600000UL                                     // milliseconds in an hour, time allowed before automatic logout
 #define LONG_CLICK_LENGTH         500                                           // milliseconds to hold down the rotary encoder button to trigger EVENT_LONG_CLICK
-#define UN_PW_DELAY               1000UL                                        // time in milliseconds to wait after entering username before entering password
+#define UN_PW_DELAY               1000UL                                        // time in milliseconds to wait after entering user name before entering password
 #define SHA_ITERATIONS            1                                             // number of times to hash the master password (won't work w/ more than 1 iteration)
 #define KHZ_4000                  400000UL                                      // Speed (in Hz) for Wire transmissions in SSD1306 library calls.
 #define KHZ_100                   100000UL                                      // Speed (in Hz) for Wire transmissions following SSD1306 library calls.
@@ -936,7 +952,7 @@ char * mainMenu[] =               {              "Master Password",             
                                                  "Backup/Restore/Imprt",        // Backup, Restore a backup or Import a file
 //                                               "Fix Corruption",              // fix any corruption in the linked list
                                                  "Settings",                    // navigate to the settings menu
-                                                 "Factory Reset"              };// factory reset; erases all creds from memory
+                                                 "Factory Reset"              };// factory reset; erases all credentials from memory
 
 #define ENTER_MASTER_PASSWORD     0                                             // locations of the main menu items
 #define FIND_FAVORITE             1
@@ -982,9 +998,9 @@ const char * const enterMenu[] =  {              "Edit Account Name",           
                                                  "Edit User Name",               // edit the user name
                                                  "Edit Password",               // edit the password
                                                  "Edit URL",                    // edit the website URL
-                                                 "Indicate Style",              // 0, <CR>, 1, <TAB> between username and password when both sent
+                                                 "Indicate Style",              // 0, <CR>, 1, <TAB> between user name and password when both sent
                                                  "Assign Groups",               // Favorite = 1, None = 0
-                                                 "Generate Password",           // generate a 31 character uuid for the password
+                                                 "Generate Password",           // generate a 31 character UUID for the password
                                                  "Save to Old Password",        // save the current password to the old password
                                                  ""                           };
 
@@ -997,8 +1013,6 @@ const char * const enterMenu[] =  {              "Edit Account Name",           
 #define GENERATE_PASSWORD         6
 #define SAVE_OLD_PASSWORD         7
 
-
-
 #define SETTINGS_MENU_NUMBER      3
 #define SETTINGS_MENU_ELEMENTS    7                                             // the number of selections in the menu for changing settings
 //char   settingsMenu[SETTINGS_MENU_ELEMENTS+1][DISPLAY_BUFFER_SIZE-1] =
@@ -1008,8 +1022,8 @@ char *settingsMenu[] =
                                                  "Decoy Password",              // Determines if a decoy password can be entered to automatically factory reset the device
                                                  "RGB LED Intensity",           // Setting the RGB LED's intensity High, Medium, Low, Off
                                                  "Timeout minutes",             // set the timeout for automatic logout in minutes
+                                                 "Login Attempts",              // the number of login attempts allowed before a factory reset occurs
                                                  "Change Master Psswrd",
-                                                 "EEProm Part #",               // 25LC256, 25LC512 or 25LC1024 kilobits
                                                  ""                           };
 
 #define SETTINGS_SET_KEYBOARD     0                                             //
@@ -1017,8 +1031,8 @@ char *settingsMenu[] =
 #define SETTINGS_SET_DECOY        2
 #define SETTINGS_SET_RGB_INT      3
 #define SETTINGS_SET_TIMEOUT      4
-#define SETTINGS_CHANGE_MASTER    5
-#define SETTINGS_SET_PART_NUM     6
+#define SETTINGS_SET_LOGIN_ATTEM  5
+#define SETTINGS_CHANGE_MASTER    6
 
 #define LOGOUT_TIMEOUT_MENU_NUMBER    4
 #define LOGOUT_TIMEOUT_MENU_ELEMENTS  7
@@ -1046,7 +1060,6 @@ const char * const logoutTimeoutMenu[] = {       "30",                          
 #define LOGOUT_TIMEOUT_VAL_1      1
 #define LOGOUT_TIMEOUT_VAL_0      0
 
-
 #define RGB_INTENSITY_MENU_NUMBER     5
 #define RGB_INTENSITY_MENU_ELEMENTS   4
 const char * const RGBLEDIntensityMenu[] = {     "High",                        // INITIAL_MEMORY_STATE_BYTE
@@ -1059,16 +1072,17 @@ const char * const RGBLEDIntensityMenu[] = {     "High",                        
 #define RGB_INTENSITY_LOW         2
 #define RGB_INTENSITY_OFF         3
 
-#define EEPROM_PART_MENU_NUMBER   6
-#define EEPROM_PART_MENU_ELEMENTS 1
-const char * const EEPromPartsMenu[] = {         "25LC256",                     // INITIAL_MEMORY_STATE_BYTE
+#define LOGIN_ATTEMPTS_MENU_NUMBER   6
+#define LOGIN_ATTEMPTS_MENU_ELEMENTS 4
+const char * const LoginAttemptsMenu[] = {       "3",                          // INITIAL_MEMORY_STATE_BYTE
+                                                 "5",
+                                                 "10",
+                                                 "25",
                                                  ""                           };
-//                                               "25LC512",                     // 1
-//                                               "25LC1024"                     // 2
-#define EEPROM_PART_25LC256       0                                             // default
-#define EEPROM_PART_25LC512       1
-#define EEPROM_PART_25LC1024      2
-
+#define LOGIN_ATTEMPTS_3          0                                             
+#define LOGIN_ATTEMPTS_5          1
+#define LOGIN_ATTEMPTS_10         2                                             // default
+#define LOGIN_ATTEMPTS_25         3
 
 #define OFF_ON_MENU_NUMBER        7
 #define OFF_ON_MENU_ELEMENTS      2
@@ -1136,7 +1150,7 @@ const char * const fileMenu[] = {                "Backup EEprom",               
 
 #define SCREEN_WIDTH              128                                           // OLED display width, in pixels
 #define SCREEN_HEIGHT             32                                            // OLED display height, in pixels
-#define OLED_RESET                -1                                            // Reset pin # (or -1 if sharing Arduino reset pin)
+#define OLED_RESET                -1                                            // Reset pin # (or -1 if sharing ItsyBitsy reset pin)
 
 #define MAX_LEN_CSV_LINE          500                                           // max chars in KEEPASS_CSV file
 #define MAX_CSV_FIELDS            20                                            // max fields in KEEPASS_CSV line
@@ -1158,9 +1172,17 @@ static char *advquoted(char *);
 static int split(void);
                                                                                 // END CSV Processing
 
+int lastModeA = LOW;                                                            // Rotary encoder state
+int lastModeB = LOW;
+int curModeA = LOW;
+int curModeB = LOW;
+int encPos = 0;
+int encPosLast = 0;
+int change = 0;                                                                 // END Rotary encoder state
+
 long milliseconds;                                                              // time in milliseconds
 char accountName[ACCOUNT_SIZE];
-char username[USERNAME_SIZE];                                                   // holds the username of the current account
+char username[USERNAME_SIZE];                                                   // holds the user name of the current account
 char password[PASSWORD_SIZE];                                                   // holds the password of the current account
 char oldPassword[PASSWORD_SIZE];                                                // holds the previous password of the current account
 char website[WEBSITE_SIZE];                                                     // holds the URL for the credentials
@@ -1204,18 +1226,18 @@ char masterSalt[MASTER_PASSWORD_SIZE];                                          
 
 uint8_t loginFailures;                                                          // count of the number of consecutive login failures since the last successful 
                                                                                 // password entry.
-#define MAX_LOGIN_FAILURES        10                                            // "Factory Reset" after MAX_LOGIN_FAILURES attempts to login. Gurads against 
+//#define MAX_LOGIN_FAILURES        10                                          // "Factory Reset" after MAX_LOGIN_FAILURES attempts to login. Gurads against 
                                                                                 // brute force attack.
 uint8_t showPasswordsFlag;                                                      // flag indicating if we show passwords via the UI, or hide them.
 uint8_t keyboardFlag;                                                           // flag indicating if we're using the keyboard to edit creds
 uint8_t decoyPassword;                                                          // specifies if the decoy password feature is enabled
-uint8_t RGBLEDIntensity = RGB_LED_HIGH;                                         // the intensity of the RGB LED, default is High
+uint8_t RGBLEDIntensity = RGB_LED_DEFAULT;                                      // the intensity of the RGB LED, default is Medium
 unsigned long logoutTimeout = 60;                                               // the inactivity logout timer, default is one hour
-uint8_t EEPromPartNum = 0;                                                      // the part number of the EEprom chip used in the device, default is 256LC256
+uint8_t loginAttempts = ATTEMPTS_DEFAULT;                                       // the number of failed login attempts before a factory reset occurs
 uint8_t addFlag = false;                                                        // tracks wheter we reached the Add Account menu via the main menu or the find menu,
                                                                                 // which is necessary to determine where to return to on EVENT_LONG_CLICK.
 
-uint8_t machineState;                                                           // the state of the device
+uint8_t machineState = 0;                                                       // the state of the device
                                                                                 // it is presently unnecessarily long.  Can all be stored in uint8_t otherwise.
 int position = 0;                                                               // the position of the rotary encoder, used to navigate menus and enter text.
 uint8_t enterPosition = 0;                                                      // when alpha editing w/ rotary encoder, position in the edited word
@@ -1228,27 +1250,21 @@ uint8_t headPosition;                                                           
 uint8_t tailPosition;                                                           // the tail of the doubly linked list that keeps account names sorted
 uint8_t groupFilter = ALL_GROUPS;                                               // turn on all groups in the filter
 
-
 char buf[MAX_LEN_CSV_LINE];                                                     // input line buffer, CSV file processing
-//char *field[MAX_CSV_FIELDS];                                                  // fields, CSV file processing
 char *unquote(char *);
-//extern char *field[];
 
 //- Global Volatile variables.
-
+                                                                                // TODO: these variables no longer need to be volatile since we're not using interrupts
 volatile boolean interruptsOn = true;
 volatile uint8_t event = EVENT_NONE;                                            // this is the only variable manipulated in the interrupt.
 
 //- Object setup
 
 SHA256 sha256;
-//AESSmall128 aes;                                                              // 16 byte key, 32 byte block
 AESSmall256 aes;                                                                // 32 byte key, 32 byte block; this uses 4% more program memory. Set 
                                                                                 // MASTER_PASSWORD_SIZE = 32 when in use.
-Rotary rotaryEncoder = Rotary(ROTARY_PIN1, ROTARY_PIN2);                        // the rotary encoder object.
 
 Button2 encoderButton = Button2(BUTTON_PIN);                                    // the button on the rotary encoder.
-//SSD1306AsciiAvrI2c oled;
 Adafruit_SSD1306 oled((uint8_t) SCREEN_WIDTH, (uint8_t) SCREEN_HEIGHT, (TwoWire *) &Wire, (int8_t) OLED_RESET, (uint32_t) KHZ_4000, (uint32_t) KHZ_100);
 
 #if defined(__SAMD51__) || defined(NRF52840_XXAA)
@@ -1268,7 +1284,7 @@ FatFileSystem fatfs;                                                            
 void setup(void);                                                               // first function run by device
 void loop(void);                                                                // iterates forever
 void ProcessEvent(void) ;                                                       // to handle events as they arise
-void ConfirmChoice(int state);                                                  // confirms a Y/N choice input via rotary encoder
+void ConfirmChoice(uint8_t state);                                              // confirms a Y/N choice input via rotary encoder
 void ReadFromSerial(char *buffer, uint8_t size, const char *prompt);
 void switchToEditMenu(void);
 void switchToSendCredsMenu(void);
@@ -1288,6 +1304,7 @@ void DisplayToMenu(char* lineToPrint);
 void DisplayToItem(char* lineToPrint);
 void DisplayToStatus(char* lineToPrint);
 void DisplayToError(char* lineToPrint);
+void DisplayToDebug(char* lineToPrint);
 void DisplayToEdit(char* lineToPrint);
 void BlankLine1(void);
 void BlankLine2(void);
@@ -1363,7 +1380,6 @@ void FixCorruptLinkedList(void);
 void Debug(char *text);
 void DebugLN(char *text);
 void DebugMetric(char *text, uint8_t number);
-void RotaryInterrput();
 void TestEEPromWrite();
 void TestEEPromRead();
 void InitAllEEProm();
@@ -1376,7 +1392,7 @@ void setSalt(char *salt, uint8_t size);
 void sha256HashOnce(char *password);
 void readSaltFromEEProm(uint8_t pos, char *buf);
 void writeLogoutTimeout();
-void writeEEPromPartNum();
+void writeLoginAttempts();
 void PopulateGlobals();
 void InitializeGlobals();
 void ProcessAttributeInput( char *attributeName, 
@@ -1405,7 +1421,6 @@ void BackupToPPCVSFile();                                                       
 void RestoreFromPPCVSFile();
 void ImportChromeExportFile();
 
-
 //- Main Program Control
 
 void setup() {                                                                  // runs first when the device is powered on
@@ -1414,13 +1429,16 @@ void setup() {                                                                  
     while(!Serial);
   }
   DebugLN("PasswordPump");
+
   pinMode(BUTTON_PIN, INPUT_PULLUP);                                            // setup button pin for input enable internal 20k pull-up resistor, goes LOW 
+
   pinMode(RED_PIN,    OUTPUT);                                                  // RGB LED pins
   pinMode(GREEN_PIN,  OUTPUT);                                                  // "
   pinMode(BLUE_PIN,   OUTPUT);                                                  // "
-  //pinMode(ROTARY_PIN1, INPUT_PULLUP);
-  //pinMode(ROTARY_PIN2, INPUT_PULLUP);
 
+  pinMode(ROTARY_PIN1, INPUT_PULLUP);
+  pinMode(ROTARY_PIN2, INPUT_PULLUP);
+  
   pinMode(UNUSED_PIN1, OUTPUT);digitalWrite(UNUSED_PIN1, LOW);                  // set all unused pins as output and set them low (0.0v)
   pinMode(UNUSED_PIN2, OUTPUT);digitalWrite(UNUSED_PIN2, LOW);
   pinMode(UNUSED_PIN3, OUTPUT);digitalWrite(UNUSED_PIN3, LOW);
@@ -1431,12 +1449,7 @@ void setup() {                                                                  
   pinMode(UNUSED_PIN8, OUTPUT);digitalWrite(UNUSED_PIN8, LOW);
   pinMode(UNUSED_PIN9, OUTPUT);digitalWrite(UNUSED_PIN9, LOW);
   
-  //rotaryEncoder.begin(true);                                                  // enable INPUT_PULLUP on ROTARY_PIN1/2
-  
   encoderButton.setReleasedHandler(buttonReleasedHandler);                      // fires when button is released
-
-  attachInterrupt(digitalPinToInterrupt(ROTARY_PIN1), RotaryInterrput, CHANGE); // 9 CHANGE
-  attachInterrupt(digitalPinToInterrupt(ROTARY_PIN2), RotaryInterrput, CHANGE); // 7 CHANGE
 
   pinMode(RANDOM_PIN, INPUT);                                                   // used to seed the random number generator, this pin MUST float
   randomSeed(analogRead(RANDOM_PIN));                                           // seed the random number generator
@@ -1479,7 +1492,7 @@ void setup() {                                                                  
   }
 
   if (getResetFlag != MEMORY_INITIALIZED_FLAG) {                                // if memory has never been initialized, initialize it.
-    loginFailures = MAX_LOGIN_FAILURES + 1;                                     // so that a condition inside of EVENT_RESET evaluates to true and the reset 
+    loginFailures = loginAttempts + 1;                                          // so that a condition inside of EVENT_RESET evaluates to true and the reset 
     FactoryReset();
   };
   
@@ -1489,9 +1502,15 @@ void setup() {                                                                  
     writeLoginFailures();                                                       // and write it to EEprom.
   }
 
+  loginAttempts = getLoginAttempts;                                             // the maximum number of login attempts before factory reset
+  if (loginAttempts == INITIAL_MEMORY_STATE_BYTE) {                             // if loginAttempts has never been written too
+    loginAttempts = ATTEMPTS_DEFAULT;                                           // set it to ATTEMPTS_DEFAULT (10)
+    writeLoginAttempts();                                                       // and write it to EEprom
+  }
+
   RGBLEDIntensity = getRGBLEDInt;                                               // the intensity of the RGB LED
   if (RGBLEDIntensity == INITIAL_MEMORY_STATE_BYTE) {
-    RGBLEDIntensity = RGB_LED_HIGH;
+    RGBLEDIntensity = RGB_LED_DEFAULT;
     writeRGBLEDIntensity();
   }
   
@@ -1516,7 +1535,72 @@ void setup() {                                                                  
   
 void loop() {                                                                   // executes over and over, forever
   encoderButton.loop();                                                         // polling for button press TODO: replace w/ interrupt
+
+  pollEncoder();                                                                // tried to use interrupts for the encoder but the results were inconsistent
+
   ProcessEvent();                                                               // process any events that might have occurred.
+}
+
+void pollEncoder() {
+  change = 0;
+  curModeA = digitalRead(ROTARY_PIN1);
+  curModeB = digitalRead(ROTARY_PIN2);
+  // compare the four possible states to figure out what has happened
+  //   then encrement/decrement the current encoder's position
+  if (curModeA != lastModeA) {
+    if (curModeA == LOW) {
+      if (curModeB == LOW) {
+        encPos--;
+      } else {
+        encPos++;
+      }
+    } else {
+      if (curModeB == LOW) {
+        encPos++;
+      } else {
+        encPos--;
+      }
+    }
+  }
+  if (curModeB != lastModeB) {
+    if (curModeB == LOW) {
+      if (curModeA == LOW) {
+        encPos++;
+      } else {
+        encPos--;
+      }
+    } else {
+      if (curModeA == LOW) {
+        encPos--;
+      } else {
+        encPos++;
+      }
+    }
+  }
+  // set the current pin modes (HIGH/LOW) to be the last know pin modes
+  //   for the next loop to compare to
+  lastModeA = curModeA;
+  lastModeB = curModeB;
+  // if this encoder's position changed, flag the change variable so we
+  //   know about it later
+  if (encPos < encPosLast) {
+    if (encPos%4 == 0) {
+      change = 1;
+      event = EVENT_ROTATE_CW;
+    }
+  } else if (encPos > encPosLast) {
+    if (encPos%4 == 0) {
+      change = 1;
+      event = EVENT_ROTATE_CC;
+    }
+  }
+  
+  if (change == 1) {
+    // if an encoder has changed, do something with that information
+    // here, I am just going to print all the encoder's positions
+    //   if any of them change
+    encPosLast = encPos;
+  }
 }
 
 void ProcessEvent() {                                                           // processes events
@@ -1582,7 +1666,7 @@ void ProcessEvent() {                                                           
     } else if ((STATE_ENTER_MASTER   == machineState  ) ||
                (STATE_EDIT_ACCOUNT   == machineState  ) ||
                (STATE_EDIT_STYLE     == machineState  ) ||
-               (STATE_EDIT_GROUPS    == machineState  ) ||                      // x
+               (STATE_EDIT_GROUPS    == machineState  ) ||
                (STATE_EDIT_USERNAME  == machineState  ) ||
                (STATE_EDIT_PASSWORD  == machineState  ) ||
                (STATE_EDIT_WEBSITE   == machineState  ) ||
@@ -1605,8 +1689,8 @@ void ProcessEvent() {                                                           
         MenuDown(currentMenu);
         SwitchRotatePosition(position);
       }
-    } else if (STATE_MENU_FIND_BY_GROUP == machineState) {                      // x
-      if ((position < (GROUP_MENU_ELEMENTS - 1)) && (acctCount > 0)) {           // we'll only show the edit account options when there's at least one account
+    } else if (STATE_MENU_FIND_BY_GROUP == machineState) {
+      if ((position < (GROUP_MENU_ELEMENTS - 1)) && (acctCount > 0)) {          // we'll only show the edit account options when there's at least one account
         position++;
         MenuDown(currentMenu);
       }
@@ -1615,18 +1699,18 @@ void ProcessEvent() {                                                           
                (STATE_DECOY_ON_OFF_MENU   == machineState)) {
       position = !position;                                                     // flip from 0 to 1 or from 1 to 0
       ShowMenu(position, currentMenu);
-    } else if (STATE_MENU_PART_NUM        == machineState) {
-      if (position < EEPROM_PART_MENU_ELEMENTS - 1) {                           // we'll only show the edit account options when there's at least one account
+    } else if (STATE_MENU_LOGIN_ATTEM     == machineState) {
+      if (position < LOGIN_ATTEMPTS_MENU_ELEMENTS - 1) {                        
         position++;
         MenuDown(currentMenu);
       }
     } else if (STATE_MENU_RGB_INTENSITY   == machineState) {
-      if (position < RGB_INTENSITY_MENU_ELEMENTS - 1) {                         // we'll only show the edit account options when there's at least one account
+      if (position < RGB_INTENSITY_MENU_ELEMENTS - 1) {                         
         position++;
         MenuDown(currentMenu);
       }
     } else if (STATE_MENU_LOGOUT_TIMEOUT  == machineState) {
-      if (position < LOGOUT_TIMEOUT_MENU_ELEMENTS - 1) {                        // we'll only show the edit account options when there's at least one account
+      if (position < LOGOUT_TIMEOUT_MENU_ELEMENTS - 1) {                        
         position++;
         MenuDown(currentMenu);
       }
@@ -1640,7 +1724,7 @@ void ProcessEvent() {                                                           
                (STATE_SEARCH_CUSTOM        == machineState)) {     
       acctPosition = getNextPtr(acctPosition);
       while ( (acctPosition != INITIAL_MEMORY_STATE_BYTE) &&
-             !(readGroupFromEEprom(acctPosition) & groupFilter) ) {             // 
+             !(readGroupFromEEprom(acctPosition) & groupFilter) ) {
         //position = acctPosition;
         acctPosition = getNextPtr(acctPosition);
       }
@@ -1685,10 +1769,11 @@ void ProcessEvent() {                                                           
         position++;
         MenuDown(currentMenu);                                                  // move one position down the current menu
       }
-    } else {
-      DisplayToError("ERR: 030");                                               // invalid state during event rotate clockwise
-      delayNoBlock(ONE_SECOND * 2);
     }
+//      else {
+//      DisplayToError("ERR: 030");                                               // invalid state during event rotate clockwise
+//      delayNoBlock(ONE_SECOND * 2);
+//    }
     event = EVENT_NONE;                                                         // to prevent infinite looping
     
   } else if (event == EVENT_ROTATE_CC) {                                        // scroll backward through something depending on state...
@@ -1731,7 +1816,7 @@ void ProcessEvent() {                                                           
                (STATE_DECOY_ON_OFF_MENU   == machineState)   ) {                // EVENT_ROTATE_CC
       position = !position;                                                     // flip from 0 to 1 or from 1 to 0
       ShowMenu(position, currentMenu);
-    } else if ((STATE_MENU_PART_NUM       == machineState) ||
+    } else if ((STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState)   ) {                // EVENT_ROTATE_CC
       if (position > 0) {
@@ -1789,7 +1874,7 @@ void ProcessEvent() {                                                           
         MenuUp(currentMenu);
       }
     } else if (STATE_MENU_FILE == machineState) {                               // EVENT_ROTATE_CC
-      if (position > 0) {                                                       // 
+      if (position > 0) {
         position--;
         MenuUp(currentMenu);
       }
@@ -1798,51 +1883,42 @@ void ProcessEvent() {                                                           
         position--;
         MenuUp(currentMenu);
       }
-    } else {
-      DisplayToError("ERR: 029");                                               // invalid state during event rotate counter clockwise
-      delayNoBlock(ONE_SECOND * 2);
-    }
+    } 
+//      else {
+//      DisplayToError("ERR: 029");                                               // invalid state during event rotate counter clockwise
+//      delayNoBlock(ONE_SECOND * 2);
+//    }
     event = EVENT_NONE;
 
   } else if (event == EVENT_SINGLE_CLICK) {                                     // EVENT_SINGLE_CLICK
     if (STATE_SHOW_MAIN_MENU == machineState) {
       switch(position) {
         case ENTER_MASTER_PASSWORD:                                             // Enter master password
-          machineState = STATE_ENTER_MASTER;
-          position = DEFAULT_ALPHA_EDIT_POS;                                    // puts the position of the rotary encoder over 'A' for quicker password  entry                     
-          enterPosition = 0;                                                    
-          char charToPrint[2];
-          charToPrint[0] = allChars[0];
-          charToPrint[1] = NULL_TERM;
-          DisplayToEdit((char *)charToPrint);
-          DisplayToMenu("   Enter Password   ");
-          if (keyboardFlag) {
-            Serial.begin(BAUD_RATE);
-            while(!Serial);
-          }
-          event = EVENT_NONE;
+          setupStateEnterMasterPassword();
           break;
         case FIND_FAVORITE:
-          position = headPosition; 
-          acctPosition = headPosition;
-          uint16_t i; i = 0;                                                    // TODO: this should be uint8_t
-          while ( (acctPosition != INITIAL_MEMORY_STATE_BYTE    ) &&
-                 !(readGroupFromEEprom(acctPosition) & FAVORITES) && 
-                  ( i++ <= CREDS_ACCOMIDATED                    )   ) {         // to stop a suspected infinite loop when there are no favorites
-            acctPosition = getNextPtr(acctPosition);
-          }
-          if (i > CREDS_ACCOMIDATED) {
-            DisplayToError("ERR: 032");
-            delayNoBlock(ONE_SECOND * 2);
-          }
-          if (acctPosition != INITIAL_MEMORY_STATE_BYTE) {                      // we found a favorite
-            position = acctPosition;
-            machineState = STATE_SEARCH_FAVORITES;
-            groupFilter = FAVORITES;                                            // we only want to see favorite and what ever else is in the filter here
-            ShowMenu(FIND_FAVORITE, mainMenu, "   Find Favorite    ");
-            readAcctFromEEProm(position, accountName);
-            DisplayToItem((char *) accountName);
-            DebugLN((char *) accountName);
+          if(acctCount>0) {                                                     // if acctCount is not > 0 then there are not accounts to find
+            position = headPosition; 
+            acctPosition = headPosition;
+            uint16_t i; i = 0;                                                  // TODO: this should be uint8_t
+            while ( (acctPosition != INITIAL_MEMORY_STATE_BYTE    ) &&
+                   !(readGroupFromEEprom(acctPosition) & FAVORITES) && 
+                    ( i++ <= CREDS_ACCOMIDATED                    )   ) {       // to stop a suspected infinite loop when there are no favorites
+              acctPosition = getNextPtr(acctPosition);
+            }
+            if (i > CREDS_ACCOMIDATED) {
+              DisplayToError("ERR: 032");
+              delayNoBlock(ONE_SECOND * 2);
+            }
+            if (acctPosition != INITIAL_MEMORY_STATE_BYTE) {                    // we found a favorite
+              position = acctPosition;
+              machineState = STATE_SEARCH_FAVORITES;
+              groupFilter = FAVORITES;                                          // we only want to see favorite and what ever else is in the filter here
+              ShowMenu(FIND_FAVORITE, mainMenu, "   Find Favorite    ");
+              readAcctFromEEProm(position, accountName);
+              DisplayToItem((char *) accountName);
+              DebugLN((char *) accountName);
+            }
           }
           event = EVENT_NONE;
           break;
@@ -1850,10 +1926,17 @@ void ProcessEvent() {                                                           
           if(acctCount>0) {                                                     // if acctCount is not > 0 then there are not accounts to find
             addFlag = false;
             switchToFindAcctMenu();
+          } else {
+            event = EVENT_NONE;
           }
           break;
         case FIND_BY_GROUP:
-          switchFindByGroup();
+          if(acctCount>0) {                                                     // if acctCount is not > 0 then there are not accounts to find
+            addFlag = false;
+            switchFindByGroup();
+          } else {
+            event = EVENT_NONE;
+          }
           break;
         case ADD_ACCOUNT:                                                       // Add account
           addFlag = true;                                                       // necessary for when we return to the main menu
@@ -1920,7 +2003,7 @@ void ProcessEvent() {                                                           
             event = EVENT_NONE;
           }
           break; 
-        case EDIT_USERNAME:                                                    // Enter username     
+        case EDIT_USERNAME:                                                    // Enter user name     
           DisplayToMenu(accountName);
           DisplayToItem("Edit User Name");
           BlankLine3();
@@ -2065,7 +2148,7 @@ void ProcessEvent() {                                                           
     } else if ((STATE_KEY_ON_OFF_MENU     == machineState) ||                   // EVENT_SINGLE_CLICK
                (STATE_SHOW_PW_ON_OFF_MENU == machineState) ||
                (STATE_DECOY_ON_OFF_MENU   == machineState) ||
-               (STATE_MENU_PART_NUM       == machineState) ||
+               (STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState)  ) {
       switch (machineState) {                                                   // TODO: this is a weird way to do this... fix it.
@@ -2084,24 +2167,27 @@ void ProcessEvent() {                                                           
           writeDecoyPWFlag();
           DisplayToStatus("Decoy Setting Saved");
           break;
-        case STATE_MENU_PART_NUM:
+        case STATE_MENU_LOGIN_ATTEM:
           switch (position) {
-            case EEPROM_PART_25LC256:
-              EEPromPartNum = EEPROM_PART_25LC256;
+            case LOGIN_ATTEMPTS_3:
+              loginAttempts = ATTEMPTS_3;
               break;
-            case EEPROM_PART_25LC512:
-              EEPromPartNum = EEPROM_PART_25LC512;
+            case LOGIN_ATTEMPTS_5:
+              loginAttempts = ATTEMPTS_5;
               break;
-            case EEPROM_PART_25LC1024:
-              EEPromPartNum = EEPROM_PART_25LC1024;
+            case LOGIN_ATTEMPTS_10:
+              loginAttempts = ATTEMPTS_10;
+              break;
+            case LOGIN_ATTEMPTS_25:
+              loginAttempts = ATTEMPTS_25;
               break;
             default:
-              EEPromPartNum = EEPROM_PART_25LC256;
+              loginAttempts = ATTEMPTS_DEFAULT;
               DisplayToError("ERR: 009");
               break;
           }
-          writeEEPromPartNum();
-          DisplayToStatus("PartNo Setting Saved");
+          writeLoginAttempts();
+          DisplayToStatus("Max bad logins saved");
           break;
         case STATE_MENU_RGB_INTENSITY:                                          // EVENT_SINGLE_CLICK
           switch (position) {
@@ -2118,7 +2204,7 @@ void ProcessEvent() {                                                           
               RGBLEDIntensity = RGB_LED_OFF;
               break;
             default:
-              RGBLEDIntensity = RGB_LED_HIGH;
+              RGBLEDIntensity = RGB_LED_DEFAULT;
               DisplayToError("ERR: 010");
               break;
           }
@@ -2167,7 +2253,7 @@ void ProcessEvent() {                                                           
       event = EVENT_NONE;
       switch(position) {
          case SEND_USER_AND_PASSWORD:                                                                
-            sendUsernameAndPassword();                                          // Send the username and password
+            sendUsernameAndPassword();                                          // Send the user name and password
             DisplayToStatus("Sent user/pass");
             break; 
          case SEND_PASSWORD:                                                    
@@ -2176,7 +2262,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus("Sent password");
             break;
          case SEND_USERNAME:                                                    
-            sendUsername();                                                     // Send the username
+            sendUsername();                                                     // Send the user name
             DisplayToStatus("Sent username");
             break;
          case SEND_PASSWORD_NO_RET:
@@ -2295,9 +2381,9 @@ void ProcessEvent() {                                                           
         case SETTINGS_CHANGE_MASTER:
           event = EVENT_CHANGE_MASTER;
           break;
-        case SETTINGS_SET_PART_NUM:
-          machineState = STATE_MENU_PART_NUM;
-          event = EVENT_SHOW_PART_NUM_MENU;
+        case SETTINGS_SET_LOGIN_ATTEM:
+          machineState = STATE_MENU_LOGIN_ATTEM;
+          event = EVENT_SHOW_LG_ATTEM_MENU;
           break;
         default:
           DisplayToError("ERR: 005");
@@ -2352,7 +2438,7 @@ void ProcessEvent() {                                                           
         DisplayBuffer();
         event = EVENT_NONE;
       } else {
-        if (loginFailures >= MAX_LOGIN_FAILURES) {                              // have we exhausted our attempts?
+        if (loginFailures >= loginAttempts) {                                   // have we exhausted our attempts?
           FactoryReset();                                                       // bypass confirm choice, go directly to FactoryReset.
         } else {  
           position = 0;
@@ -2510,7 +2596,7 @@ void ProcessEvent() {                                                           
     } else if ((STATE_KEY_ON_OFF_MENU     == machineState) ||                   // EVENT_LONG_CLICK
                (STATE_SHOW_PW_ON_OFF_MENU == machineState) ||
                (STATE_DECOY_ON_OFF_MENU   == machineState) ||
-               (STATE_MENU_PART_NUM       == machineState) ||
+               (STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState)    ){
       position = 0;                                                             // return to the top of the settings menu
@@ -2675,37 +2761,39 @@ void ProcessEvent() {                                                           
     ShowMenu(position, currentMenu, "   Logout Timeout   ");  
     event = EVENT_NONE;
 
-  } else if (event == EVENT_SHOW_PART_NUM_MENU) {
-    menuNumber = EEPROM_PART_MENU_NUMBER;
+  } else if (event == EVENT_SHOW_LG_ATTEM_MENU) {
+    menuNumber = LOGIN_ATTEMPTS_MENU_NUMBER;
     int arraySize = 0;
     for (uint8_t i = 0; i < MENU_SIZE; i++) {
-      arraySize += sizeof(EEPromPartsMenu[i]);
+      arraySize += sizeof(LoginAttemptsMenu[i]);
     }
-    memcpy(currentMenu, EEPromPartsMenu, arraySize);
-    elements = EEPROM_PART_MENU_ELEMENTS;
-    position = 0;                                                               // only one part number right now
-    switch (EEPromPartNum) {
-      case EEPROM_PART_25LC256:
+    memcpy(currentMenu, LoginAttemptsMenu, arraySize);
+    elements = LOGIN_ATTEMPTS_MENU_ELEMENTS;
+    switch (loginAttempts) {
+      case ATTEMPTS_3:
         position = 0;
         break;
-      case EEPROM_PART_25LC512:
+      case ATTEMPTS_5:
         position = 1;
         break;
-      case EEPROM_PART_25LC1024:
+      case ATTEMPTS_10:
         position = 2;
+        break;
+      case ATTEMPTS_25:
+        position = 3;
         break;
       default:
         position = 0;
         DisplayToError("ERR: 017");
         break;
     }
-    ShowMenu(position, currentMenu, "   EEprom Part #   ");  
+    ShowMenu(position, currentMenu, "   Login Attempts   ");  
     event = EVENT_NONE;
 
   } else if (event == EVENT_CHANGE_MASTER) {
     machineState = STATE_CHANGE_MASTER;
     position = DEFAULT_ALPHA_EDIT_POS;                                          // puts the position of the rotary encoder over 'A' for quicker password  entry                     
-    enterPosition = 0;                                                    
+    enterPosition = 0;
     char charToPrint[2];
     charToPrint[0] = allChars[0];
     charToPrint[1] = NULL_TERM;
@@ -2758,6 +2846,22 @@ void ProcessEvent() {                                                           
   }
 }
 
+void setupStateEnterMasterPassword() {
+  machineState = STATE_ENTER_MASTER;
+  position = DEFAULT_ALPHA_EDIT_POS;                                            // puts the position of the rotary encoder over 'A' for quicker password  entry                     
+  enterPosition = 0;
+  char charToPrint[2];
+  charToPrint[0] = allChars[0];
+  charToPrint[1] = NULL_TERM;
+  DisplayToEdit((char *)charToPrint);
+  DisplayToMenu("   Enter Password   ");
+  //if (keyboardFlag) {                                                         // commented out because master password must always be entered via rotary encoder
+  //  Serial.begin(BAUD_RATE);
+  //  while(!Serial);                                                           // we get stuck here if keyboard is on and we logout and try to log back in
+  //}
+  event = EVENT_NONE;
+}  
+
 void PopulateGlobals() {  
   DisableInterrupts();
   
@@ -2774,10 +2878,10 @@ void PopulateGlobals() {
   }
   DebugMetric("logoutTimeout: ", logoutTimeout);
   
-  EEPromPartNum = getEEPromPartNum;                                             // the part number of the EEprom chip used in the device
-  if (EEPromPartNum == INITIAL_MEMORY_STATE_BYTE) {
-    EEPromPartNum = 0;
-    writeEEPromPartNum();
+  loginAttempts = getLoginAttempts;                                             // the maximum number of login attempts before factory reset
+  if (loginAttempts == INITIAL_MEMORY_STATE_BYTE) {
+    loginAttempts = ATTEMPTS_DEFAULT;
+    writeLoginAttempts();
   }
 
   headPosition = getListHeadPosition();                                         // read the head of the doubly linked list that sorts by account name
@@ -2852,7 +2956,7 @@ void enterAttributeChar(char *attribute, uint8_t passwordFlag) {
   event = EVENT_NONE;
 }
 
-void ConfirmChoice(int state) {                                                 // display the menu item that confirms execution of some destructive function
+void ConfirmChoice(uint8_t state) {                                                 // display the menu item that confirms execution of some destructive function
   DebugLN("ConfirmChoice()");
   machineState = state;                                                         // set machineState to the passed in state
   DisplayToEdit("Are you sure? ");
@@ -3102,7 +3206,7 @@ void ReadSaltAndSetKey(uint8_t position) {
 
 void FactoryReset() {
   DebugLN("FactoryReset()");
-  if (authenticated || (loginFailures > MAX_LOGIN_FAILURES)) {                  // TODO: re-enter master password here to authorize creds reset
+  if (authenticated || (loginFailures > loginAttempts)) {                       // TODO: re-enter master password here to authorize creds reset
     DisplayToStatus("Initializing...");
     InitializeGlobals();
     BlankLine2();
@@ -3122,9 +3226,13 @@ void FactoryReset() {
     writeKeyboardFlag();
     decoyPassword = true;
     writeDecoyPWFlag();
+    loginAttempts = ATTEMPTS_DEFAULT;                                           // set it to ATTEMPTS_DEFAULT (10)
+    writeLoginAttempts();                                                       // and write it to EEprom
+    RGBLEDIntensity = RGB_LED_DEFAULT;
+    writeRGBLEDIntensity();
+    randomSeed(analogRead(RANDOM_PIN));                                         // seed the random number generator
     ShowSplashScreen();
     DisplayToStatus("Factory Reset");
-    randomSeed(analogRead(RANDOM_PIN));                                         // seed the random number generator
     event = EVENT_SHOW_MAIN_MENU;                                               // first job is to show the first element of the main menu
   } else { 
     BlankLine2();
@@ -3146,13 +3254,20 @@ void InitializeGlobals() {
   machineState = 0;                                                             // the state of the device
   position = 0;                                                                 // the position of the rotary encoder, used to navigate menus and enter text.
   enterPosition = 0;                                                            // when alpha editing w/ rotary encoder, position in the edited word
-  acctPosition = 0;                                                             // the positon of the selected account.
+  acctPosition = 0;                                                             // the position of the selected account.
   acctCount = 0;                                                                // the number of accounts in EEprom.
   iterationCount = 0;                                                           // # of times ProcessEvent() called since last evaluation of lastActivityTime
   headPosition = 0;                                                             // the head of the doubly linked list that keeps account names sorted
   tailPosition = 0;                                                             // the tail of the doubly linked list that keeps account names sorted
+  loginFailures = 0;
+  lastModeA = LOW;
+  lastModeB = LOW;
+  curModeA = LOW;
+  curModeB = LOW;
+  encPos = 0;
+  encPosLast = 0;
+  change = 0;
   lastActivityTime = millis();                                                  // used to automatically logout after a period of inactivity
-  loginFailures = 0;  
 }
 
 void ShowSplashScreen() {
@@ -3162,20 +3277,6 @@ void ShowSplashScreen() {
     DisplayBuffer();
     delayNoBlock(ONE_SECOND * 3);                                               // Show the splash screen for 3 seconds
     BlankLine3();
-}
-
-//- Interrupt Service Routines
-
-void RotaryInterrput() {
-  unsigned char result = rotaryEncoder.process();   
-  if (result == DIR_CW) {                                                       // rotated encoder clockwise
-    event = EVENT_ROTATE_CW;
-    //DebugLN("Rotary event rotate clockwise");
-  }
-  else if (result == DIR_CCW) {                                                 // rotated encoder counter clockwise
-    event = EVENT_ROTATE_CC;
-    //DebugLN("Rotary event rotate counter clockwise");
-  }
 }
 
 //- Button
@@ -3224,7 +3325,7 @@ void deleteAccount(uint8_t position) {
   char firstNullTermArray[1];
   firstNullTermArray[0] = NULL_TERM;                                            // equivalent to ""
   writeAllToEEProm( allBitsOnArray,                                             // account:  "-1\0", the -1 signals that the position is free/empty/available.
-                    firstNullTermArray,                                         // username: "\0", so when it is read it will come back empty
+                    firstNullTermArray,                                         // user name: "\0", so when it is read it will come back empty
                     emptyPassword,                                              // password: "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", to overwrite the entire pw
                     position                );                                  // position to be deleted
   accountName[0] = NULL_TERM;
@@ -3270,7 +3371,7 @@ void sendAccount() {
   readAcctFromEEProm(acctPosition, accountName);                                // read the account name from EEProm
   char accountNameChar[ACCOUNT_SIZE];
   memcpy(accountNameChar,accountName,ACCOUNT_SIZE);                             // TODO: is this necessary?
-  Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated usernames.
+  Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated user names.
   uint8_t pos = 0;
   while (accountNameChar[pos] != NULL_TERM) {
     Keyboard.write(accountNameChar[pos++]);                                     // using Keyboard.println() here doesn't work; the Keyboard.println function appears to generate corrupt output (e.g. ".com" == ".comcast")
@@ -3284,7 +3385,7 @@ void sendOldPassword() {
   readOldPassFromEEProm(acctPosition, oldPassword);                             // read the old password from EEProm
   char oldPasswordChar[PASSWORD_SIZE];
   memcpy(oldPasswordChar,oldPassword,PASSWORD_SIZE);                            // TODO: is this necessary?
-  Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated usernames.
+  Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated user names.
   uint8_t pos = 0;
   while (oldPasswordChar[pos] != NULL_TERM) {
     Keyboard.write(oldPasswordChar[pos++]);                                     // using Keyboard.println() here doesn't work; the Keyboard.println function appears to generate corrupt output (e.g. ".com" == ".comcast")
@@ -3294,11 +3395,11 @@ void sendOldPassword() {
 
 void sendUsername() {
   DebugLN("sendUsername()");
-  readUserFromEEProm(acctPosition, username);                                   // read the username from EEProm
+  readUserFromEEProm(acctPosition, username);                                   // read the user name from EEProm
   char usernameChar[USERNAME_SIZE];
   memcpy(usernameChar,username,USERNAME_SIZE);
   Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated usernames.
-  Keyboard.print(usernameChar);                                                 // type the username through the keyboard
+  Keyboard.print(usernameChar);                                                 // type the user name through the keyboard
   Keyboard.end();
 }
 
@@ -3307,7 +3408,7 @@ void sendWebSite() {
   readWebSiteFromEEProm(acctPosition, website);                                 // read the URL from EEProm
   char websiteChar[WEBSITE_SIZE];
   memcpy(websiteChar,website,WEBSITE_SIZE);
-  Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated usernames.
+  Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated user names.
   Keyboard.println(websiteChar);                                                // type the URL through the keyboard
   Keyboard.end();
 }
@@ -3341,7 +3442,7 @@ void sendUsernameAndPassword() {
   readAcctFromEEProm(acctPosition, accountName);                                // TODO: is the read from EEprom necessary at this point?
   char accountNameChar[ACCOUNT_SIZE];
   memcpy(accountNameChar,accountName,ACCOUNT_SIZE);
-  readUserFromEEProm(acctPosition, username);                                   // read the username from EEProm
+  readUserFromEEProm(acctPosition, username);                                   // read the user name from EEProm
   char usernameChar[USERNAME_SIZE];
   memcpy(usernameChar,username,USERNAME_SIZE);
   readPassFromEEProm(acctPosition, password);                                   // read the password from EEProm
@@ -3351,7 +3452,7 @@ void sendUsernameAndPassword() {
   Keyboard.begin();
   uint8_t i = 0;
   while (usernameChar[i++] != NULL_TERM) {
-    Keyboard.write(usernameChar[i - 1]);                                        // seems to be a problem only with single character usernames.
+    Keyboard.write(usernameChar[i - 1]);                                        // seems to be a problem only with single character user names.
   }
   if ((strcmp(style, "0") == 0              ) ||
       (style[0] == INITIAL_MEMORY_STATE_CHAR)   ) {                             // this should make <CR> the default
@@ -3396,7 +3497,7 @@ void BackupToPPCVSFile() {                                                      
 }
 
 /* Currently defunct
-void sendAll() {                                                                // this is the function we use to backup all of the accountnames, usernames and passwords
+void sendAll() {                                                                // this is the function we use to backup all of the account names, user names and passwords
   DebugLN("sendAll()");
   DisplayToStatus("Backup to file");
   setPurple();
@@ -3446,6 +3547,12 @@ void DisplayToStatus(char* lineToPrint) {
 }
 
 void DisplayToError(char* lineToPrint) {
+  strncpy(line3DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
+  line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
+  DisplayBuffer();
+}
+
+void DisplayToDebug(char* lineToPrint) {
   strncpy(line3DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
   line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
   DisplayBuffer();
@@ -3639,7 +3746,7 @@ boolean authenticateMaster(char *enteredPassword) {                             
           if (authenticateMaster(subbuff)) {                                    // check to see if the correct master password was entered after "FR"
             uint8_t originalRGBLEDIntensity = RGBLEDIntensity;                  // save the setting for the RGB LED intensity
             RGBLEDIntensity = 0;                                                // don't call attention to the fact that we're wiping the device, turn off the RGB LED
-            loginFailures = 1 + MAX_LOGIN_FAILURES;                             // forces the factory reset to execute
+            loginFailures = 1 + loginAttempts;                                  // forces the factory reset to execute
             FactoryReset();                                                     // "FR" followed by master password was entered, and decoy password feature is enabled, factory reset the device
             RGBLEDIntensity = originalRGBLEDIntensity;                          // turn the RGB LED back on (if it was ever on)
             setRed();                                                           // turn the RGB red to signal the incorrect password was provided
@@ -4018,9 +4125,9 @@ void writeLogoutTimeout() {
   write_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT, logoutTimeout);
 }
 
-void writeEEPromPartNum() {
-  DebugLN("writeEEPromPartNum()");
-  write_eeprom_byte(GET_ADDR_EEPROM_PART_NUM, EEPromPartNum);
+void writeLoginAttempts() {
+  DebugLN("writeLoginAttempts()");
+  write_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM, loginAttempts);
 }
 
                                                                                 // This function is used by the other, higher-level functions
@@ -4679,7 +4786,7 @@ void importKeePassCSV() {
             if (len > 0) {
               ReadSaltAndSetKey(pos);
               encrypt32Bytes(bufferUser, field);
-              eeprom_write_bytes(GET_ADDR_USER(pos), bufferUser, USERNAME_SIZE);// write the username to eeprom
+              eeprom_write_bytes(GET_ADDR_USER(pos), bufferUser, USERNAME_SIZE);// write the user name to eeprom
             } else {
               field[0] = NULL_TERM;
               ReadSaltAndSetKey(pos);
@@ -4854,7 +4961,7 @@ void RestoreFromPPCVSFile() {
             if (len > 0) {
               ReadSaltAndSetKey(pos);
               encrypt32Bytes(bufferUser, field);
-              eeprom_write_bytes(GET_ADDR_USER(pos), bufferUser, USERNAME_SIZE);// write the username to eeprom
+              eeprom_write_bytes(GET_ADDR_USER(pos), bufferUser, USERNAME_SIZE);// write the user name to eeprom
             } else {
               field[0] = NULL_TERM;
               ReadSaltAndSetKey(pos);
@@ -5064,7 +5171,7 @@ void ImportChromeExportFile() {
             if (len > 0) {
               ReadSaltAndSetKey(pos);
               encrypt32Bytes(bufferUser, field);
-              eeprom_write_bytes(GET_ADDR_USER(pos), bufferUser, USERNAME_SIZE);// write the username to eeprom
+              eeprom_write_bytes(GET_ADDR_USER(pos), bufferUser, USERNAME_SIZE);// write the user name to eeprom
             } else {
               field[0] = NULL_TERM;
               ReadSaltAndSetKey(pos);
@@ -5329,7 +5436,7 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
     byte aByte = read_eeprom_byte(GET_ADDR_ACCT(pos));
     if (aByte == NULL_TERM) continue;                                           // skip this iteration of the for loop, there are no creds here
     char accountName[ACCOUNT_SIZE];
-    char username[USERNAME_SIZE];                                               // holds the username of the current account
+    char username[USERNAME_SIZE];                                               // holds the user name of the current account
     char salt[SALT_SIZE];                                                       // holds the salt for each set of credentials
     char website[WEBSITE_SIZE];                                                 // holds the URL for the credentials
     char style[STYLE_SIZE];                                                     // holds the style of the current account (<TAB> or <CR> between send user name and password)
@@ -5354,7 +5461,7 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
     //prevPtr = getPrevPtr(pos);
                                                                                 // declare placeholders for encrypted text
     char bufferAcct[ACCOUNT_SIZE];                                              // encrypted account
-    char bufferUser[USERNAME_SIZE];                                             // encrypted username
+    char bufferUser[USERNAME_SIZE];                                             // encrypted user name
     char bufferWebsite[WEBSITE_SIZE];                                           // encrypted web site
     char bufferPass[PASSWORD_SIZE];                                             // encrypted password
     char bufferOldPass[OLD_PASSWORD_SIZE];                                      // encrypted old password
@@ -5391,7 +5498,7 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
     }
 
     encrypt32Bytes(bufferUser, username);                                       // encrypt the user name
-    eeprom_write_bytes(GET_ADDR_USER(pos), bufferUser, USERNAME_SIZE);          // write the username to eeprom
+    eeprom_write_bytes(GET_ADDR_USER(pos), bufferUser, USERNAME_SIZE);          // write the user name to eeprom
   
     encrypt96Bytes(bufferWebsite, website);                                     // encrypt the 64 byte long website
     eeprom_write_bytes(GET_ADDR_WEBSITE(pos), bufferWebsite, WEBSITE_SIZE);     // write the website to eeprom
@@ -5484,222 +5591,3 @@ uint32_t trueRandom()
     return TRNG->TRNG_ODATA;
 }
 */
-
-// Consider substituting this logic for the logic that is currently used to read
-// the rotary encoder positions.
-
-/*
-#define encoderOutA 6 // CLK
-#define encoderOutB 7 // DT
-int counter = 0;
-int State;
-int old_State;
-void setup() {
-  pinMode (encoderOutA, INPUT);
-  pinMode (encoderOutB, INPUT);
-  Serial.begin (9600);
-  //Read First Position of Channel A
-  old_State = digitalRead(encoderOutA);
-}
-
-void loop() {
-  State = digitalRead(encoderOutA);
-  if (State != old_State) {
-    if (digitalRead(encoderOutB) != State) {
-      counter ++;
-    }
-    else {
-      counter --;
-    }
-    Serial.print("Position: ");
-    Serial.println(counter);
-  }
-  old_State = State; // the first position was changed
-}
-*/
-
-
-
-/// Multiple Encoders
-///  Designed for hand-turned encoders, not accurate enough for motors
-///  Developed as an multi-encoder interface to a Nano
-
-//////////////// Prepare some global variables
-// number of encoders
-int numEnc = 2;
-// define the A pins on each encoder (in order)
-int encPinA[2] = {2, 6};
-// define the B pins on each encoder (in order)
-int encPinB[2] = {3, 7};
-// last mode of each pin (HIGH/LOW) for comparison - see if it changed
-int lastModeA[2];
-int lastModeB[2];
-// current mode of each encoder pin (HIGH/LOW)
-int curModeA[2];
-int curModeB[2];
-// current and last encoder positions
-int encPos[2];
-int encPosLast[2];
-// utility variables
-int change = 0;
-int c = 0;
-
-///////////////// Initialize the program
-void setup () {
-  Serial.begin(9600);
-  // set up each encoder's values
-  for (c = 0; c < numEnc; c++) {
-    // tell us what it is doing
-    Serial.print("Initializing encoder ");
-    Serial.println(c);
-    // set the pins form INPUT
-    pinMode(encPinA[c], INPUT);
-    pinMode(encPinB[c], INPUT);
-    // set the modes and positions - on first read, it may change position once
-    //   depending on how the encoders are sitting (having a HIGH position that
-    //   gets compared to the initial LOW setting here in the first iteration of
-    //   the loop).
-    lastModeA[c] = LOW;
-    lastModeB[c] = LOW;
-    curModeA[c] = LOW;
-    curModeB[c] = LOW;
-    encPos[c] = 0;
-    encPosLast[c] = 0;
-  }
-  Serial.println("---- Ready -------------------------------");
-}
-
-
-///////////////// Body of the program
-void loop () {
-  // read in current values
-  // set the change variable to 0.  If there is an encoder position change,
-  //   this gets changed to 1.  This lets a later portion of the loop that
-  //   a change has been made and it doesn't have to compare all the modes
-  //   again.
-  change = 0;
-  // loop through each of the encoders
-  for (c = 0; c < numEnc; c++) {
-    // read the current state of the current encoder's pins
-    curModeA[c] = digitalRead(encPinA[c]);
-    curModeB[c] = digitalRead(encPinB[c]);
-    // compare the four possible states to figure out what has happened
-    //   then encrement/decrement the current encoder's position
-    if (curModeA[c] != lastModeA[c]) {
-      if (curModeA[c] == LOW) {
-        if (curModeB[c] == LOW) {
-          encPos[c]--;
-        } else {
-          encPos[c]++;
-        }
-      } else {
-        if (curModeB[c] == LOW) {
-          encPos[c]++;
-        } else {
-          encPos[c]--;
-        }
-      }
-    }
-    if (curModeB[c] != lastModeB[c]) {
-      if (curModeB[c] == LOW) {
-        if (curModeA[c] == LOW) {
-          encPos[c]++;
-        } else {
-          encPos[c]--;
-        }
-      } else {
-        if (curModeA[c] == LOW) {
-          encPos[c]--;
-        } else {
-          encPos[c]++;
-        }
-      }
-    }
-    // set the current pin modes (HIGH/LOW) to be the last know pin modes
-    //   for the next loop to compare to
-    lastModeA[c] = curModeA[c];
-    lastModeB[c] = curModeB[c];
-    // if this encoder's position changed, flag the change variable so we
-    //   know about it later
-    if (encPos[c] != encPosLast[c]) {
-      change = 1;
-    }
-  }
-
-  if (change == 1) {
-    // if an encoder has changed, do something with that information
-    // here, I am just going to print all the encoder's positions
-    //   if any of them change
-    for (c = 0; c < numEnc; c++) {
-      Serial.print("  Position");
-      Serial.print(c);
-      Serial.print(": ");
-      Serial.print(encPos[c]);
-      encPosLast[c] = encPos[c];
-    }
-    Serial.println();
-    // debounce - if there has been a change, wait for a bit (so to speak) to let the
-    //   bounces settle - change to your liking
-    delay(100);
-  }
-}
-
-----------------------------------------------------------------------------
-  void _lowlevel_ReadEncoder();
-
-// Digital pin definitions
-enum enDigitalPins
-{
-  // Rotary encoder input lines
-  dpInEncoderA=A0,
-  dpInEncoderB=A1,
-};
-
-volatile int position = 0;
-
-static void _ResetPins()
-{
-  // Rotary encoder input lines
-  // Configure as input, turn on pullup resistors
-    pinMode(dpInEncoderA, INPUT_PULLUP);
-    pinMode(dpInEncoderB, INPUT_PULLUP);
-    attachInterrupt(dpInEncoderA, _lowlevel_ReadEncoder, RISING);
-}
-
-
-void _lowlevel_ReadEncoder()
-{
-  position += digitalRead(dpInEncoderB) * 2 - 1; // if rotate is HIGH add one, else subtract one.
-}
-
-
-void setup()
-{
-  // configure the pins
-  _ResetPins();
-
-  // init serial communication
-  SerialUSB.begin(115200); 
-  SerialUSB.println("Ready to begin");
-}
-
-
-void loop()
-{
-  int last_pos = 0;
-  while(true){
-    if(position != last_pos){
-      SerialUSB.print(last_pos);
-      SerialUSB.print(" ");
-      SerialUSB.print(position);
-      SerialUSB.print(" ");
-      if(position > last_pos){
-	SerialUSB.println("+");
-      }
-      else{
-	SerialUSB.println("-");
-      }
-      last_pos = position;
-    }
-  }
-}
