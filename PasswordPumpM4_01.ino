@@ -9,9 +9,9 @@
   MCU:          ATSAMD51J19 Cortex M4 processor
   Language:     Arduino C
   Memory:       512KB Flash and 192KB RAM
-  EEprom:       2MB of SPI Flash
+  EEprom:       2MB of SPI Flash (not used)
   Clock Speed:  120MHz
-  Voltage:      3.3v MCU & 24LC256 EEProm / 5v RGB LED, Rotary Encoder, 
+  Voltage:      3.3v MCU & 25LC512 EEProm / 5v RGB LED, Rotary Encoder, 
                 SSD1306 OLED 
   Current:      0.03A
   Components:   RGB LED, SSD1306 128x32 LED  display, one momentary push button, 
