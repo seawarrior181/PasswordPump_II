@@ -13,6 +13,7 @@
   Clock Speed:  120MHz
   Voltage:      3.3v MCU & 24LC256 EEProm / 5v RGB LED, Rotary Encoder, 
                 SSD1306 OLED 
+  Current:      0.03A
   Author:       Daniel J. Murphy
   Components:   RGB LED, SSD1306 128x32 LED  display, one momentary push button, 
                 one  rotary encoder,  2 4.7kohm  resistors  for  I2C,  3  220ohm 
