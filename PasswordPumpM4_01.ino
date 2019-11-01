@@ -2,8 +2,8 @@
   PasswordPumpM4_01.ino
 
   Project Name: PasswordPump, a password manager
+  Author:       Daniel J. Murphy
   Version:      2.0
-  Date:         2019/07/26
   Date:         2019/07/26
   Device:       Adafruit ItsyBitsy M4 Express‎
   MCU:          ATSAMD51J19 Cortex M4 processor
@@ -14,7 +14,6 @@
   Voltage:      3.3v MCU & 24LC256 EEProm / 5v RGB LED, Rotary Encoder, 
                 SSD1306 OLED 
   Current:      0.03A
-  Author:       Daniel J. Murphy
   Components:   RGB LED, SSD1306 128x32 LED  display, one momentary push button, 
                 one  rotary encoder,  2 4.7kohm  resistors  for  I2C,  3  220ohm 
                 resistors  for  the  RGB  LED,  2 25LC512 external EEprom chips, 
