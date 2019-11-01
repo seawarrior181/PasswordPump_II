@@ -685,6 +685,10 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)     // The number of login attempts before we factory reset
 #define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
 
+#if defined(__SAMD51__) && defined(SERIAL_PORT_USBVIRTUAL)                      // Required for Serial on Zero based boards
+  #define Serial SERIAL_PORT_USBVIRTUAL
+#endif
+
 #define KEEPASS_CSV               "KPEXPORT.CSV"
 #define KEEPASS_COLUMNS           5
 
@@ -764,7 +768,6 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define ATTEMPTS_10               10
 #define ATTEMPTS_25               25
 #define ATTEMPTS_DEFAULT          ATTEMPTS_10
-
 
 #define MAX_ITERATION_COUNT       1048575
 
@@ -1503,7 +1506,8 @@ void setup() {                                                                  
   }
 
   loginAttempts = getLoginAttempts;                                             // the maximum number of login attempts before factory reset
-  if (loginAttempts == INITIAL_MEMORY_STATE_BYTE) {                             // if loginAttempts has never been written too
+  if ((loginAttempts == INITIAL_MEMORY_STATE_BYTE) ||                           // if loginAttempts has never been written too
+      (loginAttempts < LOGIN_ATTEMPTS_3          )   ) {                        // or loginAttempts is somehow < 3
     loginAttempts = ATTEMPTS_DEFAULT;                                           // set it to ATTEMPTS_DEFAULT (10)
     writeLoginAttempts();                                                       // and write it to EEprom
   }
