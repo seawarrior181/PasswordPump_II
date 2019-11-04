@@ -134,15 +134,16 @@
   * After entering Style, we return to Account Name, but account name is blank.
   * When importing 112 keepass credential sets only 49 make it into the EEprom.
   * remove inclusion of /\@"'` from generated passwords
-  * we are authenticated after blowing all the creds away after 10 failures
+  * we are authenticated after blowing all the credentials away after 10 
+    failures
   * Phantom account is getting added to the list of accounts
   * Fix issue w/ screen "trash"
   * DisplayLine2 needs to be blanked out after retuning from Find or Add acct.
   * When you enter Find Account the account name of the first account isn't 
     getting displayed (except on display line 3).
   * FactoryReset isn't deleting credentials
-  * after deleting an account we're returned to the send cred menu instead of  
-    the find account menu
+  * after deleting an account we're returned to the send credentials menu 
+    instead of the find account menu
   * When logging in via Remote Desktop and suppling the user name and password,
     we seem to 'hit return' after entering just the user name.
   * automatic initialization after 10 failed login attempts is prompting the 
@@ -200,7 +201,7 @@
   - Add a search capability that scrolls through the alphabet
   - Export to KeePass CSV format
   - Export to LastPass format
-  - re-enter master password to authorize creds reset
+  - re-enter master password to authorize credentials reset
   - Consolidate code in the import files sections
   - A back space should be available during character input via rotary encoder.
   ? Add a feature whereby the unit factory resets after two triple clicks, even
@@ -666,6 +667,7 @@ SOH  - 01   Read                            Account     NULL_TERM
 #include <Adafruit_SSD1306.h>
 #include "SdFat.h"                                                              // https://github.com/greiman/SdFat
 #include "Adafruit_SPIFlash.h"                                                  // https://github.com/adafruit/Adafruit_SPIFlash
+#include "CmdMessenger.h"
 
 #include <stdio.h>                                                              // needed for CSV file program
 #include <string.h>                                                             //  "     "       "       "
@@ -1162,6 +1164,10 @@ const char * const fileMenu[] = {                "Backup EEprom",               
 
 //- Global Variables                                                            // char is signed by default. byte is unsigned.
 
+                                                                                // CMDMessenger vars
+char field_separator   = ',';                                                   
+char command_separator = ';';
+char escape_separator  = '/';
                                                                                 // CSV Processing
 enum { NOMEM = -2 };                                                            // out of memory signal
 static char *line    = NULL;                                                    // input chars
@@ -1256,6 +1262,29 @@ uint8_t groupFilter = ALL_GROUPS;                                               
 char buf[MAX_LEN_CSV_LINE];                                                     // input line buffer, CSV file processing
 char *unquote(char *);
 
+enum                                                                            // Commands for CMDMessenger
+{
+  // Commands
+  pyReadAccountName     ,
+  pyReadUserName        ,
+  pyReadPassword        ,
+  pyReadURL             ,
+  pyReadStyle           ,
+  pyReadOldPassword     ,
+  pyUpdateAccountName   ,
+  pyUpdateUserName      ,
+  pyUpdatePassword      ,
+  pyUpdateURL           ,
+  pyUpdateStyle         ,
+  pyGetNextPos          ,
+  pyGetPrevPos          ,
+  pyReadHead            ,
+  pyReadTail            ,
+  pyGetNextFreePos      ,
+  kError                                                                        // Command to message that an error has occurred
+
+};
+
 //- Global Volatile variables.
                                                                                 // TODO: these variables no longer need to be volatile since we're not using interrupts
 volatile boolean interruptsOn = true;
@@ -1263,6 +1292,7 @@ volatile uint8_t event = EVENT_NONE;                                            
 
 //- Object setup
 
+CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separator); // Attach a new CmdMessenger object to the default Serial port
 SHA256 sha256;
 AESSmall256 aes;                                                                // 32 byte key, 32 byte block; this uses 4% more program memory. Set 
                                                                                 // MASTER_PASSWORD_SIZE = 32 when in use.
@@ -1533,6 +1563,8 @@ void setup() {                                                                  
   lastActivityTime = millis();                                                  // establish the start time for when the device is powered up
   authenticated = false;                                                        // we're not authenticated yet!
 
+  attachCommandCallbacks();
+  
   event = EVENT_SHOW_MAIN_MENU;                                                 // first job is to show the first element of the main menu
   EnableInterrupts();                                                           // Turn on global interrupts
 }
@@ -1543,6 +1575,82 @@ void loop() {                                                                   
   pollEncoder();                                                                // tried to use interrupts for the encoder but the results were inconsistent
 
   ProcessEvent();                                                               // process any events that might have occurred.
+}
+
+                                                                                // Commands we send from the PC and want to receive on the Arduino.
+void attachCommandCallbacks()                                                   // We must define a callback function in our Arduino program for each entry in the list below.
+{
+  // Attach callback methods
+  cmdMessenger.attach(OnUnknownCommand);
+  cmdMessenger.attach(pyReadAccountName     , OnReadAccountName);
+  cmdMessenger.attach(pyReadUserName        , OnReadUserName);
+  cmdMessenger.attach(pyReadPassword        , OnReadPassword);
+  cmdMessenger.attach(pyReadURL             , OnReadURL);
+  cmdMessenger.attach(pyReadStyle           , OnReadStyle);
+  cmdMessenger.attach(pyReadOldPassword     , OnReadOldPassword);
+  cmdMessenger.attach(pyUpdateAccountName   , OnUpdateAccountName);
+  cmdMessenger.attach(pyUpdateUserName      , OnUpdateUserName);
+  cmdMessenger.attach(pyUpdatePassword      , OnUpdatePassword);
+  cmdMessenger.attach(pyUpdateURL           , OnUpdateURL);
+  cmdMessenger.attach(pyUpdateStyle         , OnUpdateStyle);
+  cmdMessenger.attach(pyGetNextPos          , OnGetNextPos);
+  cmdMessenger.attach(pyGetPrevPos          , OnGetPrevPos);
+  cmdMessenger.attach(pyReadHead            , OnReadHead);
+  cmdMessenger.attach(pyReadTail            , OnReadTail);
+  cmdMessenger.attach(pyGetNextFreePos      , OnGetNextFreePos);
+}
+
+void OnUnknownCommand()                                                         // Called when a received command has no attached function
+{
+  cmdMessenger.sendCmd(kError,"Command without attached callback");
+}
+
+void OnReadAccountName() {
+}
+
+void OnReadUserName(){
+}
+
+void OnReadPassword(){
+}
+
+void OnReadURL(){
+}
+
+void OnReadStyle(){
+}
+
+void OnReadOldPassword(){
+}
+
+void OnUpdateAccountName(){
+}
+
+void OnUpdateUserName(){
+}
+
+void OnUpdatePassword(){
+}
+
+void OnUpdateURL(){
+}
+
+void OnUpdateStyle(){
+}
+
+void OnGetNextPos(){
+}
+
+void OnGetPrevPos(){
+}
+
+void OnReadHead(){
+}
+
+void OnReadTail(){
+}
+
+void OnGetNextFreePos(){
 }
 
 void pollEncoder() {
@@ -2918,7 +3026,7 @@ void ProcessAttributeInput( char *attributeName,
   event = EVENT_SHOW_EDIT_MENU;   
 }
 
-void EditAttribute(uint8_t aState, uint8_t pos) {
+void EditAttribute(uint8_t aState, uint8_t pos) {                               // called when we single click on Edit Account or similar
   char charToPrint[2];
   charToPrint[0] = allChars[enterPosition];
   charToPrint[1] = NULL_TERM;                                                   // TODO: this shouldn't be necessary
@@ -2926,12 +3034,12 @@ void EditAttribute(uint8_t aState, uint8_t pos) {
   position = pos;                                                               // setting position for starting input
   DisplayToEdit(charToPrint);                                                   // echo the char
   event = EVENT_NONE;
+  EnableInterrupts();
   if (keyboardFlag) {
     Serial.begin(BAUD_RATE);
     while(!Serial);                                                             // waits for an active serial connection to be established by the PC (i.e., for
   }                                                                             // the serial port to be opened by a piece of software)
-  EnableInterrupts();
-  Serial.println(aState);
+  Serial.println(aState);                                                       // sends state to python client in poll() function, attribute = s.readln()
   DisableInterrupts();
 }
 
