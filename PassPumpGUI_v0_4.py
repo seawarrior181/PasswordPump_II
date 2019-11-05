@@ -53,17 +53,17 @@ txt_style.grid(column=1, row=4)
 txt_url = Entry(window, width=40)
 txt_url.grid(column=1, row=5)
 
-txt_acct.config(state='enabled')
-txt_user.config(state='enabled')
-txt_pass.config(state='enabled')
-txt_style.config(state='enabled')
-txt_url.config(state='enabled')
+txt_acct.config(state='normal')
+txt_user.config(state='normal')
+txt_pass.config(state='normal')
+txt_style.config(state='normal')
+txt_url.config(state='normal')
 
 def clickedAcct():
     resAcct = txt_acct.get()
     c.send("pyUpdateAccountName", position, resAcct)
     #s.write(resAcct + '\n')
-    txt_acct.config(state='enabled')
+    txt_acct.config(state='normal')
     #window.after(100, poll)
     directions = """On the PasswordPump long click
 to accept the entered account 
@@ -82,7 +82,7 @@ def clickedUser():
     resUser = txt_user.get()
     c.send("pyUpdateUserName", position, resUser)
     #s.write(resUser + '\n')
-    txt_user.config(state='enabled')
+    txt_user.config(state='normal')
     #window.after(100, poll)
     directions = """On the PasswordPump long click
 to accept the entered user 
@@ -101,7 +101,7 @@ def clickedPass():
     resPass = txt_pass.get()
     c.send("pyUpdatePassword", position, resPass)
     #s.write(resPass + '\n')
-    txt_pass.config(state='enabled')
+    txt_pass.config(state='normal')
     #window.after(100, poll)
     directions = """On the PasswordPump long click
 to accept the entered 
@@ -130,10 +130,10 @@ long click."""
 
 def clickedStyle():
     resStyle = txt_style.get()
-    txt_style.config(state='enabled')
+    txt_style.config(state='normal')
     c.send("pyUpdateStyle", position, resStyle)
     #s.write(resStyle + '\n')
-    txt_style.config(state='enabled')
+    txt_style.config(state='normal')
     #window.after(100, poll)
     directions = """On the PasswordPump long click
 to accept the entered style,
@@ -150,10 +150,10 @@ click on Submit."""
 
 def clickedUrl():
     resURL = txt_url.get()
-    txt_url.config(state='enabled')
+    txt_url.config(state='normal')
     c.send("pyUpdateURL", position, resURL)
     #s.write(resUrl + '\n')
-    txt_url.config(state='enabled')
+    txt_url.config(state='normal')
     #window.after(100, poll)
     directions = """On the PasswordPump long click
 to accept the entered URL. 
@@ -168,19 +168,20 @@ Exit."""
     print directions
 
 def clickedClose():
-    if s.is_open:
-        s.close()
+    #if s.is_open:
+    #    s.close()
     sys.exit(1)
 
 def clickedOpen():
     global s
-    s = serial.Serial(port, 9600)
+    #s = serial.Serial(port, 9600)
     global arduino
     arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=9600)
     global commands
     # List of command names (and formats for their associated arguments). These must
     # be in the same order as in the sketch.
-    commands = [["pyReadAccountName", "i"],
+    commands = [["kAcknowledge",""],
+                ["pyReadAccountName", "i"],
                 ["pyReadUserName", "i"],
                 ["pyReadPassword", "i"],
                 ["pyReadURL", "i"],
@@ -195,7 +196,8 @@ def clickedOpen():
                 ["pyGetPrevPos","i"],
                 ["pyReadHead",""],
                 ["pyReadTail",""],
-                ["pyGetNextFreePos",""]]
+                ["pyGetNextFreePos",""],
+                ["kError",""]]
     # Initialize the messenger
     c = PyCmdMessenger.CmdMessenger(arduino, commands)
     c.send("pyReadHead")
@@ -226,7 +228,7 @@ def clickedOpen():
     #c.send("pyReadOldPassword", head)
     #oldPassword = c.receive()
 
-    btn_open.config(state='enabled')
+    btn_open.config(state='normal')
     btn_close.config(state='normal')
     directions = """On the PasswordPump navigate 
 to Add Account and short 
@@ -345,12 +347,12 @@ btn_close.grid(column=2, row=6)
 btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=0, row=6)
 
-btn_acct.config(state='enabled')
-btn_user.config(state='enabled')
-btn_pass.config(state='enabled')
-btn_style.config(state='enabled')
-btn_url.config(state='enabled')
-btn_close.config(state='enabled')
+btn_acct.config(state='normal')
+btn_user.config(state='normal')
+btn_pass.config(state='normal')
+btn_style.config(state='normal')
+btn_url.config(state='normal')
+btn_close.config(state='normal')
 
 txt_dir = Text(window, height=19, width=30, relief=FLAT, background="light grey")
 txt_dir.grid(column=1, row=8)
