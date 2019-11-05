@@ -687,9 +687,9 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)     // The number of login attempts before we factory reset
 #define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
 
-#if defined(__SAMD51__) && defined(SERIAL_PORT_USBVIRTUAL)                      // Required for Serial on Zero based boards
-  #define Serial SERIAL_PORT_USBVIRTUAL
-#endif
+//#if defined(__SAMD51__) && defined(SERIAL_PORT_USBVIRTUAL)                      // Required for Serial on Zero based boards
+//  #define Serial SERIAL_PORT_USBVIRTUAL
+//#endif
 
 #define KEEPASS_CSV               "KPEXPORT.CSV"
 #define KEEPASS_COLUMNS           5
@@ -926,6 +926,7 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define STATE_CONFIRM_IMP_PP_CSV  37                                            // confirming import KeePass csv file
 #define STATE_MENU_FILE           38
 #define STATE_CONFIRM_IMP_CP_CSV  39
+#define STATE_FEED_SERIAL_DATA    40
 
 //- I2C Address
 
@@ -943,15 +944,16 @@ SOH  - 01   Read                            Account     NULL_TERM
 #define KBD_MENU_O_POS            10                                            // where to append "FF" or "N" on the "Keyboard O" menu item in settings
 #define SH_PW_MENU_O_POS          15                                            // where to append "FF" or "N" on the  "Show Password O" menu item in settings
 #define SH_DC_MENU_O_POS          16                                            // where to append "FF" or "N" on the "Decoy Password O" menu item in settings
-#define MENU_SIZE                 9                                             // selections in the menu
+#define MENU_SIZE                 10                                             // selections in the menu
 
 #define MAIN_MENU_NUMBER          0
-#define MAIN_MENU_ELEMENTS        9                                             // number of selections in the main menu
+#define MAIN_MENU_ELEMENTS        10                                             // number of selections in the main menu
                                                                             
 char * mainMenu[] =               {              "Master Password",             // menu picks appear only on the top line
                                                  "Find Favorite",               // find favorite credentials
                                                  "Find All Accounts",           // after an account is found send user sendMenu 
                                                  "Find by Group",               // search accounts by a particular group
+                                                 "Edit with Computer",          // edit credentials with the python UI
                                                  "Add Account",
                                                  "Logout",                      // locks the user out until master password is re-entered
                                                  "Backup/Restore/Imprt",        // Backup, Restore a backup or Import a file
@@ -963,12 +965,13 @@ char * mainMenu[] =               {              "Master Password",             
 #define FIND_FAVORITE             1
 #define FIND_ACCOUNT              2
 #define FIND_BY_GROUP             3
-#define ADD_ACCOUNT               4
-#define LOGOUT                    5
-#define FILE_MENU_SEL             6
+#define EDIT_VIA_COMPUTER         4
+#define ADD_ACCOUNT               5
+#define LOGOUT                    6
+#define FILE_MENU_SEL             7
 //#define FIX_CORRUPT_LIST        7
-#define SETTINGS                  7
-#define FACTORY_RESET             8
+#define SETTINGS                  8
+#define FACTORY_RESET             9
 
 uint8_t menuNumber = MAIN_MENU_NUMBER;                                          // holds the menu number of the currently displayed menu
 uint8_t elements = MAIN_MENU_ELEMENTS;                                          // holds the number of selections in the currently displayed menu
@@ -1265,6 +1268,7 @@ char *unquote(char *);
 enum                                                                            // Commands for CMDMessenger
 {
   // Commands
+  kAcknowledge          ,
   pyReadAccountName     ,
   pyReadUserName        ,
   pyReadPassword        ,
@@ -1282,7 +1286,6 @@ enum                                                                            
   pyReadTail            ,
   pyGetNextFreePos      ,
   kError                                                                        // Command to message that an error has occurred
-
 };
 
 //- Global Volatile variables.
@@ -1453,6 +1456,25 @@ uint8_t FindAccountPos(char *accountName);
 void BackupToPPCVSFile();                                                       // before executing the function the user must open a text editor and place input focus there.
 void RestoreFromPPCVSFile();
 void ImportChromeExportFile();
+void attachCommandCallbacks();                                                   // We must define a callback function in our Arduino program for each entry in the list below.
+void OnUnknownCommand();                                                         // Called when a received command has no attached function
+void OnReadAccountName();
+void OnReadUserName();
+void OnReadPassword();
+void OnReadURL();
+void OnReadStyle();
+void OnReadOldPassword();
+void OnUpdateAccountName();
+void OnUpdateUserName();
+void OnUpdatePassword();
+void OnUpdateURL();
+void OnUpdateStyle();
+void OnGetNextPos();
+void OnGetPrevPos();
+void OnReadHead();
+void OnReadTail();
+void OnGetNextFreePos();
+
 
 //- Main Program Control
 
@@ -1575,82 +1597,6 @@ void loop() {                                                                   
   pollEncoder();                                                                // tried to use interrupts for the encoder but the results were inconsistent
 
   ProcessEvent();                                                               // process any events that might have occurred.
-}
-
-                                                                                // Commands we send from the PC and want to receive on the Arduino.
-void attachCommandCallbacks()                                                   // We must define a callback function in our Arduino program for each entry in the list below.
-{
-  // Attach callback methods
-  cmdMessenger.attach(OnUnknownCommand);
-  cmdMessenger.attach(pyReadAccountName     , OnReadAccountName);
-  cmdMessenger.attach(pyReadUserName        , OnReadUserName);
-  cmdMessenger.attach(pyReadPassword        , OnReadPassword);
-  cmdMessenger.attach(pyReadURL             , OnReadURL);
-  cmdMessenger.attach(pyReadStyle           , OnReadStyle);
-  cmdMessenger.attach(pyReadOldPassword     , OnReadOldPassword);
-  cmdMessenger.attach(pyUpdateAccountName   , OnUpdateAccountName);
-  cmdMessenger.attach(pyUpdateUserName      , OnUpdateUserName);
-  cmdMessenger.attach(pyUpdatePassword      , OnUpdatePassword);
-  cmdMessenger.attach(pyUpdateURL           , OnUpdateURL);
-  cmdMessenger.attach(pyUpdateStyle         , OnUpdateStyle);
-  cmdMessenger.attach(pyGetNextPos          , OnGetNextPos);
-  cmdMessenger.attach(pyGetPrevPos          , OnGetPrevPos);
-  cmdMessenger.attach(pyReadHead            , OnReadHead);
-  cmdMessenger.attach(pyReadTail            , OnReadTail);
-  cmdMessenger.attach(pyGetNextFreePos      , OnGetNextFreePos);
-}
-
-void OnUnknownCommand()                                                         // Called when a received command has no attached function
-{
-  cmdMessenger.sendCmd(kError,"Command without attached callback");
-}
-
-void OnReadAccountName() {
-}
-
-void OnReadUserName(){
-}
-
-void OnReadPassword(){
-}
-
-void OnReadURL(){
-}
-
-void OnReadStyle(){
-}
-
-void OnReadOldPassword(){
-}
-
-void OnUpdateAccountName(){
-}
-
-void OnUpdateUserName(){
-}
-
-void OnUpdatePassword(){
-}
-
-void OnUpdateURL(){
-}
-
-void OnUpdateStyle(){
-}
-
-void OnGetNextPos(){
-}
-
-void OnGetPrevPos(){
-}
-
-void OnReadHead(){
-}
-
-void OnReadTail(){
-}
-
-void OnGetNextFreePos(){
 }
 
 void pollEncoder() {
@@ -2049,6 +1995,34 @@ void ProcessEvent() {                                                           
           } else {
             event = EVENT_NONE;
           }
+          break;
+        case EDIT_VIA_COMPUTER:                                                 // Edit credentials via the python application
+          machineState = STATE_FEED_SERIAL_DATA;
+          DisplayToMenu(  " Edit via Computer ");
+          DisplayToItem(  "    Long Click     ");
+          DisplayToStatus("     to Exit       ");
+          event = EVENT_NONE;
+          int counter; counter = 0;
+          setRed();
+          while (1) {  
+            cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
+          }
+//          while ((machineState == STATE_FEED_SERIAL_DATA) &&
+//                 (event != EVENT_SINGLE_CLICK           ) &&
+//                 (event != EVENT_LONG_CLICK             )   ) {
+//            encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
+//            cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
+//            if (counter%129792 == 0) {                                          //  259584 to slow down
+//              if (isRed) {
+//                setBlue();
+//              } else {
+//                setRed();
+//              }
+//            }
+//            counter++;
+//          }
+          setGreen();
+          event = EVENT_SHOW_MAIN_MENU;
           break;
         case ADD_ACCOUNT:                                                       // Add account
           addFlag = true;                                                       // necessary for when we return to the main menu
@@ -5686,6 +5660,132 @@ uint8_t FindAccountPos(char *passedAccountName) {                               
   }
   return(getNextFreeAcctPos());                                                 // return the next free account position
 }
+
+                                                                                // Commands we send from the PC and want to receive on the Arduino.
+void attachCommandCallbacks()                                                   // We must define a callback function in our Arduino program for each entry in the list below.
+{
+  // Attach callback methods
+  cmdMessenger.attach(OnUnknownCommand);
+  cmdMessenger.attach(pyReadAccountName     , OnReadAccountName);
+  cmdMessenger.attach(pyReadUserName        , OnReadUserName);
+  cmdMessenger.attach(pyReadPassword        , OnReadPassword);
+  cmdMessenger.attach(pyReadURL             , OnReadURL);
+  cmdMessenger.attach(pyReadStyle           , OnReadStyle);
+  cmdMessenger.attach(pyReadOldPassword     , OnReadOldPassword);
+  cmdMessenger.attach(pyUpdateAccountName   , OnUpdateAccountName);
+  cmdMessenger.attach(pyUpdateUserName      , OnUpdateUserName);
+  cmdMessenger.attach(pyUpdatePassword      , OnUpdatePassword);
+  cmdMessenger.attach(pyUpdateURL           , OnUpdateURL);
+  cmdMessenger.attach(pyUpdateStyle         , OnUpdateStyle);
+  cmdMessenger.attach(pyGetNextPos          , OnGetNextPos);
+  cmdMessenger.attach(pyGetPrevPos          , OnGetPrevPos);
+  cmdMessenger.attach(pyReadHead            , OnReadHead);
+  cmdMessenger.attach(pyReadTail            , OnReadTail);
+  cmdMessenger.attach(pyGetNextFreePos      , OnGetNextFreePos);
+}
+
+void OnUnknownCommand()                                                         // Called when a received command has no attached function
+{
+  cmdMessenger.sendCmd(kError,"Command without attached callback");
+}
+
+void OnReadAccountName() {
+  char accountName[ACCOUNT_SIZE];
+  acctPosition = cmdMessenger.readBinArg<int>();
+  readAcctFromEEProm(acctPosition, accountName);
+  cmdMessenger.sendBinCmd(kAcknowledge, accountName);
+}
+
+void OnReadUserName(){
+  char username[USERNAME_SIZE];
+  acctPosition = cmdMessenger.readBinArg<int>();
+  readUserFromEEProm(acctPosition, username);
+  cmdMessenger.sendBinCmd(kAcknowledge, username);
+}
+
+void OnReadPassword(){
+  char password[PASSWORD_SIZE];
+  acctPosition = cmdMessenger.readBinArg<int>();
+  readPassFromEEProm(acctPosition, password);
+  cmdMessenger.sendBinCmd(kAcknowledge, password);
+}
+
+void OnReadURL(){
+  char url[WEBSITE_SIZE];
+  acctPosition = cmdMessenger.readBinArg<int>();
+  readWebSiteFromEEProm(acctPosition, url);
+  cmdMessenger.sendBinCmd(kAcknowledge, url);
+}
+
+void OnReadStyle(){
+  char style[STYLE_SIZE];
+  acctPosition = cmdMessenger.readBinArg<int>();
+  readStyleFromEEProm(acctPosition, style);
+  cmdMessenger.sendBinCmd(kAcknowledge, style);
+}
+
+void OnReadOldPassword(){
+  char oldPassword[PASSWORD_SIZE];
+  acctPosition = cmdMessenger.readBinArg<int>();
+  readOldPassFromEEProm(acctPosition, oldPassword);
+  cmdMessenger.sendBinCmd(kAcknowledge, oldPassword);
+}
+
+void OnUpdateAccountName(){
+  char *accountName;
+  acctPosition = cmdMessenger.readBinArg<int>();
+  accountName = cmdMessenger.readStringArg();
+  eeprom_write_bytes(GET_ADDR_ACCT(acctPosition), accountName, ACCOUNT_SIZE);
+}
+
+void OnUpdateUserName(){
+  char *username;
+  acctPosition = cmdMessenger.readBinArg<int>();
+  username = cmdMessenger.readStringArg();
+  eeprom_write_bytes(GET_ADDR_USER(acctPosition), username, USERNAME_SIZE);
+}
+
+void OnUpdatePassword(){
+  char *password;
+  acctPosition = cmdMessenger.readBinArg<int>();
+  password = cmdMessenger.readStringArg();
+  eeprom_write_bytes(GET_ADDR_PASS(acctPosition), password, PASSWORD_SIZE);
+}
+
+void OnUpdateURL(){
+  char *url;
+  acctPosition = cmdMessenger.readBinArg<int>();
+  url = cmdMessenger.readStringArg();
+  eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition), url, WEBSITE_SIZE);
+}
+
+void OnUpdateStyle(){
+  char *style;
+  acctPosition = cmdMessenger.readBinArg<int>();
+  style = cmdMessenger.readStringArg();
+  eeprom_write_bytes(GET_ADDR_STYLE(acctPosition), style, STYLE_SIZE);
+}
+
+void OnGetNextPos(){
+  cmdMessenger.sendBinCmd(kAcknowledge, getNextPtr(acctPosition));
+}
+
+void OnGetPrevPos(){
+  cmdMessenger.sendBinCmd(kAcknowledge, getPrevPtr(acctPosition));
+}
+
+void OnReadHead(){
+  cmdMessenger.sendBinCmd(kAcknowledge, getListHeadPosition());
+}
+
+void OnReadTail(){
+  cmdMessenger.sendBinCmd(kAcknowledge, findTailPosition(headPosition));
+}
+
+void OnGetNextFreePos(){
+  cmdMessenger.sendBinCmd(kAcknowledge, getNextFreeAcctPos());
+}
+
 /* This doesn't compile.
 // https://forum.arduino.cc/index.php?topic=129083.0
 uint32_t trueRandom()
