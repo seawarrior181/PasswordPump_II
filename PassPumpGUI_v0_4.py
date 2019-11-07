@@ -5,8 +5,12 @@
 # Copyright 2019
 # Daniel Murphy
 #
-from Tkinter import *
-import tkinter.ttk as ttk
+#from Tkinter import *
+#import tkinter.ttk as ttk
+
+from tkinter import *
+from tkinter.ttk import *
+
 import PyCmdMessenger
 import serial
 import serial.tools.list_ports
@@ -15,7 +19,7 @@ import argparse
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('375x600')
+window.geometry('400x300')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=0, row=0)
@@ -35,8 +39,8 @@ lbl_style.grid(column=0, row=4)
 lbl_url = Label(window, text="URL", anchor=E, justify=RIGHT, width=10)
 lbl_url.grid(column=0, row=5)
 
-lbl_help = Label(window, text="Instructions", anchor=W, justify=CENTER, width=10)
-lbl_help.grid(column=1, row=7)
+lbl_help = Label(window, text="Instructions", anchor=W, justify=CENTER, width=11)
+lbl_help.grid(column=1, row=6)
 
 txt_acct = Entry(window, width=40)
 txt_acct.grid(column=1, row=1)
@@ -59,22 +63,23 @@ txt_pass.config(state='normal')
 txt_style.config(state='normal')
 txt_url.config(state='normal')
 
+def clickedAll():
+    clickedAcct()
+    clickedUser()
+    clickedPass()
+    clickedStyle()
+    clickedUrl()
+
 def clickedAcct():
     resAcct = txt_acct.get()
     c.send("pyUpdateAccountName", position, resAcct)
     #s.write(resAcct + '\n')
     txt_acct.config(state='normal')
     #window.after(100, poll)
-    directions = """On the PasswordPump long click
-to accept the entered account 
-name, then short click on Edit
-Username, then enter the 
-username in the text box 
-above.  Then hit return or 
-click on Submit."""
+    directions = """Updated account name."""
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
-    print directions
+    print (directions)
     window.update()
     #poll()
 
@@ -84,16 +89,10 @@ def clickedUser():
     #s.write(resUser + '\n')
     txt_user.config(state='normal')
     #window.after(100, poll)
-    directions = """On the PasswordPump long click
-to accept the entered user 
-name, then short click on 
-Edit Password, then enter the 
-password in the text box 
-above.  Then hit return or 
-click on Submit."""
+    directions = """Updated user name."""
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
-    print directions
+    print (directions)
     window.update()
     #poll()
 
@@ -103,28 +102,10 @@ def clickedPass():
     #s.write(resPass + '\n')
     txt_pass.config(state='normal')
     #window.after(100, poll)
-    directions = """On the PasswordPump long click
-to accept the entered 
-password, then short click on 
-Indicate Style, then enter the
-style in the text box above.
-Style controls whether or not
-a carriage return or a tab is
-sent between the sending of
-the username and the 
-password. Enter 0 for 
-carriage return, 1 for tab 
-between username and password
-when both are sent. Then hit
-return or click on Submit. 
-The style can also be entered
-via the rotary encoder; turn
-the encoder to select 0 or 1,
-then short click and then 
-long click."""
+    directions = """Updated password."""
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
-    print directions
+    print (directions)
     window.update()
     #poll()
 
@@ -135,16 +116,10 @@ def clickedStyle():
     #s.write(resStyle + '\n')
     txt_style.config(state='normal')
     #window.after(100, poll)
-    directions = """On the PasswordPump long click
-to accept the entered style,
-then short click on 
-Edit URL, then enter the 
-URL in the text box 
-above.  Then hit return or 
-click on Submit."""
+    directions = """Updated style."""
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
-    print directions
+    print (directions)
     window.update()
     #poll()
 
@@ -155,93 +130,179 @@ def clickedUrl():
     #s.write(resUrl + '\n')
     txt_url.config(state='normal')
     #window.after(100, poll)
-    directions = """On the PasswordPump long click
-to accept the entered URL. 
-On the PasswordPump long 
-click to finish entering the
-credentials, then close this
-application by clicking on
-Exit."""
+    directions = """Updated URL."""
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
     window.update()
-    print directions
+    print (directions)
 
 def clickedClose():
     #if s.is_open:
     #    s.close()
     sys.exit(1)
 
+def clickedPrevious():
+    c.send("pyGetPrevPos")
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    global position
+    last_position = position
+    position = response_list[0]
+    if position == 255:
+        position = last_position
+        print("Reached the beginning of the list")
+        txt_dir.delete('1.0', END)
+        txt_dir.insert(END, "Reached the beginning of the list")
+    getRecord()
+
+def clickedNext():
+    c.send("pyGetNextPos")
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    global position
+    last_position = position
+    position = response_list[0]
+    if position == 255:
+        position = last_position
+        print("Reached the end of the list")
+        txt_dir.delete('1.0', END)
+        txt_dir.insert(END, "Reached the end of the list")
+    getRecord()
+
+def clickedInsert():
+    global position
+    c.send("pyGetNextFreePos")
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    position = response_list[0]
+    getRecord()
+
+def clickedDelete():
+    global position
+    c.send("pyDeleteAccount",position)
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    position = response_list[0]
+    getRecord()
+
 def clickedOpen():
-    global s
-    #s = serial.Serial(port, 9600)
+    # global s
+    # s = serial.Serial(port, 9600)
     global arduino
-    arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=9600)
+    arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=9600, timeout=1.0, settle_time=2.0, enable_dtr=False,
+                                          int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
     global commands
     # List of command names (and formats for their associated arguments). These must
     # be in the same order as in the sketch.
-    commands = [["kAcknowledge",""],
-                ["pyReadAccountName", "i"],
-                ["pyReadUserName", "i"],
-                ["pyReadPassword", "i"],
-                ["pyReadURL", "i"],
-                ["pyReadStyle", "i"],
-                ["pyReadOldPassword", "i"],
-                ["pyUpdateAccountName", "is"],
-                ["pyUpdateUserName", "is"],
-                ["pyUpdatePassword", "is"],
-                ["pyUpdateURL", "is"],
-                ["pyUpdateStyle", "is"],
-                ["pyGetNextPos","i"],
-                ["pyGetPrevPos","i"],
+    commands = [["kAcknowledge","b"],
+                ["kStrAcknowledge", "s"],
+                ["pyReadAccountName", "b"],
+                ["pyReadUserName", "b"],
+                ["pyReadPassword", "b"],
+                ["pyReadURL", "b"],
+                ["pyReadStyle", "b"],
+                ["pyReadOldPassword", "b"],
+                ["pyUpdateAccountName", "bs"],
+                ["pyUpdateUserName", "bs"],
+                ["pyUpdatePassword", "bs"],
+                ["pyUpdateURL", "bs"],
+                ["pyUpdateStyle", "bs"],
+                ["pyGetNextPos","b"],
+                ["pyGetPrevPos","b"],
                 ["pyReadHead",""],
                 ["pyReadTail",""],
                 ["pyGetNextFreePos",""],
-                ["kError",""]]
+                ["kError",""],
+                ["pyDeleteAccount","b"]]
     # Initialize the messenger
+    global c
     c = PyCmdMessenger.CmdMessenger(arduino, commands)
     c.send("pyReadHead")
-    head = c.receive()
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    global head
+    head = response_list[0]
     global position
     position = head
+    getRecord()
 
-    c.send("pyReadAccountName", head)
-    accountName = c.receive()
-    txt_acct.set(accountName)
-
-    c.send("pyReadUserName", head)
-    userName = c.receive()
-    txt_user.set(userName)
-
-    c.send("pyReadPassword", head)
-    password = c.receive()
-    txt_pass.set(password)
-
-    c.send("pyReadURL", head)
-    url = c.receive()
-    txt_url.set(url)
-
-    c.send("pyReadStyle", head)
-    style = c.receive()
-    txt_style.set(style)
-
-    #c.send("pyReadOldPassword", head)
+    #c.send("pyReadOldPassword", position)
     #oldPassword = c.receive()
 
     btn_open.config(state='normal')
     btn_close.config(state='normal')
-    directions = """On the PasswordPump navigate 
-to Add Account and short 
-click. Then short click on
-Account Name, enter the
-account name in the Account
-Name text box above, and hit
-return or click on Submit."""
+    directions = """Opened port"""
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
-    print directions
+    print (directions)
     window.update()
     #poll()
+
+def getRecord():
+    c.send("pyReadAccountName", position)
+    try:
+        response = c.receive()
+        print (response)
+        accountName_list = response[1]
+        accountName = accountName_list[0]
+    except UnicodeDecodeError:
+        print("pyReadAccountName returned empty string")
+        accountName = ""
+    txt_acct.delete(0,END)
+    txt_acct.insert(0,accountName)
+
+    c.send("pyReadUserName", position)
+    try:
+        response = c.receive()
+        print (response)
+        userName_list = response[1]
+        userName = userName_list[0]
+    except UnicodeDecodeError:
+        print("pyReadUserName returned empty string")
+        userName = ""
+    txt_user.delete(0,END)
+    txt_user.insert(0,userName)
+
+    c.send("pyReadPassword", position)
+    try:
+        response = c.receive()
+        print(response)
+        password_list = response[1]
+        password = password_list[0]
+    except UnicodeDecodeError:
+        print("pyReadPassword returned empty string")
+        password = ""
+    txt_pass.delete(0,END)
+    txt_pass.insert(0,password)
+
+    c.send("pyReadStyle", position)
+    try:
+        response = c.receive()
+        print(response)
+        style_list = response[1]
+        style = style_list[0]
+    except UnicodeDecodeError:
+        print("pyReadStyle returned empty string")
+        style = ""
+    txt_style.delete(0, END)
+    txt_style.insert(0, style)
+
+    c.send("pyReadURL", position)
+    try:
+        response = c.receive()
+        print(response)
+        url_list = response[1]
+        url = url_list[0]
+    except UnicodeDecodeError:
+        print("pyReadURL returned empty string")
+        url = ""
+    txt_url.delete(0,END)
+    txt_url.insert(0,url)
 
 #def poll():
     #attribute = s.readline()
@@ -326,49 +387,67 @@ def on_select(event=None):
     # get selection directly from combobox
     print("comboboxes: ", cb.get())
 
-btn_acct = Button(window, text="Submit", command=clickedAcct)
-btn_acct.grid(column=2, row=1)
+#btn_acct = Button(window, text="Submit", command=clickedAcct)
+#btn_acct.grid(column=2, row=1)
 
-btn_user = Button(window, text="Submit", command=clickedUser)
-btn_user.grid(column=2, row=2)
+#btn_user = Button(window, text="Submit", command=clickedUser)
+#btn_user.grid(column=2, row=2)
 
-btn_pass = Button(window, text="Submit", command=clickedPass)
-btn_pass.grid(column=2, row=3)
+#btn_pass = Button(window, text="Submit", command=clickedPass)
+#btn_pass.grid(column=2, row=3)
 
-btn_style = Button(window, text="Submit", command=clickedStyle)
-btn_style.grid(column=2, row=4)
+#btn_style = Button(window, text="Submit", command=clickedStyle)
+#btn_style.grid(column=2, row=4)
 
-btn_url = Button(window, text="Submit", command=clickedUrl)
+btn_url = Button(window, text="Save", command=clickedAll)
 btn_url.grid(column=2, row=5)
 
-btn_close = Button(window, text=" Exit ", command=clickedClose)
-btn_close.grid(column=2, row=6)
+btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
+btn_previous.grid(column=0, row=6)
+
+btn_next = Button(window, text="Next>>", command=clickedNext)
+btn_next.grid(column=2, row=6)
+
+btn_insert = Button(window, text="Insert", command=clickedInsert)
+btn_insert.grid(column=0, row=7)
+
+btn_delete = Button(window, text="Delete", command=clickedDelete)
+btn_delete.grid(column=0, row=8)
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
-btn_open.grid(column=0, row=6)
+btn_open.grid(column=2, row=0)
 
-btn_acct.config(state='normal')
-btn_user.config(state='normal')
-btn_pass.config(state='normal')
-btn_style.config(state='normal')
+btn_close = Button(window, text=" Exit ", command=clickedClose)
+btn_close.grid(column=2, row=8)
+
+#btn_acct.config(state='normal')
+#btn_user.config(state='normal')
+#btn_pass.config(state='normal')
+#btn_style.config(state='normal')
 btn_url.config(state='normal')
 btn_close.config(state='normal')
 
-txt_dir = Text(window, height=19, width=30, relief=FLAT, background="light grey")
-txt_dir.grid(column=1, row=8)
+txt_dir = Text(window, height=5, width=30, relief=FLAT, background="light grey")
+txt_dir.grid(column=1, row=7)
 txt_dir.config(state=NORMAL)
 txt_dir.delete('1.0', END)
 directions = """After selecting the port click
 on the Open Port button to 
-open the port."""
+open the port for the 
+PasswordPump."""
 txt_dir.insert(END, directions)
 
 ports = []
 for n, (port, desc, hwid) in enumerate(sorted(comports()), 1):
     ports.append(port)
 
-cb = ttk.Combobox(window, values=ports, justify=RIGHT, width=37)
+cb = Combobox(window, values=ports, justify=RIGHT, width=37)
 cb.grid(column=1, row=0)
 cb.bind('<<ComboboxSelected>>', on_select)
+
+# Global variables
+position = 0
+head = 0
+tail = 0
 
 window.mainloop()
