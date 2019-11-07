@@ -310,6 +310,12 @@
     runs and then loop() runs, in a loop, in perpetuity.
   - Set tab spacing to 2 space characters in your editor.
 
+  Library Modifications
+  =====================
+  In PyCmdMessenger.py, at lines 25 and 26, change to the following:
+                 field_separator="~",
+                 command_separator="|",
+  
   Contributors
   ============
   Source code has been pulled from all over the internet, it would be impossible 
@@ -1168,8 +1174,10 @@ const char * const fileMenu[] = {                "Backup EEprom",               
 //- Global Variables                                                            // char is signed by default. byte is unsigned.
 
                                                                                 // CMDMessenger vars
-char field_separator   = ',';                                                   
-char command_separator = ';';
+//char field_separator   = ',';                                                   
+//char command_separator = ';';
+char field_separator   = '~';                                                  // ascii record separator
+char command_separator = '|';                                                  // ascii unit separator
 char escape_separator  = '/';
                                                                                 // CSV Processing
 enum { NOMEM = -2 };                                                            // out of memory signal
@@ -1269,6 +1277,7 @@ enum                                                                            
 {
   // Commands
   kAcknowledge          ,
+  kStrAcknowledge       ,
   pyReadAccountName     ,
   pyReadUserName        ,
   pyReadPassword        ,
@@ -1285,7 +1294,8 @@ enum                                                                            
   pyReadHead            ,
   pyReadTail            ,
   pyGetNextFreePos      ,
-  kError                                                                        // Command to message that an error has occurred
+  kError                ,                                                       // Command to message that an error has occurred
+  pyDeleteAccount
 };
 
 //- Global Volatile variables.
@@ -1474,6 +1484,7 @@ void OnGetPrevPos();
 void OnReadHead();
 void OnReadTail();
 void OnGetNextFreePos();
+void OnDeleteAccount();
 
 
 //- Main Program Control
@@ -1584,8 +1595,6 @@ void setup() {                                                                  
 
   lastActivityTime = millis();                                                  // establish the start time for when the device is powered up
   authenticated = false;                                                        // we're not authenticated yet!
-
-  attachCommandCallbacks();
   
   event = EVENT_SHOW_MAIN_MENU;                                                 // first job is to show the first element of the main menu
   EnableInterrupts();                                                           // Turn on global interrupts
@@ -1999,28 +2008,32 @@ void ProcessEvent() {                                                           
         case EDIT_VIA_COMPUTER:                                                 // Edit credentials via the python application
           machineState = STATE_FEED_SERIAL_DATA;
           DisplayToMenu(  " Edit via Computer ");
-          DisplayToItem(  "    Long Click     ");
-          DisplayToStatus("     to Exit       ");
+          DisplayToItem(  " Long Click Exits  ");
+          EnableInterrupts();
+          Serial.begin(BAUD_RATE);
+          attachCommandCallbacks();
           event = EVENT_NONE;
           int counter; counter = 0;
           setRed();
-          while (1) {  
-            cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
-          }
-//          while ((machineState == STATE_FEED_SERIAL_DATA) &&
-//                 (event != EVENT_SINGLE_CLICK           ) &&
-//                 (event != EVENT_LONG_CLICK             )   ) {
-//            encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
+//          while (1) {  
 //            cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
-//            if (counter%129792 == 0) {                                          //  259584 to slow down
-//              if (isRed) {
-//                setBlue();
-//              } else {
-//                setRed();
-//              }
-//            }
-//            counter++;
 //          }
+          while ((machineState == STATE_FEED_SERIAL_DATA) &&
+                 (event != EVENT_SINGLE_CLICK           ) &&
+                 (event != EVENT_LONG_CLICK             )   ) {
+            encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
+            cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
+            if (counter%129792 == 0) {                                          //  259584 to slow down
+              if (isRed) {
+                setBlue();
+              } else {
+                setRed();
+              }
+            }
+            counter++;
+          }
+          Serial.end();
+          DisableInterrupts();
           setGreen();
           event = EVENT_SHOW_MAIN_MENU;
           break;
@@ -3438,6 +3451,8 @@ void setUUID(char *uuid, uint8_t size, uint8_t appendNullTerm) {
           uuid[i] == '`'  ||                                                    // hard to distinguish between ' and `
           uuid[i] == '\'' ||                                                    // hard to distinguish between ' and `
           uuid[i] == '&'  ||                                                    // can cause problems inside of XML
+          uuid[i] == '~'  ||                                                    // separator for cmdMessenger
+          uuid[i] == '|'  ||                                                    // separator for cmdMessenger
           uuid[i] == '\\' ||                                                    // interpreted as escape character
           uuid[i] == '/'    )                                                   //
       uuid[i] = random(33,126);
@@ -5682,6 +5697,7 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyReadHead            , OnReadHead);
   cmdMessenger.attach(pyReadTail            , OnReadTail);
   cmdMessenger.attach(pyGetNextFreePos      , OnGetNextFreePos);
+  cmdMessenger.attach(pyDeleteAccount       , OnDeleteAccount);
 }
 
 void OnUnknownCommand()                                                         // Called when a received command has no attached function
@@ -5691,77 +5707,116 @@ void OnUnknownCommand()                                                         
 
 void OnReadAccountName() {
   char accountName[ACCOUNT_SIZE];
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   readAcctFromEEProm(acctPosition, accountName);
-  cmdMessenger.sendBinCmd(kAcknowledge, accountName);
+  DisplayToStatus(accountName);
+  cmdMessenger.sendCmd(kStrAcknowledge, accountName);
 }
 
 void OnReadUserName(){
   char username[USERNAME_SIZE];
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   readUserFromEEProm(acctPosition, username);
-  cmdMessenger.sendBinCmd(kAcknowledge, username);
+  cmdMessenger.sendCmd(kStrAcknowledge, username);
 }
 
 void OnReadPassword(){
   char password[PASSWORD_SIZE];
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   readPassFromEEProm(acctPosition, password);
-  cmdMessenger.sendBinCmd(kAcknowledge, password);
+  cmdMessenger.sendCmd(kStrAcknowledge, password);
 }
 
 void OnReadURL(){
   char url[WEBSITE_SIZE];
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   readWebSiteFromEEProm(acctPosition, url);
-  cmdMessenger.sendBinCmd(kAcknowledge, url);
+  cmdMessenger.sendCmd(kStrAcknowledge, url);
 }
 
 void OnReadStyle(){
   char style[STYLE_SIZE];
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   readStyleFromEEProm(acctPosition, style);
-  cmdMessenger.sendBinCmd(kAcknowledge, style);
+  cmdMessenger.sendCmd(kStrAcknowledge, style);
 }
 
 void OnReadOldPassword(){
   char oldPassword[PASSWORD_SIZE];
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   readOldPassFromEEProm(acctPosition, oldPassword);
-  cmdMessenger.sendBinCmd(kAcknowledge, oldPassword);
+  cmdMessenger.sendCmd(kStrAcknowledge, oldPassword);
 }
 
-void OnUpdateAccountName(){
+void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
   char *accountName;
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   accountName = cmdMessenger.readStringArg();
-  eeprom_write_bytes(GET_ADDR_ACCT(acctPosition), accountName, ACCOUNT_SIZE);
+//  eeprom_write_bytes(GET_ADDR_ACCT(acctPosition), accountName, ACCOUNT_SIZE);
+  pos = FindAccountPos(field);                                        // get the next open position
+  if (!updateExistingAccount) {                                       // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
+    if (pos != INITIAL_MEMORY_STATE_BYTE) {                           // if we are not out of space
+      SetSaltAndKey(pos);                                             // populate and save the salt, set the key with the salt and master password
+      char bufferAcct[ACCOUNT_SIZE];
+      encrypt32Bytes(bufferAcct, field);
+      while (bufferAcct[0] == INITIAL_MEMORY_STATE_CHAR) {            // check to see if we have an invalid condition after encryption, if we do,
+                                                                      // concatenate characters until the first char in the cipher isn't 255.
+        DisplayToError("ERR: 039");                                   // encrypted account name starts with 255, fixing...
+        delayNoBlock(ONE_SECOND * 2);
+        len = strlen(field);
+        if (len > 2) {
+          field[len - 2] = NULL_TERM;                                 // Chop a character off the end of the account name
+          encrypt32Bytes(bufferAcct, field);                          // encrypt again and hope for the best
+        } else {
+          DisplayToError("ERR: 020");                                 // display the error to the screen and continue processing.  
+          delayNoBlock(ONE_SECOND * 2);
+          fieldNum = 100;                                             // force our way out of the for loop
+          break;
+        }
+      }
+      if (fieldNum < 100) {
+        if (!updateExistingAccount) {                                 // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
+          eeprom_write_bytes(GET_ADDR_ACCT(pos),bufferAcct,ACCOUNT_SIZE); // write the account name to eeprom
+          writePointers(pos, field);                                  // insert the account into the linked list by updating prev and next pointers.
+          acctCount++;
+        }
+        uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(pos));       // initialize the groups
+        if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(pos, NONE); // a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
+      }
+    } else {
+      fieldNum = 100;                                                 // force our way out of the for loop
+      outOfSpace = true;
+      DisplayToError("ERR: 012");                                     // out of space in EEprom
+      delayNoBlock(ONE_SECOND * 2);
+    }
+  }
+
 }
 
 void OnUpdateUserName(){
   char *username;
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   username = cmdMessenger.readStringArg();
   eeprom_write_bytes(GET_ADDR_USER(acctPosition), username, USERNAME_SIZE);
 }
 
 void OnUpdatePassword(){
   char *password;
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   password = cmdMessenger.readStringArg();
   eeprom_write_bytes(GET_ADDR_PASS(acctPosition), password, PASSWORD_SIZE);
 }
 
 void OnUpdateURL(){
   char *url;
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   url = cmdMessenger.readStringArg();
   eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition), url, WEBSITE_SIZE);
 }
 
 void OnUpdateStyle(){
   char *style;
-  acctPosition = cmdMessenger.readBinArg<int>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
   style = cmdMessenger.readStringArg();
   eeprom_write_bytes(GET_ADDR_STYLE(acctPosition), style, STYLE_SIZE);
 }
@@ -5775,7 +5830,7 @@ void OnGetPrevPos(){
 }
 
 void OnReadHead(){
-  cmdMessenger.sendBinCmd(kAcknowledge, getListHeadPosition());
+  cmdMessenger.sendBinCmd(kAcknowledge, getListHeadPosition());                 // sending a single byte
 }
 
 void OnReadTail(){
@@ -5784,6 +5839,12 @@ void OnReadTail(){
 
 void OnGetNextFreePos(){
   cmdMessenger.sendBinCmd(kAcknowledge, getNextFreeAcctPos());
+}
+
+void OnDeleteAccount(){
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  deleteAccount(acctPosition);
+  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
 }
 
 /* This doesn't compile.
