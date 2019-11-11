@@ -1246,22 +1246,22 @@ char masterSalt[MASTER_PASSWORD_SIZE];                                          
 
 uint8_t loginFailures;                                                          // count of the number of consecutive login failures since the last successful 
                                                                                 // password entry.
-//#define MAX_LOGIN_FAILURES        10                                          // "Factory Reset" after MAX_LOGIN_FAILURES attempts to login. Gurads against 
+//#define MAX_LOGIN_FAILURES        10                                          // "Factory Reset" after MAX_LOGIN_FAILURES attempts to login. Guards against 
                                                                                 // brute force attack.
 uint8_t showPasswordsFlag;                                                      // flag indicating if we show passwords via the UI, or hide them.
-uint8_t keyboardFlag;                                                           // flag indicating if we're using the keyboard to edit creds
+uint8_t keyboardFlag;                                                           // flag indicating if we're using the keyboard to edit credentials
 uint8_t decoyPassword;                                                          // specifies if the decoy password feature is enabled
 uint8_t RGBLEDIntensity = RGB_LED_DEFAULT;                                      // the intensity of the RGB LED, default is Medium
 unsigned long logoutTimeout = 60;                                               // the inactivity logout timer, default is one hour
 uint8_t loginAttempts = ATTEMPTS_DEFAULT;                                       // the number of failed login attempts before a factory reset occurs
-uint8_t addFlag = false;                                                        // tracks wheter we reached the Add Account menu via the main menu or the find menu,
+uint8_t addFlag = false;                                                        // tracks whether we reached the Add Account menu via the main menu or the find menu,
                                                                                 // which is necessary to determine where to return to on EVENT_LONG_CLICK.
 
 uint8_t machineState = 0;                                                       // the state of the device
                                                                                 // it is presently unnecessarily long.  Can all be stored in uint8_t otherwise.
 int position = 0;                                                               // the position of the rotary encoder, used to navigate menus and enter text.
 uint8_t enterPosition = 0;                                                      // when alpha editing w/ rotary encoder, position in the edited word
-uint8_t acctPosition;                                                           // the positon of the selected account.
+uint8_t acctPosition;                                                           // the position of the selected account.
 uint8_t acctCount = 0;                                                          // the number of accounts in EEprom.
 boolean authenticated = false;                                                  // indicates if the correct master password has been provided
 unsigned long lastActivityTime;                                                 // used to automatically logout after a period of inactivity
@@ -5750,43 +5750,41 @@ void OnReadOldPassword(){
 
 void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
   char *accountName;
+  boolean badAcctName = false;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   accountName = cmdMessenger.readStringArg();
-//  eeprom_write_bytes(GET_ADDR_ACCT(acctPosition), accountName, ACCOUNT_SIZE);
-  pos = FindAccountPos(field);                                        // get the next open position
-  if (!updateExistingAccount) {                                       // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
-    if (pos != INITIAL_MEMORY_STATE_BYTE) {                           // if we are not out of space
-      SetSaltAndKey(pos);                                             // populate and save the salt, set the key with the salt and master password
+  acctPosition = FindAccountPos(accountName);                                   // get the next open position, sets updateExistingAccount
+  if (!updateExistingAccount) {                                                 // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
+    if (acctPosition != INITIAL_MEMORY_STATE_BYTE) {                            // if we are not out of space
+      SetSaltAndKey(acctPosition);                                              // populate and save the salt, set the key with the salt and master password
       char bufferAcct[ACCOUNT_SIZE];
-      encrypt32Bytes(bufferAcct, field);
-      while (bufferAcct[0] == INITIAL_MEMORY_STATE_CHAR) {            // check to see if we have an invalid condition after encryption, if we do,
-                                                                      // concatenate characters until the first char in the cipher isn't 255.
-        DisplayToError("ERR: 039");                                   // encrypted account name starts with 255, fixing...
+      encrypt32Bytes(bufferAcct, accountName);
+      while (bufferAcct[0] == INITIAL_MEMORY_STATE_CHAR) {                      // check to see if we have an invalid condition after encryption, if we do,
+                                                                                // concatenate characters until the first char in the cipher isn't 255.
+        DisplayToError("ERR: 039");                                             // encrypted account name starts with 255, fixing...
         delayNoBlock(ONE_SECOND * 2);
-        len = strlen(field);
+        size_t len = strlen(accountName);
         if (len > 2) {
-          field[len - 2] = NULL_TERM;                                 // Chop a character off the end of the account name
-          encrypt32Bytes(bufferAcct, field);                          // encrypt again and hope for the best
+          accountName[len - 2] = NULL_TERM;                                     // Chop a character off the end of the account name
+          encrypt32Bytes(bufferAcct, accountName);                              // encrypt again and hope for the best
         } else {
-          DisplayToError("ERR: 020");                                 // display the error to the screen and continue processing.  
+          DisplayToError("ERR: 020");                                           // display the error to the screen and continue processing.  
           delayNoBlock(ONE_SECOND * 2);
-          fieldNum = 100;                                             // force our way out of the for loop
+          badAcctName = true;                                                   //
           break;
         }
       }
-      if (fieldNum < 100) {
-        if (!updateExistingAccount) {                                 // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
-          eeprom_write_bytes(GET_ADDR_ACCT(pos),bufferAcct,ACCOUNT_SIZE); // write the account name to eeprom
-          writePointers(pos, field);                                  // insert the account into the linked list by updating prev and next pointers.
+      if (!badAcctName) {
+        if (!updateExistingAccount) {                                           // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
+          eeprom_write_bytes(GET_ADDR_ACCT(acctPosition),bufferAcct,ACCOUNT_SIZE);// write the account name to eeprom
+          writePointers(acctPosition, accountName);                             // insert the account into the linked list by updating prev and next pointers.
           acctCount++;
         }
-        uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(pos));       // initialize the groups
-        if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(pos, NONE); // a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
+        uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));        // initialize the groups
+        if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(acctPosition, NONE);// a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
       }
     } else {
-      fieldNum = 100;                                                 // force our way out of the for loop
-      outOfSpace = true;
-      DisplayToError("ERR: 012");                                     // out of space in EEprom
+      DisplayToError("ERR: 012");                                               // out of space in EEprom
       delayNoBlock(ONE_SECOND * 2);
     }
   }
