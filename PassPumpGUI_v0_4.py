@@ -2,11 +2,10 @@
 #
 # GUI to interface with the PasswordPump
 #
-# Copyright 2019
+# Copyright 2020txt_
 # Daniel Murphy
 #
-#from Tkinter import *
-#import tkinter.ttk as ttk
+# Built for Python 3
 
 from tkinter import *
 from tkinter.ttk import *
@@ -72,7 +71,16 @@ def clickedAll():
 
 def clickedAcct():
     resAcct = txt_acct.get()
-    c.send("pyUpdateAccountName", position, resAcct)
+    global position
+    c.send("pyUpdateAccountName", position, resAcct)                           # on an insert, position is ignored here
+    c.send("pyGetAcctPos")                                                     # get the (possibly) new account position
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    last_position = position
+    position = response_list[0]
+    if position == 255:
+        position = last_position
     #s.write(resAcct + '\n')
     txt_acct.config(state='normal')
     #window.after(100, poll)
@@ -95,6 +103,18 @@ def clickedUser():
     print (directions)
     window.update()
     #poll()
+#    c.send("pyReadUserName", position)
+#    try:
+#        response = c.receive()
+#        print (response)
+#        userName_list = response[1]
+#        userName = userName_list[0]
+#    except UnicodeDecodeError:
+#        print("pyReadUserName returned empty string")
+#        userName = ""
+#    print(position)
+#    print(userName)
+
 
 def clickedPass():
     resPass = txt_pass.get()
@@ -178,6 +198,7 @@ def clickedInsert():
     print(response)
     response_list = response[1]
     position = response_list[0]
+#   txt_acct.config(state='normal')
     getRecord()
 
 def clickedDelete():
@@ -213,6 +234,7 @@ def clickedOpen():
                 ["pyUpdateStyle", "bs"],
                 ["pyGetNextPos","b"],
                 ["pyGetPrevPos","b"],
+                ["pyGetAcctPos",""],
                 ["pyReadHead",""],
                 ["pyReadTail",""],
                 ["pyGetNextFreePos",""],
