@@ -30,11 +30,11 @@
   - Search for accounts
     - Send user name and password as if typed in keyboard
     - Add account name, user name, password (generated or not)
-    - Edit existing account name, user name, password
+    - Edit existing user name, password, URL, style
     - Delete account
     - Generate password
   - Data entry via rotary encoder or keyboard and serial monitor, or via client
-    program running in Windows.
+    Python program running in Windows.
   - Accounts added in alphabetical order
   - Store up to 255 sets of credentials
   - Backup all accounts to a second encrypted external EEprom
@@ -43,14 +43,15 @@
   - Mandatory factory reset after a customized number of failed login attempts
   - Automatic logout countdown
   - Configurable password display on or off
-  - All passwords (except master password) are encrypted w/ AES256; master 
-    password is hashed w/ SHA256.
+  - All passwords (except master password) are encrypted w/ AES-256; master 
+    password is hashed w/ SHA-256.
   - Change master password
   - Export/Import to/from PasswordPump CSV format
   - Import KeePass exported CSV file
   - Import passwords from Chrome
   - Associate credentials with groups for better organization; search by group
-  - Decoy password feature that automatically factory resets the device
+  - Decoy password feature that automatically factory resets the device if
+    entered while the user is under duress
   
   Known Defects/Issues
   ====================  
@@ -70,10 +71,9 @@
     password.
   - When you import credentials with <CR><LF> in the account name bad things
     happen.
-  - Add Web Site to the python client and test.
   - Nail down the menu / UI layout.  Invert the top line.
   - See if you can add one more char to the horizontal size of the SSD1306.
-  - See if you can change the font of the UI.
+  - See if you can change the font of the UI and add a fourth line.
   - Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
   - Get better USB cables.
   - Added account 'Add Account' and then deleted, corrupted linked list
@@ -85,8 +85,6 @@
   - In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
-  - Can't seem to send a <tab> character via the Keyboard.  Tried KEY_TAB, 
-    TAB_KEY, 0x2b, 0xB3, '  '.
   - If there are commas or double quotes in the text of a field we're trying to
     import, import breaks.
   - Some character loss when exporting to PPEXPORT.CSV and then re-importing.
@@ -103,8 +101,11 @@
   x we are only encrypting the first 16 characters of account name, user name 
     and password.  The sha256 block size is 16.
   x single click after Reset brings you to alpha edit mode
+  * Add Web Site to the python client and test.
   * Entering Find Favorites when there are no Favorites yields undefined 
     behavior.
+  * Can't seem to send a <tab> character via the Keyboard.  Tried KEY_TAB, 
+    TAB_KEY, 0x2b, 0xB3, '  '.
   * Find Favorites freezes the MCU if there are no favorites (or shows garbage)
   * The problem with the rotary encoder needs to be addressed.
   * When updating an existing account via import KeePass, the linked list is
@@ -298,8 +299,6 @@
   Warnings
   ========
   - Avoid using the device under water.
-  - Changed Adafruit_SSD1306::begin in Adafruit_SSD1306.cpp to suppress display
-    of the Adafruit splash screen on the SSD1306 display.
   
   Suggestions
   ===========
@@ -310,12 +309,6 @@
     runs and then loop() runs, in a loop, in perpetuity.
   - Set tab spacing to 2 space characters in your editor.
 
-  Library Modifications
-  =====================
-  In PyCmdMessenger.py, at lines 25 and 26, change to the following:
-                 field_separator="~",
-                 command_separator="|",
-  
   Contributors
   ============
   Source code has been pulled from all over the internet, it would be impossible 
@@ -361,6 +354,18 @@
   necessary for your intended use. For example, other rights such as publicity,
   privacy, or moral rights may limit how you use the material.
 
+  AdaFruit WIndows Drivers
+  ========================
+  https://github.com/adafruit/Adafruit_Windows_Drivers/releases/tag/2.4.0.0
+  
+  Library Modifications
+  =====================
+  - In PyCmdMessenger.py, at lines 25 and 26, change to the following:
+                 field_separator="~",
+                 command_separator="|",
+  - Changed Adafruit_SSD1306::begin in Adafruit_SSD1306.cpp to suppress display
+    of the Adafruit splash screen on the SSD1306 display.
+  
   Libraries                                                                     // TODO: UPDATE THIS
   =========
   - https://rweather.github.io/arduinolibs/index.html - AES and SHA library
@@ -382,12 +387,13 @@
                             https://www.tinkercad.com/things/3j5hXKeFjPE
   - Source code repository: https://github.com/seawarrior181/PasswordPump       // TODO: This is for the original PasswordPump, change it for the ItsyBitsy Password Pump
 
-  Components
-  ==========
+  Bill Of Materials
+  =================
   - 1 AdaFruit ItsyBitsy (32-bit ARM®, SAMD51 Cortex®-M4F MCU)
        Data Sheet: http://ww1.microchip.com/downloads/en/DeviceDoc/60001507E.pdf
   - 2 MICROCHIP - 25LC512-I/P - 512K SPI™ Bus Serial EEPROM DIP8, one primary 
        one backup.
+    2 IC DIP Sockets, 8 pins each
        Data Sheet: http://ww1.microchip.com/downloads/en/DeviceDoc/20005715A.pdf
   - 1 SSD1306 I2C LED display 128x32 pixels.
        Data Sheet: https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
@@ -396,6 +402,7 @@
   - 1 Rotary Encoder
   - 3 220ohm resistors
   - 2 4.7kohm resistors (to hold i2c SDA and SCL lines high)
+  - 1 plastic knob for rotary encoder
 
   Connections
   ===========
@@ -1291,6 +1298,7 @@ enum                                                                            
   pyUpdateStyle         ,
   pyGetNextPos          ,
   pyGetPrevPos          ,
+  pyGetAcctPos          ,
   pyReadHead            ,
   pyReadTail            ,
   pyGetNextFreePos      ,
@@ -5694,6 +5702,7 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyUpdateStyle         , OnUpdateStyle);
   cmdMessenger.attach(pyGetNextPos          , OnGetNextPos);
   cmdMessenger.attach(pyGetPrevPos          , OnGetPrevPos);
+  cmdMessenger.attach(pyGetAcctPos          , OnGetAcctPos);
   cmdMessenger.attach(pyReadHead            , OnReadHead);
   cmdMessenger.attach(pyReadTail            , OnReadTail);
   cmdMessenger.attach(pyGetNextFreePos      , OnGetNextFreePos);
@@ -5708,7 +5717,7 @@ void OnUnknownCommand()                                                         
 void OnReadAccountName() {
   char accountName[ACCOUNT_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  readAcctFromEEProm(acctPosition, accountName);
+  readAcctFromEEProm(acctPosition, accountName);                                // read and decrypt the account name
   DisplayToStatus(accountName);
   cmdMessenger.sendCmd(kStrAcknowledge, accountName);
 }
@@ -5716,21 +5725,21 @@ void OnReadAccountName() {
 void OnReadUserName(){
   char username[USERNAME_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  readUserFromEEProm(acctPosition, username);
+  readUserFromEEProm(acctPosition, username);                                   // read and decrypt the user
   cmdMessenger.sendCmd(kStrAcknowledge, username);
 }
 
 void OnReadPassword(){
   char password[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  readPassFromEEProm(acctPosition, password);
+  readPassFromEEProm(acctPosition, password);                                   // read and decrypt the password
   cmdMessenger.sendCmd(kStrAcknowledge, password);
 }
 
 void OnReadURL(){
   char url[WEBSITE_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  readWebSiteFromEEProm(acctPosition, url);
+  readWebSiteFromEEProm(acctPosition, url);                                     // read and decrypt the url
   cmdMessenger.sendCmd(kStrAcknowledge, url);
 }
 
@@ -5744,7 +5753,7 @@ void OnReadStyle(){
 void OnReadOldPassword(){
   char oldPassword[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  readOldPassFromEEProm(acctPosition, oldPassword);
+  readOldPassFromEEProm(acctPosition, oldPassword);                             // read and decrypt the old password
   cmdMessenger.sendCmd(kStrAcknowledge, oldPassword);
 }
 
@@ -5754,7 +5763,7 @@ void OnUpdateAccountName(){                                                     
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   accountName = cmdMessenger.readStringArg();
   acctPosition = FindAccountPos(accountName);                                   // get the next open position, sets updateExistingAccount
-  if (!updateExistingAccount) {                                                 // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
+  if (!updateExistingAccount) {                                                 // if we're not updating an existing account we must be inserting
     if (acctPosition != INITIAL_MEMORY_STATE_BYTE) {                            // if we are not out of space
       SetSaltAndKey(acctPosition);                                              // populate and save the salt, set the key with the salt and master password
       char bufferAcct[ACCOUNT_SIZE];
@@ -5770,8 +5779,8 @@ void OnUpdateAccountName(){                                                     
         } else {
           DisplayToError("ERR: 020");                                           // display the error to the screen and continue processing.  
           delayNoBlock(ONE_SECOND * 2);
-          badAcctName = true;                                                   //
-          break;
+          badAcctName = true;                                                   // can't get this account name to encrpyt to something that doesn't
+          break;                                                                // start with 255
         }
       }
       if (!badAcctName) {
@@ -5787,29 +5796,41 @@ void OnUpdateAccountName(){                                                     
       DisplayToError("ERR: 012");                                               // out of space in EEprom
       delayNoBlock(ONE_SECOND * 2);
     }
-  }
-
-}
+  }                                                                             // if we're updating an existing account no need to write out the 
+}                                                                               // account, set the pointers or increment the account count. Don't
+                                                                                // update the account name, once it is created it can't be changed.
 
 void OnUpdateUserName(){
   char *username;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   username = cmdMessenger.readStringArg();
-  eeprom_write_bytes(GET_ADDR_USER(acctPosition), username, USERNAME_SIZE);
+  //uint8_t i = strlen(username);
+  //while (i < USERNAME_SIZE) username[i++] = NULL_TERM;
+  char bufferUser[USERNAME_SIZE];                                               // encrypted user name
+  encrypt32Bytes(bufferUser, username);                                         // encrypt the user name
+  eeprom_write_bytes(GET_ADDR_USER(acctPosition), bufferUser, USERNAME_SIZE);
 }
 
 void OnUpdatePassword(){
   char *password;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   password = cmdMessenger.readStringArg();
-  eeprom_write_bytes(GET_ADDR_PASS(acctPosition), password, PASSWORD_SIZE);
+  //uint8_t i = strlen(password);
+  //while (i < PASSWORD_SIZE) password[i++] = NULL_TERM;
+  char bufferPass[PASSWORD_SIZE];                                               // encrypted password
+  encrypt32Bytes(bufferPass, password);                                         // encrypt the user name
+  eeprom_write_bytes(GET_ADDR_PASS(acctPosition), bufferPass, PASSWORD_SIZE);
 }
 
 void OnUpdateURL(){
   char *url;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   url = cmdMessenger.readStringArg();
-  eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition), url, WEBSITE_SIZE);
+  //uint8_t i = strlen(url);
+  //while (i < WEBSITE_SIZE) url[i++] = NULL_TERM;
+  char bufferWebsite[WEBSITE_SIZE];                                             // encrypted web site
+  encrypt96Bytes(bufferWebsite, url);                                      // encrypt the user name
+  eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition), bufferWebsite, WEBSITE_SIZE);
 }
 
 void OnUpdateStyle(){
@@ -5825,6 +5846,10 @@ void OnGetNextPos(){
 
 void OnGetPrevPos(){
   cmdMessenger.sendBinCmd(kAcknowledge, getPrevPtr(acctPosition));
+}
+
+void OnGetAcctPos(){
+  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);
 }
 
 void OnReadHead(){
