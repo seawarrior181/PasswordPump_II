@@ -715,7 +715,7 @@ SOH  - 01   Read                            Account     NULL_TERM
 
 //- Defines
 
-#define BAUD_RATE                 9600                                          // Baud rate for the Serial monitor, best for 16MHz (was 38400)
+#define BAUD_RATE                 115200                                        // Baud rate for the Serial monitor, best for 16MHz (was 38400)
 
 #define ROTARY_PIN1               9                                             // Pin for ItsyBitsy SAMD51 M4
 #define ROTARY_PIN2               7                                             //   "                               
