@@ -103,17 +103,18 @@ def clickedUser():
     print (directions)
     window.update()
     #poll()
-#    c.send("pyReadUserName", position)
-#    try:
-#        response = c.receive()
-#        print (response)
-#        userName_list = response[1]
-#        userName = userName_list[0]
-#    except UnicodeDecodeError:
-#        print("pyReadUserName returned empty string")
-#        userName = ""
-#    print(position)
-#    print(userName)
+    c.send("pyReadUserName", position)
+    try:
+        response = c.receive()
+        print (response)
+        userName_list = response[1]
+        userName = userName_list[0]
+    except UnicodeDecodeError:
+        print("pyReadUserName returned empty string")
+        userName = ""
+    print(position)
+    print(userName)
+    getRecord()
 
 
 def clickedPass():
@@ -214,7 +215,7 @@ def clickedOpen():
     # global s
     # s = serial.Serial(port, 9600)
     global arduino
-    arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=9600, timeout=1.0, settle_time=2.0, enable_dtr=False,
+    arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=1.0, settle_time=2.0, enable_dtr=False,
                                           int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
     global commands
     # List of command names (and formats for their associated arguments). These must
@@ -280,7 +281,7 @@ def getRecord():
 
     c.send("pyReadUserName", position)
     try:
-        response = c.receive()
+        response = c.receive()   #ValueError: Number of argument formats must match the number of recieved argumen
         print (response)
         userName_list = response[1]
         userName = userName_list[0]
