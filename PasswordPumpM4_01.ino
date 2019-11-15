@@ -5760,7 +5760,7 @@ void OnReadOldPassword(){
 void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
   char *accountName;
   boolean badAcctName = false;
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();                            // we throw this away
   accountName = cmdMessenger.readStringArg();
   acctPosition = FindAccountPos(accountName);                                   // get the next open position, sets updateExistingAccount
   if (!updateExistingAccount) {                                                 // if we're not updating an existing account we must be inserting
@@ -5806,7 +5806,7 @@ void OnUpdateUserName(){
   username = cmdMessenger.readStringArg();
   //uint8_t i = strlen(username);
   //while (i < USERNAME_SIZE) username[i++] = NULL_TERM;
-  char bufferUser[USERNAME_SIZE];                                               // encrypted user name
+  char bufferUser[USERNAME_SIZE];                                               // for the encrypted user name
   encrypt32Bytes(bufferUser, username);                                         // encrypt the user name
   eeprom_write_bytes(GET_ADDR_USER(acctPosition), bufferUser, USERNAME_SIZE);
 }
@@ -5817,8 +5817,8 @@ void OnUpdatePassword(){
   password = cmdMessenger.readStringArg();
   //uint8_t i = strlen(password);
   //while (i < PASSWORD_SIZE) password[i++] = NULL_TERM;
-  char bufferPass[PASSWORD_SIZE];                                               // encrypted password
-  encrypt32Bytes(bufferPass, password);                                         // encrypt the user name
+  char bufferPass[PASSWORD_SIZE];                                               // for the encrypted password
+  encrypt32Bytes(bufferPass, password);                                         // encrypt the password
   eeprom_write_bytes(GET_ADDR_PASS(acctPosition), bufferPass, PASSWORD_SIZE);
 }
 
@@ -5828,8 +5828,8 @@ void OnUpdateURL(){
   url = cmdMessenger.readStringArg();
   //uint8_t i = strlen(url);
   //while (i < WEBSITE_SIZE) url[i++] = NULL_TERM;
-  char bufferWebsite[WEBSITE_SIZE];                                             // encrypted web site
-  encrypt96Bytes(bufferWebsite, url);                                      // encrypt the user name
+  char bufferWebsite[WEBSITE_SIZE];                                             // for the encrypted url
+  encrypt96Bytes(bufferWebsite, url);                                           // encrypt the url
   eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition), bufferWebsite, WEBSITE_SIZE);
 }
 
