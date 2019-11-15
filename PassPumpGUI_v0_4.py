@@ -68,6 +68,7 @@ def clickedAll():
     clickedPass()
     clickedStyle()
     clickedUrl()
+    getRecord()
 
 def clickedAcct():
     resAcct = txt_acct.get()
@@ -114,8 +115,6 @@ def clickedUser():
         userName = ""
     print(position)
     print(userName)
-    getRecord()
-
 
 def clickedPass():
     resPass = txt_pass.get()
@@ -129,6 +128,17 @@ def clickedPass():
     print (directions)
     window.update()
     #poll()
+    c.send("pyReadPassword", position)
+    try:
+        response = c.receive()
+        print (response)
+        loc_password_list = response[1]
+        loc_password = loc_password_list[0]
+    except UnicodeDecodeError:
+        print("pyReadPassword returned empty string")
+        loc_password = ""
+    print(position)
+    print(loc_password)
 
 def clickedStyle():
     resStyle = txt_style.get()
@@ -233,9 +243,9 @@ def clickedOpen():
                 ["pyUpdatePassword", "bs"],
                 ["pyUpdateURL", "bs"],
                 ["pyUpdateStyle", "bs"],
-                ["pyGetNextPos","b"],
-                ["pyGetPrevPos","b"],
-                ["pyGetAcctPos",""],
+                ["pyGetNextPos",""],
+                ["pyGetPrevPos",""],
+                ["pyGetAcctPos",""],           # added b here 2019-11-14 7:16
                 ["pyReadHead",""],
                 ["pyReadTail",""],
                 ["pyGetNextFreePos",""],
@@ -267,6 +277,7 @@ def clickedOpen():
     #poll()
 
 def getRecord():
+    print(position)
     c.send("pyReadAccountName", position)
     try:
         response = c.receive()
@@ -279,6 +290,7 @@ def getRecord():
     txt_acct.delete(0,END)
     txt_acct.insert(0,accountName)
 
+    print (position)
     c.send("pyReadUserName", position)
     try:
         response = c.receive()   #ValueError: Number of argument formats must match the number of recieved argumen
@@ -291,6 +303,7 @@ def getRecord():
     txt_user.delete(0,END)
     txt_user.insert(0,userName)
 
+    print (position)
     c.send("pyReadPassword", position)
     try:
         response = c.receive()
@@ -317,7 +330,7 @@ def getRecord():
 
     c.send("pyReadURL", position)
     try:
-        response = c.receive()
+        response = c.receive()              #ValueError: Number of argument formats must match the number of recieved argumen
         print(response)
         url_list = response[1]
         url = url_list[0]
