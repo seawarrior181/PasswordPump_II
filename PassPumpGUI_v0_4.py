@@ -18,43 +18,49 @@ import argparse
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('400x300')
+window.geometry('400x500')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
-lbl_port.grid(column=0, row=0)
+lbl_port.grid(column=1, row=0)
+
+scrollbar = Scrollbar(window, orient=VERTICAL)
+lb = Listbox(window, selectmode=SINGLE, justify=LEFT, width=40, yscrollcommand=scrollbar.set)
+scrollbar.config(command=lb.yview)
+scrollbar.grid(column=3,row=1)
+lb.grid(column=2,row=1)
 
 lbl_acct = Label(window, text="Account", anchor=E, justify=RIGHT, width=10)
-lbl_acct.grid(column=0, row=1)
+lbl_acct.grid(column=1, row=2)
 
 lbl_user = Label(window, text="User Name", anchor=E, justify=RIGHT, width=10)
-lbl_user.grid(column=0, row=2)
+lbl_user.grid(column=1, row=3)
 
 lbl_pass = Label(window, text="Password", anchor=E, justify=RIGHT, width=10)
-lbl_pass.grid(column=0, row=3)
+lbl_pass.grid(column=1, row=4)
 
 lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
-lbl_style.grid(column=0, row=4)
+lbl_style.grid(column=1, row=5)
 
 lbl_url = Label(window, text="URL", anchor=E, justify=RIGHT, width=10)
-lbl_url.grid(column=0, row=5)
+lbl_url.grid(column=1, row=6)
 
 lbl_help = Label(window, text="Instructions", anchor=W, justify=CENTER, width=11)
-lbl_help.grid(column=1, row=6)
+lbl_help.grid(column=2, row=7)
 
 txt_acct = Entry(window, width=40)
-txt_acct.grid(column=1, row=1)
+txt_acct.grid(column=2, row=2)
 
 txt_user = Entry(window, width=40)
-txt_user.grid(column=1, row=2)
+txt_user.grid(column=2, row=3)
 
 txt_pass = Entry(window, width=40)
-txt_pass.grid(column=1, row=3)
+txt_pass.grid(column=2, row=4)
 
 txt_style = Entry(window, width=40)
-txt_style.grid(column=1, row=4)
+txt_style.grid(column=2, row=5)
 
 txt_url = Entry(window, width=40)
-txt_url.grid(column=1, row=5)
+txt_url.grid(column=2, row=6)
 
 txt_acct.config(state='normal')
 txt_user.config(state='normal')
@@ -68,7 +74,7 @@ def clickedAll():
     clickedPass()
     clickedStyle()
     clickedUrl()
-    getRecord()
+    #getRecord()
 
 def clickedAcct():
     resAcct = txt_acct.get()
@@ -104,17 +110,17 @@ def clickedUser():
     print (directions)
     window.update()
     #poll()
-    c.send("pyReadUserName", position)
-    try:
-        response = c.receive()
-        print (response)
-        userName_list = response[1]
-        userName = userName_list[0]
-    except UnicodeDecodeError:
-        print("pyReadUserName returned empty string")
-        userName = ""
-    print(position)
-    print(userName)
+#    c.send("pyReadUserName", position)
+#    try:
+#        response = c.receive()
+#        print (response)
+#        userName_list = response[1]
+#        userName = userName_list[0]
+#    except UnicodeDecodeError:
+#        print("pyReadUserName returned empty string")
+#        userName = ""
+#    print(position)
+#    print(userName)
 
 def clickedPass():
     resPass = txt_pass.get()
@@ -128,17 +134,17 @@ def clickedPass():
     print (directions)
     window.update()
     #poll()
-    c.send("pyReadPassword", position)
-    try:
-        response = c.receive()
-        print (response)
-        loc_password_list = response[1]
-        loc_password = loc_password_list[0]
-    except UnicodeDecodeError:
-        print("pyReadPassword returned empty string")
-        loc_password = ""
-    print(position)
-    print(loc_password)
+#    c.send("pyReadPassword", position)
+#    try:
+#        response = c.receive()
+#        print (response)
+#        loc_password_list = response[1]
+#        loc_password = loc_password_list[0]
+#    except UnicodeDecodeError:
+#        print("pyReadPassword returned empty string")
+#        loc_password = ""
+#    print(position)
+#    print(loc_password)
 
 def clickedStyle():
     resStyle = txt_style.get()
@@ -164,8 +170,8 @@ def clickedUrl():
     directions = """Updated URL."""
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
-    window.update()
     print (directions)
+    window.update()
 
 def clickedClose():
     #if s.is_open:
@@ -202,6 +208,40 @@ def clickedNext():
         txt_dir.insert(END, "Reached the end of the list")
     getRecord()
 
+def loadListBox():
+    window.config(cursor="watch")
+    lb.delete(0,END)                                                           # clear out the listbox
+    c.send("pyReadHead")                                                       # Get the list head
+    response = c.receive()
+    response_list = response[1]
+    global position
+    head = response_list[0]
+    position = head
+
+    global accountDict
+    accountDict = ({})                                                         # Load the dictionary
+    while position < 255:
+        c.send("pyReadAccountName", position)
+        try:
+            response = c.receive()
+            accountName_list = response[1]
+            accountName = accountName_list[0]
+        except UnicodeDecodeError:
+            print("pyReadAccountName returned empty string")
+            accountName = ""
+        accountDict[accountName] = position
+        lb.insert(END, accountName)
+        c.send("pyGetNextPos")
+        response = c.receive()
+        response_list = response[1]
+        position = response_list[0]
+                                                                               # Load the listbox
+#    for key in accountDict:
+#        lb.insert(END, accountDict[key])
+
+    lb.activate(0)                                                             # Activate the first item in the list
+    window.config(cursor="")
+
 def clickedInsert():
     global position
     c.send("pyGetNextFreePos")
@@ -210,9 +250,25 @@ def clickedInsert():
     response_list = response[1]
     position = response_list[0]
 #   txt_acct.config(state='normal')
+    txt_acct.delete(0, END)
+    txt_user.delete(0, END)
+    txt_pass.delete(0, END)
+    txt_style.delete(0, END)
+    txt_url.delete(0, END)
+#   getRecord()
+
+def clickedLoad():
+    global position
+    item = lb.curselection()
+    theText = lb.get(item)
+    position = accountDict[theText]
+    print (item)
+    print(lb.get(item))
+    print(position)
     getRecord()
 
 def clickedDelete():
+    lb.delete(ANCHOR)                                                          # delete the account from the listbox
     global position
     c.send("pyDeleteAccount",position)
     response = c.receive()
@@ -273,6 +329,7 @@ def clickedOpen():
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
     print (directions)
+    loadListBox()
     window.update()
     #poll()
 
@@ -330,7 +387,7 @@ def getRecord():
 
     c.send("pyReadURL", position)
     try:
-        response = c.receive()              #ValueError: Number of argument formats must match the number of recieved argumen
+        response = c.receive()              #EOFError: Incomplete message (1~https://www.cvs.com/account/login/|) (when a field ends with /)
         print(response)
         url_list = response[1]
         url = url_list[0]
@@ -419,42 +476,49 @@ def serial_ports():
 
 def on_select(event=None):
     global port
-    port = cb.get()
-    # get selection directly from combobox
+    port_desc = cb.get()
+    print (port_desc)
+    port = port_desc[:port_desc.find(":")]
+    print (port)
     print("comboboxes: ", cb.get())
+    # get selection directly from combobox
 
 #btn_acct = Button(window, text="Submit", command=clickedAcct)
-#btn_acct.grid(column=2, row=1)
+#btn_acct.grid(column=3, row=1)
 
 #btn_user = Button(window, text="Submit", command=clickedUser)
-#btn_user.grid(column=2, row=2)
+#btn_user.grid(column=3, row=2)
 
 #btn_pass = Button(window, text="Submit", command=clickedPass)
-#btn_pass.grid(column=2, row=3)
+#btn_pass.grid(column=3, row=3)
 
 #btn_style = Button(window, text="Submit", command=clickedStyle)
-#btn_style.grid(column=2, row=4)
+#btn_style.grid(column=3, row=4)
 
 btn_url = Button(window, text="Save", command=clickedAll)
-btn_url.grid(column=2, row=5)
+btn_url.grid(column=3, row=6)
 
 btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
-btn_previous.grid(column=0, row=6)
+btn_previous.grid(column=1, row=7)
 
 btn_next = Button(window, text="Next>>", command=clickedNext)
-btn_next.grid(column=2, row=6)
+btn_next.grid(column=3, row=7)
 
 btn_insert = Button(window, text="Insert", command=clickedInsert)
-btn_insert.grid(column=0, row=7)
+btn_insert.grid(column=1, row=8)
 
 btn_delete = Button(window, text="Delete", command=clickedDelete)
-btn_delete.grid(column=0, row=8)
+btn_delete.grid(column=1, row=9)
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
-btn_open.grid(column=2, row=0)
+btn_open.grid(column=3, row=0)
+
+btn_load = Button(window, text="Load", command=clickedLoad)
+btn_load.grid(column=3, row=1)
+#lb.bind("<Double-Button-1>", btn_load)
 
 btn_close = Button(window, text=" Exit ", command=clickedClose)
-btn_close.grid(column=2, row=8)
+btn_close.grid(column=3, row=9)
 
 #btn_acct.config(state='normal')
 #btn_user.config(state='normal')
@@ -464,7 +528,7 @@ btn_url.config(state='normal')
 btn_close.config(state='normal')
 
 txt_dir = Text(window, height=5, width=30, relief=FLAT, background="light grey")
-txt_dir.grid(column=1, row=7)
+txt_dir.grid(column=2, row=8)
 txt_dir.config(state=NORMAL)
 txt_dir.delete('1.0', END)
 directions = """After selecting the port click
@@ -475,10 +539,10 @@ txt_dir.insert(END, directions)
 
 ports = []
 for n, (port, desc, hwid) in enumerate(sorted(comports()), 1):
-    ports.append(port)
+    ports.append(port + ": " + desc)
 
 cb = Combobox(window, values=ports, justify=RIGHT, width=37)
-cb.grid(column=1, row=0)
+cb.grid(column=2, row=0)
 cb.bind('<<ComboboxSelected>>', on_select)
 
 # Global variables
