@@ -58,6 +58,10 @@
     - = 28 outstanding
     x = fixed but needs testing
     * = 49 fixed
+  - A forward slash (escape character) at the end of a field causes the PC UI
+    to throw an exception.
+  - When there is a tilde (~) in a field this causes the PC UI to throw an 
+    exception.
   - PC client isn't working correctly, the fields are not getting enabled.
   - Navigation back to previous menu needs work (EVENT_LONG_CLICK).
   - Fix defect in FindAccountPos; ERR: 033 when importing existing account
@@ -379,6 +383,11 @@
   
   - ?? https://spaniakos.github.io/AES/index.html - AES encryption
   
+  Drivers
+  =======
+  - It might be necessary to install the following drivers: 
+    https://github.com/adafruit/Adafruit_Windows_Drivers/releases
+  
   Other Artifacts                                                               // TODO: update these with URLs.
   ===============
   - Project web site:       https://www.5volts.org/
@@ -503,6 +512,7 @@
                             login attempt(s).
   Yellow                    Error backing up or initializing EEprom
   Blue                      Not logged in including failed login attempt
+  Flashing Blue and Yellow  Editing credentials via PC
   
   Budgeting Memory
   ================
@@ -635,30 +645,6 @@
   038 - Invalid position in file menu
   039 - Encrypted account name starts with 255, fixing...
   040 - Invalid position when returning to a find by group menu
-
-Receiving a Request from the PC
-  1         2             3     4           5           6
-Start       Xaction Type  Pos   Byte Count  Field       End
-SOH  - 01   Read                            Account     NULL_TERM
-            Write                           User Name
-            Delete                          Password
-                                            Website
-                                            Group
-                                            Style
-
-
-#define S_START     1
-#define S_END       10
-#define S_READ      1
-#define S_WRITE     2
-#define S_DELETE    3
-#define S_ACCOUNT   1
-#define S_USERNAME  2
-#define S_PASSWORD  3
-#define S_WEBSITE   4
-#define S_GROUP     5
-#define S_STYPE     6
-
 
   The Program 
   ==============================================================================
@@ -1313,7 +1299,7 @@ volatile uint8_t event = EVENT_NONE;                                            
 
 //- Object setup
 
-CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separator); // Attach a new CmdMessenger object to the default Serial port
+CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separator, escape_separator); // Attach a new CmdMessenger object to the default Serial port
 SHA256 sha256;
 AESSmall256 aes;                                                                // 32 byte key, 32 byte block; this uses 4% more program memory. Set 
                                                                                 // MASTER_PASSWORD_SIZE = 32 when in use.
@@ -2022,7 +2008,7 @@ void ProcessEvent() {                                                           
           attachCommandCallbacks();
           event = EVENT_NONE;
           int counter; counter = 0;
-          setRed();
+          setYellow();
 //          while (1) {  
 //            cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
 //          }
@@ -2032,10 +2018,10 @@ void ProcessEvent() {                                                           
             encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
             cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
             if (counter%129792 == 0) {                                          //  259584 to slow down
-              if (isRed) {
+              if (isYellow) {
                 setBlue();
               } else {
-                setRed();
+                setYellow();
               }
             }
             counter++;
@@ -3300,7 +3286,7 @@ void SetSaltAndKey(uint8_t position) {                                          
   uint8_t key[KEY_SIZE];                                                        // set the key so we're prepared when we write the account to EEprom
   memcpy(key, salt, SALT_SIZE);                                                 // copy the salt to the first part of the key
   memcpy(key + SALT_SIZE, masterPassword, MASTER_PASSWORD_SIZE);                // copy the master password to the second part of the key, masterPassword should be padded w/ null terminator from processing in authenticateMaster
-  aes.setKey(key,KEY_SIZE);                                                     //
+  aes.setKey(key,KEY_SIZE);                                                     // set the key
 }
 
 void ReadSaltAndSetKey(uint8_t position) {
@@ -5720,6 +5706,7 @@ void OnReadAccountName() {
   readAcctFromEEProm(acctPosition, accountName);                                // read and decrypt the account name
   DisplayToStatus(accountName);
   cmdMessenger.sendCmd(kStrAcknowledge, accountName);
+  //DisplayToMenu(accountName);
 }
 
 void OnReadUserName(){
@@ -5727,6 +5714,7 @@ void OnReadUserName(){
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   readUserFromEEProm(acctPosition, username);                                   // read and decrypt the user
   cmdMessenger.sendCmd(kStrAcknowledge, username);
+  //DisplayToItem(username);
 }
 
 void OnReadPassword(){
@@ -5734,6 +5722,7 @@ void OnReadPassword(){
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   readPassFromEEProm(acctPosition, password);                                   // read and decrypt the password
   cmdMessenger.sendCmd(kStrAcknowledge, password);
+  //DisplayToError(password);
 }
 
 void OnReadURL(){
@@ -5804,9 +5793,10 @@ void OnUpdateUserName(){
   char *username;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   username = cmdMessenger.readStringArg();
-  //uint8_t i = strlen(username);
-  //while (i < USERNAME_SIZE) username[i++] = NULL_TERM;
+  uint8_t i = strlen(username);
+  while (i < USERNAME_SIZE) username[i++] = NULL_TERM;
   char bufferUser[USERNAME_SIZE];                                               // for the encrypted user name
+  ReadSaltAndSetKey(acctPosition);
   encrypt32Bytes(bufferUser, username);                                         // encrypt the user name
   eeprom_write_bytes(GET_ADDR_USER(acctPosition), bufferUser, USERNAME_SIZE);
 }
@@ -5815,9 +5805,10 @@ void OnUpdatePassword(){
   char *password;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   password = cmdMessenger.readStringArg();
-  //uint8_t i = strlen(password);
-  //while (i < PASSWORD_SIZE) password[i++] = NULL_TERM;
+  uint8_t i = strlen(password);
+  while (i < PASSWORD_SIZE) password[i++] = NULL_TERM;
   char bufferPass[PASSWORD_SIZE];                                               // for the encrypted password
+  ReadSaltAndSetKey(acctPosition);
   encrypt32Bytes(bufferPass, password);                                         // encrypt the password
   eeprom_write_bytes(GET_ADDR_PASS(acctPosition), bufferPass, PASSWORD_SIZE);
 }
@@ -5826,9 +5817,10 @@ void OnUpdateURL(){
   char *url;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   url = cmdMessenger.readStringArg();
-  //uint8_t i = strlen(url);
-  //while (i < WEBSITE_SIZE) url[i++] = NULL_TERM;
+  uint8_t i = strlen(url);
+  while (i < WEBSITE_SIZE) url[i++] = NULL_TERM;
   char bufferWebsite[WEBSITE_SIZE];                                             // for the encrypted url
+  ReadSaltAndSetKey(acctPosition);
   encrypt96Bytes(bufferWebsite, url);                                           // encrypt the url
   eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition), bufferWebsite, WEBSITE_SIZE);
 }
