@@ -18,15 +18,15 @@ import argparse
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('400x500')
+window.geometry('425x450')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
 
-scrollbar = Scrollbar(window, orient=VERTICAL)
+scrollbar = Scrollbar(window, orient=VERTICAL)                                 # TODO: this is showing up in the wrong place
 lb = Listbox(window, selectmode=SINGLE, justify=LEFT, width=40, yscrollcommand=scrollbar.set)
 scrollbar.config(command=lb.yview)
-scrollbar.grid(column=3,row=1)
+scrollbar.grid(column=2,row=1)
 lb.grid(column=2,row=1)
 
 lbl_acct = Label(window, text="Account", anchor=E, justify=RIGHT, width=10)
@@ -209,7 +209,7 @@ def clickedNext():
     getRecord()
 
 def loadListBox():
-    window.config(cursor="watch")
+    window.config(cursor="watch")                                              # TODO: this is not working
     lb.delete(0,END)                                                           # clear out the listbox
     c.send("pyReadHead")                                                       # Get the list head
     response = c.receive()
@@ -398,78 +398,6 @@ def getRecord():
     txt_url.insert(0,url)
 
 #def poll():
-    #attribute = s.readline()
-    #print attribute
-    #if int(attribute) == 10:    #STATE_EDIT_ACCOUNT
-    #    txt_acct.config(state='normal')
-    #    txt_user.config(state='disabled')
-    #    txt_pass.config(state='disabled')
-    #    txt_style.config(state='disabled')
-    #    txt_url.config(state='disabled')
-    #    txt_acct.focus()
-    #    btn_acct.config(state='normal')
-    #    btn_user.config(state='disabled')
-    #    btn_pass.config(state='disabled')
-    #    btn_style.config(state='disabled')
-    #    btn_url.config(state='disabled')
-    #    window.bind('<Return>', (lambda e, btn_acct=btn_acct: btn_acct.invoke()))
-    #    print('in 10')
-    #elif int(attribute) == 6:  #STATE_EDIT_USERNAME
-    #    txt_acct.config(state='disabled')
-    #    txt_user.config(state='normal')
-    #    txt_pass.config(state='disabled')
-    #    txt_style.config(state='disabled')
-    #    txt_url.config(state='disabled')
-    #    txt_user.focus()
-    #    btn_acct.config(state='disabled')
-    #    btn_user.config(state='normal')
-    #    btn_pass.config(state='disabled')
-    #    btn_style.config(state='disabled')
-    #    btn_url.config(state='disabled')
-    #    window.bind('<Return>', (lambda e, btn_user=btn_user: btn_user.invoke()))
-    #    print('in 6')
-    #elif int(attribute) == 7:  #STATE_EDIT_PASSWORD
-    #    txt_acct.config(state='disabled')
-    #    txt_user.config(state='disabled')
-    #    txt_pass.config(state='normal')
-    #    txt_style.config(state='disabled')
-    #    txt_url.config(state='disabled')
-    #    txt_pass.focus()
-    #    btn_acct.config(state='disabled')
-    #    btn_user.config(state='disabled')
-    #    btn_pass.config(state='normal')
-    #    btn_style.config(state='disabled')
-    #    btn_url.config(state='disabled')
-    #    window.bind('<Return>', (lambda e, btn_pass=btn_pass: btn_pass.invoke()))
-    #    print('in 7')
-    #elif int(attribute) == 8:  # STATE_EDIT_WEBSITE
-    #    txt_acct.config(state='disabled')
-    #    txt_user.config(state='disabled')
-    #    txt_pass.config(state='disabled')
-    #    txt_style.config(state='disabled')
-    #    txt_url.config(state='normal')
-    #    txt_style.focus()
-    #    btn_acct.config(state='disabled')
-    #    btn_user.config(state='disabled')
-    #    btn_pass.config(state='disabled')
-    #    btn_style.config(state='disabled')
-    #    btn_url.config(state='normal')
-    #    window.bind('<Return>', (lambda e, btn_url=btn_url: btn_url.invoke()))
-    #    print('in 8')
-    #elif int(attribute) == 4:  #STATE_EDIT_STYLE
-    #    txt_acct.config(state='disabled')
-    #    txt_user.config(state='disabled')
-    #    txt_pass.config(state='disabled')
-    #    txt_style.config(state='normal')
-    #    txt_url.config(state='disabled')
-    #    txt_style.focus()
-    #    btn_acct.config(state='disabled')
-    #    btn_user.config(state='disabled')
-    #    btn_pass.config(state='disabled')
-    #    btn_style.config(state='normal')
-    #    btn_url.config(state='disabled')
-    #    window.bind('<Return>', (lambda e, btn_style=btn_style: btn_style.invoke()))
-    #    print('in 4')
 
 def serial_ports():
     return comports()
@@ -483,26 +411,8 @@ def on_select(event=None):
     print("comboboxes: ", cb.get())
     # get selection directly from combobox
 
-#btn_acct = Button(window, text="Submit", command=clickedAcct)
-#btn_acct.grid(column=3, row=1)
-
-#btn_user = Button(window, text="Submit", command=clickedUser)
-#btn_user.grid(column=3, row=2)
-
-#btn_pass = Button(window, text="Submit", command=clickedPass)
-#btn_pass.grid(column=3, row=3)
-
-#btn_style = Button(window, text="Submit", command=clickedStyle)
-#btn_style.grid(column=3, row=4)
-
-btn_url = Button(window, text="Save", command=clickedAll)
-btn_url.grid(column=3, row=6)
-
 btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
 btn_previous.grid(column=1, row=7)
-
-btn_next = Button(window, text="Next>>", command=clickedNext)
-btn_next.grid(column=3, row=7)
 
 btn_insert = Button(window, text="Insert", command=clickedInsert)
 btn_insert.grid(column=1, row=8)
@@ -511,19 +421,21 @@ btn_delete = Button(window, text="Delete", command=clickedDelete)
 btn_delete.grid(column=1, row=9)
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
-btn_open.grid(column=3, row=0)
+btn_open.grid(column=4, row=0)
 
 btn_load = Button(window, text="Load", command=clickedLoad)
-btn_load.grid(column=3, row=1)
+btn_load.grid(column=4, row=1)
 #lb.bind("<Double-Button-1>", btn_load)
 
-btn_close = Button(window, text=" Exit ", command=clickedClose)
-btn_close.grid(column=3, row=9)
+btn_url = Button(window, text="Save", command=clickedAll)
+btn_url.grid(column=4, row=6)
 
-#btn_acct.config(state='normal')
-#btn_user.config(state='normal')
-#btn_pass.config(state='normal')
-#btn_style.config(state='normal')
+btn_next = Button(window, text="Next>>", command=clickedNext)
+btn_next.grid(column=4, row=7)
+
+btn_close = Button(window, text=" Exit ", command=clickedClose)
+btn_close.grid(column=4, row=9)
+
 btn_url.config(state='normal')
 btn_close.config(state='normal')
 
