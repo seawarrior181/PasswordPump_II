@@ -18,7 +18,7 @@ import argparse
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('425x450')
+window.geometry('420x450')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
@@ -257,6 +257,9 @@ def clickedInsert():
     txt_url.delete(0, END)
 #   getRecord()
 
+def clickedLoadDB(event):
+    clickedLoad()
+
 def clickedLoad():
     global position
     item = lb.curselection()
@@ -425,7 +428,8 @@ btn_open.grid(column=4, row=0)
 
 btn_load = Button(window, text="Load", command=clickedLoad)
 btn_load.grid(column=4, row=1)
-#lb.bind("<Double-Button-1>", btn_load)
+lb.bind("<Double-Button-1>", clickedLoadDB)
+#lb.bind("<Button-1>", clickedLoadDB)                                          # _tkinter.TclError: bad listbox index "": must be active, anchor, end, @x,y, or a number
 
 btn_url = Button(window, text="Save", command=clickedAll)
 btn_url.grid(column=4, row=6)
