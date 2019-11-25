@@ -523,10 +523,10 @@
   ====================    github.  Incorporate this into the instructions for 
                           uploading keepass and google password files.
   cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\bin\
-  arm-none-eabi-size -A C:\Users\djmurphy\AppData\Local\Temp\arduino_build_354683\PasswordPumpM4_01.ino.elf
+  arm-none-eabi-size -A C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.elf
   
   cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.8.0-48-gb176eee
-  bossac -i -d --port=COM49 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_354683\PasswordPumpM4_01.ino.bin -R 
+  bossac -i -d --port=COM67 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.bin -R 
 
   
   Menu Navigation                                                               // TODO: update the states here...
@@ -1268,7 +1268,6 @@ char *unquote(char *);
 
 enum                                                                            // Commands for CMDMessenger
 {
-  // Commands
   kAcknowledge          ,
   kStrAcknowledge       ,
   pyReadAccountName     ,
