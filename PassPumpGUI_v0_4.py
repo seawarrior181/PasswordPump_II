@@ -2,10 +2,29 @@
 #
 # GUI to interface with the PasswordPump
 #
-# Copyright 2020txt_
+# Copyright 2020
 # Daniel Murphy
 #
-# Built for Python 3
+# Built on Python 3.8
+# Purpose:
+#   This is the PC side of the PasswordPump.  It's job is to allow the user to
+#   edit the credentials that are stored inside the EEprom that reside on the
+#   PasswordPump.
+#
+# Defects:
+# - If there's a / at the end of a URL python throws an exception
+# - If a password (or any other field) contains a ~ or a |, python throws an
+#   exception
+# - Sometimes changing the URL in place is not working
+# - When clicking on Next and Previous the Account List textbox selected
+#   account isn't following along.
+# - When an account is inserted the accounts list box doesn't refresh.
+# - Hangs the MCU when adding credentials without Style or URL.
+#
+# Enhancements:
+# - Add a scrollbar to the account list box.
+# - Import files via this UI
+#
 
 from tkinter import *
 from tkinter.ttk import *
@@ -191,6 +210,9 @@ def clickedPrevious():
         print("Reached the beginning of the list")
         txt_dir.delete('1.0', END)
         txt_dir.insert(END, "Reached the beginning of the list")
+    else:
+        items = lb.curselection()
+        lb.activate(items[0] - 1)
     getRecord()
 
 def clickedNext():
@@ -206,6 +228,9 @@ def clickedNext():
         print("Reached the end of the list")
         txt_dir.delete('1.0', END)
         txt_dir.insert(END, "Reached the end of the list")
+    else:
+        items = lb.curselection()
+        lb.activate(items[0] + 1)
     getRecord()
 
 def loadListBox():
@@ -230,14 +255,12 @@ def loadListBox():
             print("pyReadAccountName returned empty string")
             accountName = ""
         accountDict[accountName] = position
-        lb.insert(END, accountName)
+        lb.insert(END, accountName)                                            # Load the listbox
         c.send("pyGetNextPos")
         response = c.receive()
         response_list = response[1]
         position = response_list[0]
-                                                                               # Load the listbox
-#    for key in accountDict:
-#        lb.insert(END, accountDict[key])
+#    position = head                                                            # Set the position back to the first account in the list
 
     lb.activate(0)                                                             # Activate the first item in the list
     window.config(cursor="")
@@ -426,10 +449,10 @@ btn_delete.grid(column=1, row=9)
 btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=4, row=0)
 
-btn_load = Button(window, text="Load", command=clickedLoad)
-btn_load.grid(column=4, row=1)
-lb.bind("<Double-Button-1>", clickedLoadDB)
-#lb.bind("<Button-1>", clickedLoadDB)                                          # _tkinter.TclError: bad listbox index "": must be active, anchor, end, @x,y, or a number
+#btn_load = Button(window, text="Load", command=clickedLoad)
+#btn_load.grid(column=4, row=1)
+##lb.bind("<Double-Button-1>", clickedLoadDB)
+lb.bind("<<ListboxSelect>>", clickedLoadDB)
 
 btn_url = Button(window, text="Save", command=clickedAll)
 btn_url.grid(column=4, row=6)
