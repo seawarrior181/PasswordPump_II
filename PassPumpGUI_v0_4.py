@@ -42,10 +42,11 @@ window.geometry('400x435')
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
 
-scrollbar = Scrollbar(window, orient=VERTICAL)                                 # TODO: this is showing up in the wrong place
-lb = Listbox(window, selectmode=SINGLE, justify=LEFT, width=40, yscrollcommand=scrollbar.set)
+lb = Listbox(window, selectmode=SINGLE, justify=LEFT, width=40)
+scrollbar = Scrollbar(window, orient=VERTICAL)                                     # TODO: this is showing up in the wrong place
 scrollbar.config(command=lb.yview)
-scrollbar.grid(column=2,row=1)
+scrollbar.grid(column=3,row=1)
+lb.config(yscrollcommand=scrollbar.set)
 lb.grid(column=2,row=1)
 
 lbl_acct = Label(window, text="Account", anchor=E, justify=RIGHT, width=10)
@@ -349,13 +350,14 @@ def clickedOpen():
     #c.send("pyReadOldPassword", position)
     #oldPassword = c.receive()
 
-    btn_open.config(state='normal')
     btn_close.config(state='normal')
     directions = """Opened port"""
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
     print (directions)
     loadListBox()
+    btn_open.config(state='disabled')
+    cb.config(state='disabled')
     window.update()
     #poll()
 
