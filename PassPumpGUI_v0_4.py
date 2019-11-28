@@ -37,7 +37,7 @@ import argparse
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('400x435')
+window.geometry('415x435')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
@@ -98,7 +98,7 @@ def clickedAll():
 
 def clickedAcct():
     resAcct = txt_acct.get()
-    global position
+    global position                                                            # the position on EEprom, don't confuse with selection
     c.send("pyUpdateAccountName", position, resAcct)                           # on an insert, position is ignored here
     c.send("pyGetAcctPos")                                                     # get the (possibly) new account position
     response = c.receive()
@@ -203,6 +203,7 @@ def clickedPrevious():
     response = c.receive()
     print(response)
     response_list = response[1]
+    global selection
     global position
     last_position = position
     position = response_list[0]
@@ -214,13 +215,15 @@ def clickedPrevious():
     else:
         items = lb.curselection()
         lb.activate(items[0] - 1)
-    getRecord()
+        OnEntryUpNoEvent()
+        lb.see(selection)
 
 def clickedNext():
     c.send("pyGetNextPos")
     response = c.receive()
     print(response)
     response_list = response[1]
+    global selection
     global position
     last_position = position
     position = response_list[0]
@@ -232,7 +235,8 @@ def clickedNext():
     else:
         items = lb.curselection()
         lb.activate(items[0] + 1)
-    getRecord()
+        OnEntryDownNoEvent()
+        lb.see(selection)
 
 def loadListBox():
     window.config(cursor="watch")                                              # TODO: this is not working
@@ -264,7 +268,34 @@ def loadListBox():
 #    position = head                                                            # Set the position back to the first account in the list
 
     lb.activate(0)                                                             # Activate the first item in the list
+    global selection
+    selection = 0
+    lb.select_set(selection)
+    lb.bind("<Down>", OnEntryDown)
+    lb.bind("<Up>", OnEntryUp)
     window.config(cursor="")
+
+def OnEntryDownNoEvent():
+    OnEntryDown(0)
+
+def OnEntryDown(event):
+    global selection
+    if selection < lb.size()-1:
+        lb.select_clear(selection)
+        selection += 1
+        lb.select_set(selection)
+        clickedLoad()
+
+def OnEntryUpNoEvent():
+    OnEntryUp(0)
+
+def OnEntryUp(event):
+    global selection
+    if selection > 0:
+        lb.select_clear(selection)
+        selection -= 1
+        lb.select_set(selection)
+        clickedLoad()
 
 def clickedInsert():
     global position
@@ -287,6 +318,8 @@ def clickedLoadDB(event):
 def clickedLoad():
     global position
     item = lb.curselection()
+    global selection
+    selection = item[0]
     theText = lb.get(item)
     position = accountDict[theText]
     print (item)
