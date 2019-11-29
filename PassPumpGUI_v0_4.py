@@ -37,17 +37,19 @@ import argparse
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('415x435')
+window.geometry('400x430')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
 
-lb = Listbox(window, selectmode=SINGLE, justify=LEFT, width=40)
-scrollbar = Scrollbar(window, orient=VERTICAL)                                     # TODO: this is showing up in the wrong place
+frame = Frame(window, width=200, height=200)
+frame.grid(column=2,row=1)
+lb = Listbox(frame, selectmode=SINGLE, justify=LEFT, width=38, bd=0, exportselection=False)
+scrollbar = Scrollbar(frame, orient=VERTICAL)
+scrollbar.pack(side=RIGHT, fill=Y)
 scrollbar.config(command=lb.yview)
-scrollbar.grid(column=3,row=1)
 lb.config(yscrollcommand=scrollbar.set)
-lb.grid(column=2,row=1)
+lb.pack()
 
 lbl_acct = Label(window, text="Account", anchor=E, justify=RIGHT, width=10)
 lbl_acct.grid(column=1, row=2)
@@ -76,8 +78,8 @@ txt_user.grid(column=2, row=3)
 txt_pass = Entry(window, width=40)
 txt_pass.grid(column=2, row=4)
 
-txt_style = Entry(window, width=40)
-txt_style.grid(column=2, row=5)
+#txt_style = Entry(window, width=40)
+#txt_style.grid(column=2, row=5)
 
 txt_url = Entry(window, width=40)
 txt_url.grid(column=2, row=6)
@@ -85,7 +87,7 @@ txt_url.grid(column=2, row=6)
 txt_acct.config(state='normal')
 txt_user.config(state='normal')
 txt_pass.config(state='normal')
-txt_style.config(state='normal')
+#txt_style.config(state='normal')
 txt_url.config(state='normal')
 
 def clickedAll():
@@ -167,11 +169,12 @@ def clickedPass():
 #    print(loc_password)
 
 def clickedStyle():
-    resStyle = txt_style.get()
-    txt_style.config(state='normal')
+
+    resStyle = cbStyle.current()
+#   txt_style.config(state='normal')
     c.send("pyUpdateStyle", position, resStyle)
     #s.write(resStyle + '\n')
-    txt_style.config(state='normal')
+#   txt_style.config(state='normal')
     #window.after(100, poll)
     directions = """Updated style."""
     txt_dir.delete('1.0', END)
@@ -308,7 +311,7 @@ def clickedInsert():
     txt_acct.delete(0, END)
     txt_user.delete(0, END)
     txt_pass.delete(0, END)
-    txt_style.delete(0, END)
+#   txt_style.delete(0, END)
     txt_url.delete(0, END)
 #   getRecord()
 
@@ -443,8 +446,9 @@ def getRecord():
     except UnicodeDecodeError:
         print("pyReadStyle returned empty string")
         style = ""
-    txt_style.delete(0, END)
-    txt_style.insert(0, style)
+#   txt_style.delete(0, END)
+#   txt_style.insert(0, style)
+    cbStyle.set(style)
 
     c.send("pyReadURL", position)
     try:
@@ -471,6 +475,15 @@ def on_select(event=None):
     print (port)
     print("comboboxes: ", cb.get())
     # get selection directly from combobox
+
+def on_style_select(event=None):
+    print (cbStyle.get())
+#   style = cbStyle.current()
+
+styles = ["0 - Tab","1 - Return"]
+cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
+cbStyle.grid(column=2, row=5)
+cbStyle.bind('<<ComboboxSelected>>', on_style_select)
 
 btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
 btn_previous.grid(column=1, row=7)
@@ -515,7 +528,7 @@ ports = []
 for n, (port, desc, hwid) in enumerate(sorted(comports()), 1):
     ports.append(port + ": " + desc)
 
-cb = Combobox(window, values=ports, justify=RIGHT, width=37)
+cb = Combobox(window, values=ports, justify=LEFT, width=37, exportselection=False)
 cb.grid(column=2, row=0)
 cb.bind('<<ComboboxSelected>>', on_select)
 
@@ -523,5 +536,6 @@ cb.bind('<<ComboboxSelected>>', on_select)
 position = 0
 head = 0
 tail = 0
+selection = 0
 
 window.mainloop()
