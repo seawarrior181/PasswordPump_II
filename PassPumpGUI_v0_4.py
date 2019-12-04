@@ -7,33 +7,43 @@
 #
 # Built on Python 3.8
 # Purpose:
-#   This is the PC side of the PasswordPump.  It's job is to allow the user to
-#   edit the credentials that are stored inside the EEprom that reside on the
-#   PasswordPump.
+#   This is the client side of the PasswordPump.  This program's job is to
+#   allow the user to edit the credentials that are stored inside the EEprom
+#   chips that reside on the PasswordPump device.
+
+# Defects and Enhancements Key:
+# - = outstanding
+# x = fixed but needs testing
+# * = fixed
 #
 # Defects:
+# - Style is garbage when importing PasswordPump file.
+# - When an account is inserted the accounts list box doesn't refresh.
 # - If there's a / at the end of a URL python throws an exception
 # - If a password (or any other field) contains a ~ or a |, python throws an
 #   exception
 # - Sometimes changing the URL in place is not working
-# - When clicking on Next and Previous the Account List textbox selected
-#   account isn't following along.
-# - When an account is inserted the accounts list box doesn't refresh.
 # - Hangs the MCU when adding credentials without Style or URL.
+# * When clicking on Next and Previous the Account List textbox selected
+#   account isn't following along.
 #
 # Enhancements:
-# - Add a scrollbar to the account list box.
+# - Add groups to the UI
 # - Import files via this UI
+# * Add a scrollbar to the account list box.
 #
 
 from tkinter import *
 from tkinter.ttk import *
+from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import asksaveasfilename
 
 import PyCmdMessenger
 import serial
 import serial.tools.list_ports
 from serial.tools.list_ports import comports
 import argparse
+import csv
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
@@ -78,25 +88,31 @@ txt_user.grid(column=2, row=3)
 txt_pass = Entry(window, width=40)
 txt_pass.grid(column=2, row=4)
 
-#txt_style = Entry(window, width=40)
-#txt_style.grid(column=2, row=5)
-
 txt_url = Entry(window, width=40)
 txt_url.grid(column=2, row=6)
 
 txt_acct.config(state='normal')
 txt_user.config(state='normal')
 txt_pass.config(state='normal')
-#txt_style.config(state='normal')
 txt_url.config(state='normal')
 
-def clickedAll():
+def updateDirections(directions):
+    txt_dir.delete('1.0', END)
+    txt_dir.insert(END, directions)
+    print (directions)
+    window.update()
+
+def clickedSave():
     clickedAcct()
     clickedUser()
     clickedPass()
     clickedStyle()
     clickedUrl()
-    #getRecord()
+    global state
+    if (state == "Inserting"):
+        lb.delete(0,END)
+        loadListBox()
+    state = "None"
 
 def clickedAcct():
     resAcct = txt_acct.get()
@@ -104,21 +120,16 @@ def clickedAcct():
     c.send("pyUpdateAccountName", position, resAcct)                           # on an insert, position is ignored here
     c.send("pyGetAcctPos")                                                     # get the (possibly) new account position
     response = c.receive()
-    print(response)
+    print(response)  # acctPostion & position = 49
     response_list = response[1]
     last_position = position
     position = response_list[0]
     if position == 255:
         position = last_position
-    #s.write(resAcct + '\n')
     txt_acct.config(state='normal')
-    #window.after(100, poll)
     directions = """Updated account name."""
-    txt_dir.delete('1.0', END)
-    txt_dir.insert(END, directions)
-    print (directions)
+    updateDirections(directions)
     window.update()
-    #poll()
 
 def clickedUser():
     resUser = txt_user.get()
@@ -127,22 +138,8 @@ def clickedUser():
     txt_user.config(state='normal')
     #window.after(100, poll)
     directions = """Updated user name."""
-    txt_dir.delete('1.0', END)
-    txt_dir.insert(END, directions)
-    print (directions)
+    updateDirections(directions)
     window.update()
-    #poll()
-#    c.send("pyReadUserName", position)
-#    try:
-#        response = c.receive()
-#        print (response)
-#        userName_list = response[1]
-#        userName = userName_list[0]
-#    except UnicodeDecodeError:
-#        print("pyReadUserName returned empty string")
-#        userName = ""
-#    print(position)
-#    print(userName)
 
 def clickedPass():
     resPass = txt_pass.get()
@@ -151,54 +148,26 @@ def clickedPass():
     txt_pass.config(state='normal')
     #window.after(100, poll)
     directions = """Updated password."""
-    txt_dir.delete('1.0', END)
-    txt_dir.insert(END, directions)
-    print (directions)
+    updateDirections(directions)
     window.update()
-    #poll()
-#    c.send("pyReadPassword", position)
-#    try:
-#        response = c.receive()
-#        print (response)
-#        loc_password_list = response[1]
-#        loc_password = loc_password_list[0]
-#    except UnicodeDecodeError:
-#        print("pyReadPassword returned empty string")
-#        loc_password = ""
-#    print(position)
-#    print(loc_password)
 
 def clickedStyle():
-
     resStyle = cbStyle.current()
-#   txt_style.config(state='normal')
     c.send("pyUpdateStyle", position, resStyle)
-    #s.write(resStyle + '\n')
-#   txt_style.config(state='normal')
-    #window.after(100, poll)
     directions = """Updated style."""
-    txt_dir.delete('1.0', END)
-    txt_dir.insert(END, directions)
-    print (directions)
+    updateDirections(directions)
     window.update()
-    #poll()
 
 def clickedUrl():
     resURL = txt_url.get()
     txt_url.config(state='normal')
     c.send("pyUpdateURL", position, resURL)
-    #s.write(resUrl + '\n')
     txt_url.config(state='normal')
-    #window.after(100, poll)
     directions = """Updated URL."""
-    txt_dir.delete('1.0', END)
-    txt_dir.insert(END, directions)
-    print (directions)
+    updateDirections(directions)
     window.update()
 
 def clickedClose():
-    #if s.is_open:
-    #    s.close()
     sys.exit(1)
 
 def clickedPrevious():
@@ -212,9 +181,7 @@ def clickedPrevious():
     position = response_list[0]
     if position == 255:
         position = last_position
-        print("Reached the beginning of the list")
-        txt_dir.delete('1.0', END)
-        txt_dir.insert(END, "Reached the beginning of the list")
+        updateDirections("Reached the beginning of the list.")
     else:
         items = lb.curselection()
         lb.activate(items[0] - 1)
@@ -232,9 +199,7 @@ def clickedNext():
     position = response_list[0]
     if position == 255:
         position = last_position
-        print("Reached the end of the list")
-        txt_dir.delete('1.0', END)
-        txt_dir.insert(END, "Reached the end of the list")
+        updateDirections("Reached the end of the list")
     else:
         items = lb.curselection()
         lb.activate(items[0] + 1)
@@ -260,7 +225,7 @@ def loadListBox():
             accountName_list = response[1]
             accountName = accountName_list[0]
         except UnicodeDecodeError:
-            print("pyReadAccountName returned empty string")
+            updateDirections("pyReadAccountName returned empty string")
             accountName = ""
         accountDict[accountName] = position
         lb.insert(END, accountName)                                            # Load the listbox
@@ -268,8 +233,6 @@ def loadListBox():
         response = c.receive()
         response_list = response[1]
         position = response_list[0]
-#    position = head                                                            # Set the position back to the first account in the list
-
     lb.activate(0)                                                             # Activate the first item in the list
     global selection
     selection = 0
@@ -301,19 +264,18 @@ def OnEntryUp(event):
         clickedLoad()
 
 def clickedInsert():
+    global state
+    state = "Inserting"
     global position
     c.send("pyGetNextFreePos")
     response = c.receive()
     print(response)
     response_list = response[1]
     position = response_list[0]
-#   txt_acct.config(state='normal')
     txt_acct.delete(0, END)
     txt_user.delete(0, END)
     txt_pass.delete(0, END)
-#   txt_style.delete(0, END)
     txt_url.delete(0, END)
-#   getRecord()
 
 def clickedLoadDB(event):
     clickedLoad()
@@ -341,16 +303,16 @@ def clickedDelete():
     getRecord()
 
 def clickedOpen():
-    # global s
-    # s = serial.Serial(port, 9600)
     global arduino
-    arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=1.0, settle_time=2.0, enable_dtr=False,
-                                          int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
+    try:                                                                       #
+        arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=1.0, settle_time=2.0, enable_dtr=False,
+                                              int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
+    except serial.serialutil.SerialException:
+        updateDirections("Error when attaching to PasswordPump.  Device not found. Power cycle the PasswordPump and try again.")
+
     global commands
-    # List of command names (and formats for their associated arguments). These must
-    # be in the same order as in the sketch.
-    commands = [["kAcknowledge","b"],
-                ["kStrAcknowledge", "s"],
+    commands = [["kAcknowledge","b"],                                          # List of command names (and formats for their associated arguments). These must
+                ["kStrAcknowledge", "s"],                                      # be in the same order as in the Arduino sketch.
                 ["pyReadAccountName", "b"],
                 ["pyReadUserName", "b"],
                 ["pyReadPassword", "b"],
@@ -364,14 +326,13 @@ def clickedOpen():
                 ["pyUpdateStyle", "bs"],
                 ["pyGetNextPos",""],
                 ["pyGetPrevPos",""],
-                ["pyGetAcctPos",""],           # added b here 2019-11-14 7:16
+                ["pyGetAcctPos",""],
                 ["pyReadHead",""],
                 ["pyReadTail",""],
                 ["pyGetNextFreePos",""],
                 ["kError",""],
                 ["pyDeleteAccount","b"]]
-    # Initialize the messenger
-    global c
+    global c                                                                   # Initialize the messenger
     c = PyCmdMessenger.CmdMessenger(arduino, commands)
     c.send("pyReadHead")
     response = c.receive()
@@ -382,10 +343,6 @@ def clickedOpen():
     global position
     position = head
     getRecord()
-
-    #c.send("pyReadOldPassword", position)
-    #oldPassword = c.receive()
-
     btn_close.config(state='normal')
     directions = """Opened port"""
     txt_dir.delete('1.0', END)
@@ -395,7 +352,6 @@ def clickedOpen():
     btn_open.config(state='disabled')
     cb.config(state='disabled')
     window.update()
-    #poll()
 
 def getRecord():
     print(position)
@@ -414,7 +370,7 @@ def getRecord():
     print (position)
     c.send("pyReadUserName", position)
     try:
-        response = c.receive()   #ValueError: Number of argument formats must match the number of recieved argumen
+        response = c.receive()
         print (response)
         userName_list = response[1]
         userName = userName_list[0]
@@ -446,13 +402,11 @@ def getRecord():
     except UnicodeDecodeError:
         print("pyReadStyle returned empty string")
         style = ""
-#   txt_style.delete(0, END)
-#   txt_style.insert(0, style)
     cbStyle.set(style)
 
     c.send("pyReadURL", position)
     try:
-        response = c.receive()              #EOFError: Incomplete message (1~https://www.cvs.com/account/login/|) (when a field ends with /)
+        response = c.receive()                                                 # EOFError: Incomplete message (1~https://www.cvs.com/account/login/|) (when a field ends with /)
         print(response)
         url_list = response[1]
         url = url_list[0]
@@ -461,8 +415,6 @@ def getRecord():
         url = ""
     txt_url.delete(0,END)
     txt_url.insert(0,url)
-
-#def poll():
 
 def serial_ports():
     return comports()
@@ -474,11 +426,135 @@ def on_select(event=None):
     port = port_desc[:port_desc.find(":")]
     print (port)
     print("comboboxes: ", cb.get())
-    # get selection directly from combobox
 
 def on_style_select(event=None):
     print (cbStyle.get())
-#   style = cbStyle.current()
+
+def ImportFileChrome():
+    name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
+                           filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
+                           title = "Choose a file."
+                          )
+    print (name)
+    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
+        with open(name, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            try:
+                for row in reader:
+                    print(row)
+                    print(row['name'], row['url'], row['username'], row['password'])
+                    clickedInsert()
+                    txt_acct.insert(0,row['name'])
+                    txt_user.insert(0,row['username'])
+                    txt_pass.insert(0,row['password'])
+                    txt_url.insert(0,row['url'])
+                    window.update()
+                    global state
+                    print(state)
+                    clickedSave() #acctPosition & position = 49
+                    updateDirections("Record saved.")
+                updateDirections("All records saved.")
+            except:
+                updateDirections("Error saving a record.")
+    except:
+        updateDirections("No file exists")
+
+def ImportFilePasswordPump():
+    name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
+                           filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
+                           title = "Choose a file."
+                          )
+    print (name)
+    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
+        with open(name, newline='') as csvfile:
+            fieldnames = ['accountname', 'username', 'password', 'url', 'group']
+            reader = csv.DictReader(csvfile, fieldnames=fieldnames)
+            try:
+                for row in reader:
+                    print(row)
+                    print(row['accountname'], row['username'], row['password'], row['url'], row['group'])
+                    clickedInsert()
+                    txt_acct.insert(0,row['accountname'])
+                    txt_user.insert(0,row['username'])
+                    txt_pass.insert(0,row['password'])
+                    txt_url.insert(0,row['url'])
+                    #txt_group.insert(0,row['group'])                          # TODO: add group to the UI
+                    window.update()
+                    global state
+                    print(state)
+                    clickedSave()
+                    updateDirections("Record saved.")
+                updateDirections("All records saved.")
+            except:
+                updateDirections("Error saving a record.")
+    except:
+        updateDirections("No file exists")
+
+def ImportFileKeePass():
+    name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
+                           filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
+                           title = "Choose a file."
+                          )
+    print (name)
+    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
+        with open(name, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            try:  #
+                for row in reader:
+                    print(row)
+                    print(row['name'], row['url'], row['username'], row['password'])
+                    clickedInsert()
+                    txt_acct.insert(0,row['name'])
+                    txt_user.insert(0,row['username'])
+                    txt_pass.insert(0,row['password'])
+                    txt_url.insert(0,row['url'])
+                    window.update()
+                    global state
+                    print(state)
+                    clickedSave()
+                    updateDirections("Record saved.")
+                updateDirections("All records saved.")
+            except:
+                updateDirections("Error saving a record.")
+    except:
+        updateDirections("No file exists")
+
+def ImportFile():
+    name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
+                           filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
+                           title = "Choose a file."
+                          )
+    print (name)
+    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
+        with open(name,'r') as UseFile:
+            print(UseFile.read())
+    except:
+        print("No file exists")
+
+def ExportFile():
+    name = asksaveasfilename(initialdir="C:/",                                   # TODO: make this work cross platform
+                             filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
+                             initialfile='PasswordPumpExport.csv',
+                             title = "Create a file."
+                            )
+    print (name)
+    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
+        with open(name,'r') as UseFile:
+            print(UseFile.read())
+    except:
+        print("No file exists")
+
+menu = Menu(window)
+window.config(menu=menu)
+file = Menu(menu)
+file.add_command(label = 'Import from Chrome', command = ImportFileChrome)
+file.add_command(label = 'Import from KeePass', command = ImportFileKeePass)
+file.add_command(label = 'Import from PasswordPump', command = ImportFilePasswordPump)
+file.add_command(label = 'Export to Chrome', command = ExportFile)
+file.add_command(label = 'Export to KeePass', command = ExportFile)
+file.add_command(label = 'Export to PasswordPump', command = ExportFile)
+file.add_command(label = 'Exit', command = clickedClose)
+menu.add_cascade(label = 'File', menu = file)
 
 styles = ["0 - Tab","1 - Return"]
 cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
@@ -497,12 +573,9 @@ btn_delete.grid(column=1, row=9)
 btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=4, row=0)
 
-#btn_load = Button(window, text="Load", command=clickedLoad)
-#btn_load.grid(column=4, row=1)
-##lb.bind("<Double-Button-1>", clickedLoadDB)
 lb.bind("<<ListboxSelect>>", clickedLoadDB)
 
-btn_url = Button(window, text="Save", command=clickedAll)
+btn_url = Button(window, text="Save", command=clickedSave)
 btn_url.grid(column=4, row=6)
 
 btn_next = Button(window, text="Next>>", command=clickedNext)
@@ -518,10 +591,11 @@ txt_dir = Text(window, height=5, width=30, relief=FLAT, background="light grey")
 txt_dir.grid(column=2, row=8)
 txt_dir.config(state=NORMAL)
 txt_dir.delete('1.0', END)
-directions = """After selecting the port click
-on the Open Port button to 
-open the port for the 
-PasswordPump."""
+directions = """Select Edit with Computer on
+the PasswordPump. After 
+selecting the port click on
+the Open Port button to open
+the port for the PasswordPump."""
 txt_dir.insert(END, directions)
 
 ports = []
@@ -532,10 +606,10 @@ cb = Combobox(window, values=ports, justify=LEFT, width=37, exportselection=Fals
 cb.grid(column=2, row=0)
 cb.bind('<<ComboboxSelected>>', on_select)
 
-# Global variables
-position = 0
+position = 0                                                                   # Global variables
 head = 0
 tail = 0
 selection = 0
+state = "None"
 
 window.mainloop()
