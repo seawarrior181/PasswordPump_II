@@ -528,6 +528,9 @@
   cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.8.0-48-gb176eee
   bossac -i -d --port=COM67 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.bin -R 
 
+  Running the PC Client
+  =====================
+  - c:\repos\murphyrepo\dev\python\PassPumpGUI>c:\python3\python PassPumpGUI_v0_5.py
   
   Menu Navigation                                                               // TODO: update the states here...
   ===============
@@ -701,7 +704,7 @@
 
 //- Defines
 
-#define BAUD_RATE                 115200                                        // Baud rate for the Serial monitor, best for 16MHz (was 38400)
+#define BAUD_RATE                 115200                                        //  Baud rate for the Serial monitor, best for 16MHz (was 38400)
 
 #define ROTARY_PIN1               9                                             // Pin for ItsyBitsy SAMD51 M4
 #define ROTARY_PIN2               7                                             //   "                               
@@ -3568,20 +3571,33 @@ void BackupToPPCVSFile() {                                                      
   acctPosition = headPosition;
   Keyboard.begin();
   while (acctPosition != INITIAL_MEMORY_STATE_BYTE) {
+    delayNoBlock(500);                                                          // without the delays the results are corrupt
     Keyboard.print("\"");
+    delayNoBlock(50);
     readAcctFromEEProm(acctPosition, accountName);
     Keyboard.print(accountName);
+    delayNoBlock(50);
     Keyboard.print("\",\"");
+    delayNoBlock(50);
     readUserFromEEProm(acctPosition, username); 
     Keyboard.print(username);
+    delayNoBlock(50);
     Keyboard.print("\",\"");
+    delayNoBlock(50);
     readPassFromEEProm(acctPosition, password);
     Keyboard.print(password);
+    delayNoBlock(50);
     Keyboard.print("\",\"");
+    delayNoBlock(50);
     readWebSiteFromEEProm(acctPosition, website);
     Keyboard.print(website);
+    delayNoBlock(50);
     Keyboard.print("\",");
-    sendGroup();
+    delayNoBlock(50);
+    uint8_t group = readGroupFromEEprom(acctPosition);                          // read the group from EEProm
+    Keyboard.println(group);                                                    // type the group through the keyboard
+    delayNoBlock(50);
+    //sendGroup();
     //sendRTN();
     acctPosition = getNextPtr(acctPosition);
   }
