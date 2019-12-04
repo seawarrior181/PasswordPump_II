@@ -55,9 +55,9 @@
   
   Known Defects/Issues
   ====================  
-    - = 28 outstanding
-    x = fixed but needs testing
-    * = 49 fixed
+    - = 23 outstanding             XXXXXXXXXXXXXXXXXXXXXXX
+    x =  7 fixed but needs testing XXXXXXX
+    * = 53 fixed                   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
   - A forward slash (escape character) at the end of a field causes the PC UI
     to throw an exception.
   - When there is a tilde (~) in a field this causes the PC UI to throw an 
