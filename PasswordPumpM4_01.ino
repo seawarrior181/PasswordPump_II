@@ -58,6 +58,10 @@
     - = 23 outstanding             XXXXXXXXXXXXXXXXXXXXXXX
     x =  7 fixed but needs testing XXXXXXX
     * = 53 fixed                   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  - You can import 51 accounts, and exit from the python UI, and then navigate
+    through the accounts on the device, but if you power cycle the device all of
+    the accounts disappear.
+  - URLs exceeding ABOUT 53 characters are not importing correctly.
   - A forward slash (escape character) at the end of a field causes the PC UI
     to throw an exception.
   - When there is a tilde (~) in a field this causes the PC UI to throw an 
@@ -189,6 +193,8 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
+  - Somehow signal to the user when entering the master password for the first 
+    time.
   - Make UN_PW_DELAY configurable
   - Dim the display when it's not in use.
   - Build a Windows client (in python) for editing credentials; 
@@ -507,12 +513,12 @@
   Green                     Logged in
   Orange                    Backing up EEprom memory
   Alternating Blue and Red  Initializing EEprom
-  Purple                    Sending creds, backing up to EEprom
+  Purple                    Sending creds, backing up to EEprom, editing with 
+                            computer.
   Red                       Error backing up or initializing EEprom, failed 
                             login attempt(s).
   Yellow                    Error backing up or initializing EEprom
   Blue                      Not logged in including failed login attempt
-  Flashing Blue and Yellow  Editing credentials via PC
   
   Budgeting Memory
   ================
@@ -648,6 +654,7 @@
   038 - Invalid position in file menu
   039 - Encrypted account name starts with 255, fixing...
   040 - Invalid position when returning to a find by group menu
+  041 - Corrupt link list encountered while counting accounts
 
   The Program 
   ==============================================================================
@@ -1174,7 +1181,7 @@ const char * const fileMenu[] = {                "Backup EEprom",               
 //char command_separator = ';';
 char field_separator   = '~';                                                  // ascii record separator
 char command_separator = '|';                                                  // ascii unit separator
-char escape_separator  = '/';
+char escape_separator  = '^';
                                                                                 // CSV Processing
 enum { NOMEM = -2 };                                                            // out of memory signal
 static char *line    = NULL;                                                    // input chars
@@ -1291,7 +1298,9 @@ enum                                                                            
   pyReadTail            ,
   pyGetNextFreePos      ,
   kError                ,                                                       // Command to message that an error has occurred
-  pyDeleteAccount
+  pyDeleteAccount       ,
+  pyExit                ,
+  pyGetAccountCount
 };
 
 //- Global Volatile variables.
@@ -1372,7 +1381,7 @@ void writeAllToEEProm(char *accountName,                                        
                       char *username, 
                       char *password, 
                       uint8_t pos) ;
-uint8_t countAccounts(uint8_t headPosition) ;
+uint8_t countAccounts() ;
 uint8_t getNextFreeAcctPos(void) ;
 void readAcctFromEEProm(uint8_t pos, char *buf);                                // read the account from EEprom and decrypt it
 void readWebSiteFromEEProm(uint8_t pos, char *buf);
@@ -1598,9 +1607,7 @@ void setup() {                                                                  
   
 void loop() {                                                                   // executes over and over, forever
   encoderButton.loop();                                                         // polling for button press TODO: replace w/ interrupt
-
   pollEncoder();                                                                // tried to use interrupts for the encoder but the results were inconsistent
-
   ProcessEvent();                                                               // process any events that might have occurred.
 }
 
@@ -2010,28 +2017,25 @@ void ProcessEvent() {                                                           
           attachCommandCallbacks();
           event = EVENT_NONE;
           int counter; counter = 0;
-          setYellow();
-//          while (1) {  
-//            cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
-//          }
-          while ((machineState == STATE_FEED_SERIAL_DATA) &&
-                 (event != EVENT_SINGLE_CLICK           ) &&
-                 (event != EVENT_LONG_CLICK             )   ) {
-            encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
+          setPurple();
+          while ((machineState == STATE_FEED_SERIAL_DATA) ) {//&&
+//                 (event != EVENT_SINGLE_CLICK           ) &&
+//                 (event != EVENT_LONG_CLICK             )   ) {
+//            encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
             cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
-            if (counter%129792 == 0) {                                          //  259584 to slow down
-              if (isYellow) {
-                setBlue();
-              } else {
-                setYellow();
-              }
-            }
-            counter++;
+//            if (counter%129792 == 0) {                                          //  259584 to slow down
+//              if (isYellow) {
+//                setBlue();
+//              } else {
+//                setYellow();
+//              }
+//            }
+//            counter++;
           }
-          Serial.end();
-          DisableInterrupts();
-          setGreen();
-          event = EVENT_SHOW_MAIN_MENU;
+//          Serial.end();
+//          DisableInterrupts();
+//          setGreen();
+//          event = EVENT_SHOW_MAIN_MENU;
           break;
         case ADD_ACCOUNT:                                                       // Add account
           addFlag = true;                                                       // necessary for when we return to the main menu
@@ -2583,7 +2587,7 @@ void ProcessEvent() {                                                           
     } else if (STATE_EDIT_WEBSITE == machineState) {                            // EVENT_LONG_CLICK
       ReadFromSerial(website, WEBSITE_SIZE, (char *)enterMenu[EDIT_WEBSITE]);
       uint8_t pos = 0;
-      while (website[pos++] != NULL_TERM);                                      // make sure the website is 64 chars long, pad with NULL_TERM
+      while (website[pos++] != NULL_TERM);                                      // make sure the website is 96 chars long, pad with NULL_TERM
       while (pos < WEBSITE_SIZE) website[pos++] = NULL_TERM;                    // "           "              "
       char buffer[WEBSITE_SIZE];
       encrypt96Bytes(buffer, website);
@@ -2984,7 +2988,7 @@ void PopulateGlobals() {
   acctPosition = headPosition;                                                  // initially the current account is the head account
   tailPosition = findTailPosition(headPosition);                                // find the tail of the doubly linked list that sorts by account name
   DebugMetric("tailPosition: ",tailPosition);
-  acctCount = countAccounts(headPosition);                                      // count the number of populated accounts in EEprom
+  acctCount = countAccounts();                                                  // count the number of populated accounts in EEprom
   DebugMetric("acctCount: ",acctCount);
 
   EnableInterrupts();                                                           // Turn on global interrupts
@@ -3450,7 +3454,8 @@ void setUUID(char *uuid, uint8_t size, uint8_t appendNullTerm) {
           uuid[i] == '~'  ||                                                    // separator for cmdMessenger
           uuid[i] == '|'  ||                                                    // separator for cmdMessenger
           uuid[i] == '\\' ||                                                    // interpreted as escape character
-          uuid[i] == '/'    )                                                   //
+          uuid[i] == '^' ||                                                     // interpreted as escape character
+          uuid[i] == '/'    )                                                   // escape character
       uuid[i] = random(33,126);
   }
   if (appendNullTerm) uuid[size - 1] = NULL_TERM;
@@ -3941,7 +3946,7 @@ void encrypt64Bytes(char *outBuffer, char *inBuffer) {                          
 }
 
 void encrypt96Bytes(char *outBuffer, char *inBuffer) {                          // TODO: make this handle any length of string to encrypt
-  DebugLN("encrypt64Bytes()");
+  DebugLN("encrypt96Bytes()");
   uint8_t firstInBuffer[16];
   uint8_t secondInBuffer[16];
   uint8_t thirdInBuffer[16];
@@ -3987,7 +3992,7 @@ void decrypt32(char *outBuffer, char *inBuffer) {                               
 }
 
 void decrypt64(char *outBuffer, char *inBuffer) {                               // Necessary because blocksize of AES128/256 = 16 bytes.
-  DebugLN("decrypt32()");
+  DebugLN("decrypt64()");
   uint8_t firstInBuf[16];
   uint8_t secondInBuf[16];
   uint8_t thirdInBuf[16];
@@ -4159,7 +4164,7 @@ uint8_t readGroupFromEEprom(uint8_t pos) {
 uint8_t getListHeadPosition() {                                                 // returns the position of the first element in the linked list
   DebugLN("getListHeadPosition()");
   uint8_t listHead = read_eeprom_byte(GET_ADDR_LIST_HEAD);
-  if (listHead == INITIAL_MEMORY_STATE_BYTE) { 
+  if (listHead == INITIAL_MEMORY_STATE_BYTE) {                                  // TODO: this could be the wrong approach...
     listHead = getNextFreeAcctPos();
     headPosition = listHead;
     writeListHeadPos();
@@ -4663,7 +4668,7 @@ void RestoreEEPromBackup() {                                                    
   headPosition = getListHeadPosition();                                         // read the head of the doubly linked list that sorts by account name
   acctPosition = headPosition;
   tailPosition = findTailPosition(headPosition);                                // find the tail of the doubly linked list that sorts by account name
-  acctCount = countAccounts(headPosition);                                      // count the number of populated accounts in EEprom
+  acctCount = countAccounts();                                                  // count the number of populated accounts in EEprom
   setGreen();
   DisplayToStatus("Creds Restored");
   //EnableInterrupts();                                                         // done with the copy, re-enable global interrupts
@@ -4671,9 +4676,10 @@ void RestoreEEPromBackup() {                                                    
 
 //- Linked List Routines  
 
-uint8_t countAccounts(uint8_t pos) {                                            // count all of the account names from EEprom.
+/*
+  uint8_t countAccounts(uint8_t pos) {                                            // count all of the account names from EEprom.
   DebugLN("countAccounts()");
-  acctCount = -1;
+  acctCount = -1;                                                               // so when there are 2 accounts we're returning 1 here, defect.
   while(pos != INITIAL_MEMORY_STATE_BYTE) {
     uint8_t nextPos;
     acctCount++;
@@ -4686,13 +4692,44 @@ uint8_t countAccounts(uint8_t pos) {                                            
   }
   return(acctCount);
 }
+*/
+
+uint8_t countAccounts() {                                                       // count all of the account names from EEprom.
+  DebugLN("countAccounts()");
+  if (headPosition == INITIAL_MEMORY_STATE_BYTE) {
+    acctCount = 0;
+    return acctCount;
+  }
+  if (headPosition == 0 && 
+      read_eeprom_byte(GET_ADDR_ACCT(headPosition)) == INITIAL_MEMORY_STATE_BYTE) {
+    acctCount = 0;
+    return acctCount;
+  }
+  acctCount = 0;
+  uint8_t pos = headPosition;
+  while(pos != INITIAL_MEMORY_STATE_BYTE) {
+    acctCount++;
+    uint8_t prevPos = pos;
+    pos = getNextPtr(pos);
+    if (pos == prevPos) {
+      DebugLN("Corruption in countAccounts()");
+      DisplayToError("ERR: 041");
+      delayNoBlock(ONE_SECOND * 2);
+      return(acctCount);
+    }
+  }
+  return(acctCount);
+}
 
 uint8_t getNextFreeAcctPos() {                                                  // return the position of the next EEprom location for account name marked empty.
   DebugLN("getNextFreeAcctPos()");
   for(uint8_t acctPos = 0; acctPos < (CREDS_ACCOMIDATED - 1); acctPos++) {
       if (read_eeprom_byte(GET_ADDR_ACCT(acctPos)) == 
           INITIAL_MEMORY_STATE_BYTE                     ) {
-        DebugMetric("next acctPos: ",acctPos);
+        DebugMetric("next acctPos: ",acctPos);                                  // TODO: remove from HERE
+        char sacctPos[5];
+        itoa(acctPos, sacctPos, 10);
+        DisplayToError(sacctPos);                                               // TODO: to HERE; shouldn't be 0 for the second account
         return acctPos;
       }
   }
@@ -4933,12 +4970,12 @@ void importKeePassCSV() {
             char bufferWebsite[WEBSITE_SIZE];
             if (len > 0) {
               ReadSaltAndSetKey(pos);
-              encrypt96Bytes(bufferWebsite, field);                             // encrypt the 64 byte long website
+              encrypt96Bytes(bufferWebsite, field);                             // encrypt the 96 byte long website
               eeprom_write_bytes(GET_ADDR_WEBSITE(pos), bufferWebsite, WEBSITE_SIZE);// write the website to eeprom
             } else {
               field[0] = NULL_TERM;
               ReadSaltAndSetKey(pos);
-              encrypt96Bytes(bufferWebsite, field);                             // encrypt the 64 byte long website
+              encrypt96Bytes(bufferWebsite, field);                             // encrypt the 96 byte long website
               eeprom_write_bytes(GET_ADDR_WEBSITE(pos), bufferWebsite, WEBSITE_SIZE);// write the empty URL to eeprom; pretty sure this writes two null terminator chars out, being safe
             }
             break;
@@ -5708,6 +5745,8 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyReadTail            , OnReadTail);
   cmdMessenger.attach(pyGetNextFreePos      , OnGetNextFreePos);
   cmdMessenger.attach(pyDeleteAccount       , OnDeleteAccount);
+  cmdMessenger.attach(pyExit                , OnExit);
+  cmdMessenger.attach(pyGetAccountCount     , OnGetAccountCount);
 }
 
 void OnUnknownCommand()                                                         // Called when a received command has no attached function
@@ -5762,10 +5801,11 @@ void OnReadOldPassword(){
 }
 
 void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
-  char *accountName;
+  char accountName[ACCOUNT_SIZE];
   boolean badAcctName = false;
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();                            // we throw this away
-  accountName = cmdMessenger.readStringArg();
+  cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE);
+  //accountName = cmdMessenger.readStringArg();
+  DisplayToEdit((char *)accountName);                                           // Display the account name on the second line
   acctPosition = FindAccountPos(accountName);                                   // get the next open position, sets updateExistingAccount
   if (!updateExistingAccount) {                                                 // if we're not updating an existing account we must be inserting
     if (acctPosition != INITIAL_MEMORY_STATE_BYTE) {                            // if we are not out of space
@@ -5783,15 +5823,15 @@ void OnUpdateAccountName(){                                                     
         } else {
           DisplayToError("ERR: 020");                                           // display the error to the screen and continue processing.  
           delayNoBlock(ONE_SECOND * 2);
-          badAcctName = true;                                                   // can't get this account name to encrpyt to something that doesn't
+          badAcctName = true;                                                   // can't get this account name to encrypt to something that doesn't
           break;                                                                // start with 255
         }
       }
       if (!badAcctName) {
         if (!updateExistingAccount) {                                           // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
-          eeprom_write_bytes(GET_ADDR_ACCT(acctPosition),bufferAcct,ACCOUNT_SIZE);// write the account name to eeprom
-          writePointers(acctPosition, accountName);                             // insert the account into the linked list by updating prev and next pointers.
-          acctCount++;
+          eeprom_write_bytes(GET_ADDR_ACCT(acctPosition),bufferAcct,ACCOUNT_SIZE);// write the account name to EEprom
+          writePointers(acctPosition, accountName);                             // insert the account into the linked list by updating previous and next pointers.
+          acctCount++;                                                          // we added a new account, increment the count of accounts
         }
         uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));        // initialize the groups
         if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(acctPosition, NONE);// a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
@@ -5801,13 +5841,15 @@ void OnUpdateAccountName(){                                                     
       delayNoBlock(ONE_SECOND * 2);
     }
   }                                                                             // if we're updating an existing account no need to write out the 
-}                                                                               // account, set the pointers or increment the account count. Don't
+                                                                                // account, set the pointers or increment the account count. Don't
                                                                                 // update the account name, once it is created it can't be changed.
+  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+}
 
 void OnUpdateUserName(){
-  char *username;
+  char username[USERNAME_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  username = cmdMessenger.readStringArg();
+  cmdMessenger.copyStringArg(username, USERNAME_SIZE);
   uint8_t i = strlen(username);
   while (i < USERNAME_SIZE) username[i++] = NULL_TERM;
   char bufferUser[USERNAME_SIZE];                                               // for the encrypted user name
@@ -5817,9 +5859,9 @@ void OnUpdateUserName(){
 }
 
 void OnUpdatePassword(){
-  char *password;
+  char password[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  password = cmdMessenger.readStringArg();
+  cmdMessenger.copyStringArg(password, PASSWORD_SIZE);
   uint8_t i = strlen(password);
   while (i < PASSWORD_SIZE) password[i++] = NULL_TERM;
   char bufferPass[PASSWORD_SIZE];                                               // for the encrypted password
@@ -5829,15 +5871,25 @@ void OnUpdatePassword(){
 }
 
 void OnUpdateURL(){
-  char *url;
+  char urlArray[WEBSITE_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  url = cmdMessenger.readStringArg();
-  uint8_t i = strlen(url);
-  while (i < WEBSITE_SIZE) url[i++] = NULL_TERM;
-  char bufferWebsite[WEBSITE_SIZE];                                             // for the encrypted url
+  cmdMessenger.copyStringArg(urlArray, WEBSITE_SIZE);
+  size_t len = strlen(urlArray);
+  if (len > (WEBSITE_SIZE - 1)) {
+    uint32_t i = WEBSITE_SIZE - 1;
+    while (i < len) urlArray[i++] = NULL_TERM;                                  // right pad the field w/ null terminator char
+    DisplayToError("ERR: 023");                                                 // Web site is too long
+    delayNoBlock(ONE_SECOND * 2);
+  } else {
+    while (len < WEBSITE_SIZE) urlArray[len++] = NULL_TERM;
+  }
+  char bufferWebsite[WEBSITE_SIZE];
+  if (len < 1) {
+    urlArray[0] = NULL_TERM;
+  }
   ReadSaltAndSetKey(acctPosition);
-  encrypt96Bytes(bufferWebsite, url);                                           // encrypt the url
-  eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition), bufferWebsite, WEBSITE_SIZE);
+  encrypt96Bytes(bufferWebsite, urlArray);                                      // encrypt the 96 byte long website
+  eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition),bufferWebsite,WEBSITE_SIZE);// write the website to eeprom
 }
 
 void OnUpdateStyle(){
@@ -5868,7 +5920,14 @@ void OnReadTail(){
 }
 
 void OnGetNextFreePos(){
-  cmdMessenger.sendBinCmd(kAcknowledge, getNextFreeAcctPos());
+  DisplayToMenu("1getNextFreeAcctPos");
+  uint8_t nextFree = getNextFreeAcctPos();
+  char bufferFree[4];
+  itoa(nextFree, bufferFree, 10);                                               // convert account count to a string and put it in buffer.
+  DisplayToItem("2getNextFreeAcctPos");
+  DisplayToDebug(bufferFree);
+  acctPosition = nextFree;
+  cmdMessenger.sendBinCmd(kAcknowledge, nextFree);
 }
 
 void OnDeleteAccount(){
@@ -5876,6 +5935,20 @@ void OnDeleteAccount(){
   deleteAccount(acctPosition);
   cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
 }
+
+void OnGetAccountCount(){
+  cmdMessenger.sendBinCmd(kAcknowledge, acctCount);                             // sending a single byte
+}
+
+void OnExit() {
+  cmdMessenger.sendBinCmd(kAcknowledge, acctCount);                             // sending a single byte
+  Serial.end();
+  DisableInterrupts();
+  setGreen();
+  event = EVENT_SHOW_MAIN_MENU;
+  machineState = STATE_SHOW_MAIN_MENU;
+  //writeListHeadPos();                                                           // for safety, didn't work
+}  
 
 /* This doesn't compile.
 // https://forum.arduino.cc/index.php?topic=129083.0
