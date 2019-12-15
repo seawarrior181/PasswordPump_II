@@ -17,7 +17,7 @@
 # * = fixed
 #
 # Defects:
-# - URLs are saving to the device as garbage
+# - URLs are getting chopped off at 32 characters
 # - When an account is inserted the accounts list box doesn't refresh.
 # - If there's a / at the end of a URL python throws an exception
 # - If a password (or any other field) contains a ~ or a |, python throws an
@@ -105,18 +105,19 @@ def updateDirections(directions):
     window.update()
 
 def clickedSave():
+    global position
     clickedAcct()
     clickedUser()
     clickedPass()
     clickedStyle()
-    clickedUrl()
+    clickedUrl_New()
     global state
     if (state == "Inserting"):
         lb.delete(0,END)
         loadListBox()
     state = "None"
 
-def clickedAcct():
+def clickedAcct(): #when acct = JetBrains/Intel... pyUpdateAccountName raises ValueError!  Number of arguemtn formats must match the number of received arguments
     aResAcct = txt_acct.get()
     resAcct = aResAcct[0:32]
     global position                                                            # the position on EEprom, don't confuse with selection
@@ -136,65 +137,139 @@ def clickedAcct():
         window.update()
     except ValueError as e:
         updateDirections("Error encountered in clickedAcct; " + str(e))
+        #c.send("pyGetAcctPos");
+        #response = c.receive()
+        #print(response)
+        #response_list = response[1]
+        #position = response_list[0]
 
 def clickedUser():
+    global position
     aResUser = txt_user.get()
     resUser = aResUser[0:32]
     if (len(resUser) > 0):
         c.send("pyUpdateUserName", position, resUser)
     else:
         c.send("pyUpdateUserName", position, "")
-    #s.write(resUser + '\n')
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    position = response_list[0]
     txt_user.config(state='normal')
-    #window.after(100, poll)
     directions = """Updated user name."""
     updateDirections(directions)
     window.update()
 
 def clickedPass():
+    global position
     aResPass = txt_pass.get()
     resPass = aResPass[0:32]
     if (len(resPass) > 0):
         c.send("pyUpdatePassword", position, resPass)
     else:
         c.send("pyUpdatePassword", position, "")
-    #s.write(resPass + '\n')
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    position = response_list[0]
     txt_pass.config(state='normal')
-    #window.after(100, poll)
     directions = """Updated password."""
     updateDirections(directions)
     window.update()
 
 def clickedStyle():
+    global position
     resStyle = cbStyle.current()
     if ((resStyle != 0) and (resStyle != 1)):                                  # style must be 0 or 1
         resStyle = 0;                                                          # default is 0
     c.send("pyUpdateStyle", position, resStyle)
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    position = response_list[0]
     directions = """Updated style."""
     updateDirections(directions)
     window.update()
 
 def clickedUrl():
+    global position
     aURL = txt_url.get()
-    resURL = aURL[0:96]                                                        # max length of a URL is 96 chars
+    resURL = aURL[0:32]                                                        # max length of a URL is 96 chars
     #resURL = resURL.replace("/","^")
     txt_url.config(state='normal')
     if (len(resURL) > 0):                                                      # if the URL doesn't exist don't send it
         c.send("pyUpdateURL", position, resURL)
     else:
         c.send("pyUpdateURL", position, "")
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    position = response_list[0]
+    txt_url.config(state='normal')
+    directions = """Updated URL."""
+    updateDirections(directions)
+    window.update()
+
+def clickedUrl_New():                                                          # send the website over in 3 chunks instead of all at once to circumvent problems encountered when sending it all at once.
+    txt_url.config(state='normal')
+    global position
+    aURL = txt_url.get()
+    resURL_1 = aURL[0:32]                                                      # max length of a URL is 96 chars
+    if (len(resURL_1) > 0):                                                    # if the URL doesn't exist don't send it
+        c.send("pyUpdateURL_1", resURL_1)
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        position = response_list[0]
+        resURL_2 = aURL[32:63]                                                 # max length of a URL is 96 chars
+        if (len(resURL_2) > 0):                                                # if the URL doesn't exist don't send it
+            c.send("pyUpdateURL_2", resURL_2)
+            response = c.receive()
+            print(response)
+            response_list = response[1]
+            position = response_list[0]
+            resURL_3 = aURL[64:96]                                             # max length of a URL is 96 chars
+            if (len(resURL_3) > 0):                                            # if the URL doesn't exist don't send it
+                c.send("pyUpdateURL_3", position, resURL_3)
+                response = c.receive()
+                print(response)
+                response_list = response[1]
+                position = response_list[0]
+            else:
+                c.send("pyUpdateURL_3", position, "")
+                response = c.receive()
+                print(response)
+                response_list = response[1]
+                position = response_list[0]
+        else:
+            c.send("pyUpdateURL", position, aURL)
+            response = c.receive()
+            print(response)
+            response_list = response[1]
+            position = response_list[0]
+    else:
+        c.send("pyUpdateURL", position, "")
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        position = response_list[0]
     txt_url.config(state='normal')
     directions = """Updated URL."""
     updateDirections(directions)
     window.update()
 
 def clickedClose():
-    c.send("pyExit")
-    response = c.receive()
-    print(response)
-    response_list = response[1]
-    acctCount = response_list[0]
-    print(acctCount)
+    global arduinoAttached
+    if (arduinoAttached == 1):
+        try:
+            c.send("pyExit")
+            response = c.receive()
+            print(response)
+            response_list = response[1]
+            acctCount = response_list[0]
+            print(acctCount)
+        except Exception as e:
+            updateDirections("There was an error closing the application; " + str(e))
     sys.exit(1)
 
 def clickedPrevious():
@@ -245,11 +320,11 @@ def loadListBox():
         position = head
         global accountDict
         accountDict = ({})                                                     # Load the dictionary
-        while position < 255:
-            c.send("pyReadAccountName", position)
+        while position < 255:                                                  # '<' not supported between instances of 'str' and 'int'
+            c.send("pyReadAccountName", position)                              # sets acctPosition in C program
             try:
                 response = c.receive()
-                accountName_list = response[1]
+                accountName_list = response[1]   # kAcknowledge instead of kStrAcknowledge
                 accountName = accountName_list[0]
             except UnicodeDecodeError as e:
                 updateDirections("Error in pyReadAccountName; " + str(e))
@@ -259,14 +334,14 @@ def loadListBox():
                 accountName = ""
             accountDict[accountName] = position
             lb.insert(END, accountName)                                        # Load the listbox
-            c.send("pyGetNextPos")
+            c.send("pyGetNextPos")                                             # calls getNextPtr(acctPosition) in C program
             try:
                 response = c.receive()
                 response_list = response[1]
                 position = response_list[0]
             except ValueError as ve:
                 updateDirections("Error in pyGetNextPos; " + str(ve))
-                position = 0
+                position = 255                                                 # exit the loop
         lb.activate(0)                                                         # Activate the first item in the list
         global selection
         selection = 0
@@ -275,8 +350,10 @@ def loadListBox():
         lb.bind("<Up>", OnEntryUp)
         window.config(cursor="")
     except ValueError as ve:
-        updateDirections("Error in pyReadHead; " + str(ve))
+        updateDirections("ValueError in pyReadHead; " + str(ve))
         head = 0
+    except Exception as e:
+        updateDirections("Exception in pyReadHead; " + str(e))
 
 def OnEntryDownNoEvent():
     OnEntryDown(0)
@@ -321,6 +398,7 @@ def clickedLoadDB(event):
 
 def clickedLoad():
     global position
+    global accountDict
     item = lb.curselection()
     global selection
     selection = item[0]
@@ -343,9 +421,11 @@ def clickedDelete():
 
 def clickedOpen():
     global arduino
+    global arduinoAttached
     try:                                                                       #
         arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=5.0, settle_time=2.0, enable_dtr=False,
                                               int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
+        arduinoAttached = 1
     except serial.serialutil.SerialException:
         updateDirections("Error when attaching to PasswordPump.  Device not found. Power cycle the PasswordPump and try again.")
 
@@ -362,6 +442,9 @@ def clickedOpen():
                 ["pyUpdateUserName", "bs"],
                 ["pyUpdatePassword", "bs"],
                 ["pyUpdateURL", "bs"],
+                ["pyUpdateURL_1", "s"],
+                ["pyUpdateURL_2", "s"],
+                ["pyUpdateURL_3", "bs"],
                 ["pyUpdateStyle", "bs"],
                 ["pyGetNextPos",""],
                 ["pyGetPrevPos",""],
@@ -403,6 +486,7 @@ def clickedOpen():
     window.update()
 
 def getRecord():
+    global position
     print(position)
     c.send("pyReadAccountName", position)
     try:
@@ -489,35 +573,32 @@ def ImportFileChrome():
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
-            try:
+            try: # position didn't increment from 57 to 58; from JPCycles to JetBrains; position from call to getNextPos
                 for row in reader:
                     print(row)
                     print(row['name'], row['url'], row['username'], row['password'])
-                    clickedInsert()                         # call getNextFreePosition here
+                    txt_acct.delete(0, END)
+                    txt_user.delete(0, END)
+                    txt_pass.delete(0, END)
+                    txt_url.delete(0, END)
                     txt_acct.insert(0,row['name'])
                     txt_user.insert(0,row['username'])
                     txt_pass.insert(0,row['password'])
                     txt_url.insert(0,row['url'])
                     window.update()
-                    clickedAcct()
+                    clickedAcct()                                              # sets position = FindAccountPos()
                     clickedUser()
                     clickedPass()
                     clickedStyle()
-                    clickedUrl()
+                    clickedUrl_New()
                     updateDirections("Record saved.")
-                    c.send("pyGetAccountCount")
-                    response = c.receive()
-                    print(response)
-                    response_list = response[1]
-                    global acctCount
-                    acctCount = response_list[0]
-                lb.delete(0, END)
-                loadListBox()
                 updateDirections("All records saved.")
-            except:
-                updateDirections("Error saving a record.")
-    except:
-        updateDirections("No file exists")
+                #lb.delete(0, END)
+                loadListBox()
+            except Exception as e:
+                updateDirections("Error encountered reading file in ImportFileChrome; "+ str(e))
+    except Exception as ex:
+        updateDirections("Error encountered in ImportFileChrome; " + ex)
 
 def ImportFilePasswordPump():
     name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
@@ -530,7 +611,7 @@ def ImportFilePasswordPump():
         with open(name, newline='') as csvfile:
             fieldnames = ['accountname', 'username', 'password', 'url', 'group']
             reader = csv.DictReader(csvfile, fieldnames=fieldnames)
-            try:
+            try: # position didn't increment from 57 to 58; from JPCycles to JetBrains; position from call to getNextPos
                 for row in reader:
                     print(row)
                     print(row['accountname'], row['username'], row['password'], row['url'], row['group'])
@@ -548,10 +629,10 @@ def ImportFilePasswordPump():
                     clickedUser()
                     clickedPass()
                     clickedStyle()
-                    clickedUrl()
+                    clickedUrl_New()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
-                lb.delete(0, END)
+                #lb.delete(0, END)
                 loadListBox()
             except Exception as e:
                 updateDirections("Error encountered reading file in ImportFilePasswordPump; "+ str(e))
@@ -564,32 +645,36 @@ def ImportFileKeePass():
                            title = "Choose a file."
                           )
     print (name)
+    global position
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
-            try:  #
+            try: # position didn't increment from 57 to 58; from JPCycles to JetBrains; position from call to getNextPos
                 for row in reader:
                     print(row)
                     print(row['name'], row['url'], row['username'], row['password'])
-                    clickedInsert()
+                    txt_acct.delete(0, END)
+                    txt_user.delete(0, END)
+                    txt_pass.delete(0, END)
+                    txt_url.delete(0, END)
                     txt_acct.insert(0,row['name'])
                     txt_user.insert(0,row['username'])
                     txt_pass.insert(0,row['password'])
                     txt_url.insert(0,row['url'])
                     window.update()
-                    clickedAcct()
+                    clickedAcct()                                              # sets position = FindAccountPos()
                     clickedUser()
                     clickedPass()
                     clickedStyle()
-                    clickedUrl()
+                    clickedUrl_New()
                     updateDirections("Record saved.")
-                lb.delete(0, END)
-                loadListBox()
                 updateDirections("All records saved.")
+                #lb.delete(0, END)
+                loadListBox()
             except Exception as e:
-                updateDirections("Error saving a record; " + str(e))
+                updateDirections("Error encountered reading file in ImportFileKeePass; "+ str(e))
     except Exception as ex:
-        updateDirections("No file exists; " + str(ex))
+        updateDirections("Error encountered in ImportFileKeePass; " + ex)
 
 def ImportFile():
     name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
@@ -683,5 +768,6 @@ head = 0
 tail = 0
 selection = 0
 state = "None"
+arduinoAttached = 0
 
 window.mainloop()
