@@ -17,20 +17,25 @@
 # * = fixed
 #
 # Defects:
-# - URLs are getting chopped off at 32 characters
 # - When an account is inserted the accounts list box doesn't refresh.
 # - If there's a / at the end of a URL python throws an exception
 # - If a password (or any other field) contains a ~ or a |, python throws an
 #   exception
 # - Sometimes changing the URL in place is not working
+# x After importing from a file the record selected and the record displayed
+#   do not match.
 # x Hangs the MCU when adding credentials without Style or URL.
 # * Style is garbage when importing PasswordPump file.
 # * When clicking on Next and Previous the Account List textbox selected
 #   account isn't following along.
+# * URLs are getting chopped off at 32 characters. Had to break the URL into 3
+#   equally sized pieces and send them individually to the PasswordPump where
+#   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
 # - Add groups to the UI
-# - Import files via this UI
+# - When importing from PasswordPump format, import the groups, too.
+# * Import files via this UI.
 # * Add a scrollbar to the account list box.
 #
 
@@ -346,6 +351,8 @@ def loadListBox():
         global selection
         selection = 0
         lb.select_set(selection)
+        position = head
+        getRecord()
         lb.bind("<Down>", OnEntryDown)
         lb.bind("<Up>", OnEntryUp)
         window.config(cursor="")
@@ -573,7 +580,7 @@ def ImportFileChrome():
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
-            try: # position didn't increment from 57 to 58; from JPCycles to JetBrains; position from call to getNextPos
+            try:
                 for row in reader:
                     print(row)
                     print(row['name'], row['url'], row['username'], row['password'])
@@ -611,7 +618,7 @@ def ImportFilePasswordPump():
         with open(name, newline='') as csvfile:
             fieldnames = ['accountname', 'username', 'password', 'url', 'group']
             reader = csv.DictReader(csvfile, fieldnames=fieldnames)
-            try: # position didn't increment from 57 to 58; from JPCycles to JetBrains; position from call to getNextPos
+            try:
                 for row in reader:
                     print(row)
                     print(row['accountname'], row['username'], row['password'], row['url'], row['group'])
@@ -649,7 +656,7 @@ def ImportFileKeePass():
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
-            try: # position didn't increment from 57 to 58; from JPCycles to JetBrains; position from call to getNextPos
+            try:
                 for row in reader:
                     print(row)
                     print(row['name'], row['url'], row['username'], row['password'])
@@ -689,7 +696,7 @@ def ImportFile():
         print("No file exists")
 
 def ExportFile():
-    name = asksaveasfilename(initialdir="C:/",                                   # TODO: make this work cross platform
+    name = asksaveasfilename(initialdir="C:/",                                 # TODO: make this work cross platform
                              filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
                              initialfile='PasswordPumpExport.csv',
                              title = "Create a file."
