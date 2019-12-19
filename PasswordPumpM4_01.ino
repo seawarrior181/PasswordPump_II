@@ -55,7 +55,7 @@ import time
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('400x610')
+window.geometry('400x600')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
@@ -705,6 +705,88 @@ def ExportFile():
     except:
         print("No file exists")
 
+def OnFavorites():
+    global group
+    global vFavorites
+    if (vFavorites == 1):
+        group = group | 1
+    else:
+        group = group & (~0)
+
+def OnWork():
+    global group
+    global vWork
+    if (vWork == 1):
+        group = group | 2
+    else:
+        group = group & (~2)
+
+def OnPersonal():
+    global group
+    global vPersonal
+    if (vPersonal == 1):
+        group = group | 4
+    else:
+        group = group & (~4)
+
+def OnHome():
+    global group
+    global vHome
+    if (vHome == 1):
+        group = group | 8
+    else:
+        group = group & (~8)
+
+def OnSchool():
+    global group
+    global vSchool
+    if (vSchool == 1):
+        group = group | 16
+    else:
+        group = group & (~16)
+
+def OnFinancial():
+    global group
+    global vFinancial
+    if (vFinancial == 1):
+        group = group | 32
+    else:
+        group = group & (~32)
+
+def OnMail():
+    global group
+    global vMail
+    if (vMail == 1):
+        group = group | 64
+    else:
+        group = group & (~64)
+
+def OnCustom():
+    global group
+    global vCustom
+    if (vCustom == 1):
+        group = group | 128
+    else:
+        group = group & (~128)
+
+def SetGroupCheckBoxes():
+    global vFavorites
+    global vWork
+    global vPersonal
+    global vHome
+    global vSchool
+    global vFinancial
+    global vMail
+    global vCustom
+    vFavorites = ((group & 1) == 1)
+    vWork = ((group & 2) == 1)
+    vPersonal = ((group & 4) == 1)
+    vHome = ((group & 8) == 1)
+    vSchool = ((group & 16) == 1)
+    vFinancial = ((group & 32) == 1)
+    vMail = ((group & 64) == 1)
+    vCustom = ((group & 128) == 1)
+
 menu = Menu(window)
 window.config(menu=menu)
 file = Menu(menu)
@@ -723,13 +805,13 @@ cbStyle.grid(column=2, row=5)
 cbStyle.bind('<<ComboboxSelected>>', on_style_select)
 
 btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
-btn_previous.grid(column=1, row=7)
+btn_previous.grid(column=1, row=17)
 
 btn_insert = Button(window, text="Insert", command=clickedInsert)
-btn_insert.grid(column=1, row=8)
+btn_insert.grid(column=1, row=18)
 
 btn_delete = Button(window, text="Delete", command=clickedDelete)
-btn_delete.grid(column=1, row=9)
+btn_delete.grid(column=1, row=19)
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=4, row=0)
@@ -737,13 +819,13 @@ btn_open.grid(column=4, row=0)
 lb.bind("<<ListboxSelect>>", clickedLoadDB)
 
 btn_url = Button(window, text="Save", command=clickedSave)
-btn_url.grid(column=4, row=6)
+btn_url.grid(column=4, row=18)
 
 btn_next = Button(window, text="Next>>", command=clickedNext)
-btn_next.grid(column=4, row=7)
+btn_next.grid(column=4, row=17)
 
 btn_close = Button(window, text=" Exit ", command=clickedClose)
-btn_close.grid(column=4, row=9)
+btn_close.grid(column=4, row=19)
 
 btn_url.config(state='normal')
 btn_close.config(state='normal')
@@ -757,35 +839,35 @@ vFinancial = IntVar()
 vMail = IntVar()
 vCustom = IntVar()
 
-textboxFavorites = Checkbutton(window, text="Favorites", variable=vFavorites)
-textboxFavorites.grid(column=2,row=8)
+textboxFavorites = Checkbutton(window, text="Favorites", variable=vFavorites, command=OnFavorites)
+textboxFavorites.grid(column=1,row=11)
 
-textboxWork = Checkbutton(window, text="Work", variable=vWork)
-textboxWork.grid(column=2,row=9)
+textboxWork = Checkbutton(window, text="Work      ", variable=vWork, command=OnWork)
+textboxWork.grid(column=1,row=12)
 
-textboxPersonal = Checkbutton(window, text="Personal", variable=vPersonal)
-textboxPersonal.grid(column=2,row=10)
+textboxPersonal = Checkbutton(window, text="Personal ", variable=vPersonal, command=OnPersonal)
+textboxPersonal.grid(column=1,row=13)
 
-textboxHome = Checkbutton(window, text="Home", variable=vHome)
-textboxHome.grid(column=2,row=11)
+textboxHome = Checkbutton(window, text="Home     ", variable=vHome, command=OnHome)
+textboxHome.grid(column=1,row=14)
 
-textboxSchool = Checkbutton(window, text="School", variable=vSchool)
-textboxSchool.grid(column=2,row=12)
+textboxSchool = Checkbutton(window, text="School   ", variable=vSchool, command=OnSchool)
+textboxSchool.grid(column=2,row=11)
 
-textboxFinancial = Checkbutton(window, text="Financial", variable=vFinancial)
-textboxFinancial.grid(column=2,row=13)
+textboxFinancial = Checkbutton(window, text="Financial", variable=vFinancial, command=OnFinancial)
+textboxFinancial.grid(column=2,row=12)
 
-textboxMail = Checkbutton(window, text="Mail", variable=vMail)
-textboxMail.grid(column=2,row=14)
+textboxMail = Checkbutton(window, text="Mail       ", variable=vMail, command=OnMail)
+textboxMail.grid(column=2,row=13)
 
-textboxCustom = Checkbutton(window, text="Custom", variable=vCustom)
-textboxCustom.grid(column=2,row=15)
+textboxCustom = Checkbutton(window, text="Custom", variable=vCustom, command=OnCustom)
+textboxCustom.grid(column=2,row=14)
 
 lbl_help = Label(window, text="Instructions", anchor=W, justify=CENTER, width=11)
-lbl_help.grid(column=2, row=16)
+lbl_help.grid(column=2, row=15)
 
 txt_dir = Text(window, height=5, width=30, relief=FLAT, background="light grey")
-txt_dir.grid(column=2, row=17)
+txt_dir.grid(column=2, row=16)
 txt_dir.config(state=NORMAL)
 txt_dir.delete('1.0', END)
 directions = """Select Edit with Computer on
@@ -809,5 +891,6 @@ tail = 0
 selection = 0
 state = "None"
 arduinoAttached = 0
+group = 0
 
 window.mainloop()
