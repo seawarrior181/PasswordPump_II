@@ -22,9 +22,10 @@
 # - If a password (or any other field) contains a ~ or a |, python throws an
 #   exception
 # - Sometimes changing the URL in place is not working
-# x After importing from a file the record selected and the record displayed
-#   do not match.
+# - The 32nd character of the URL is missing after import.
 # x Hangs the MCU when adding credentials without Style or URL.
+# * After importing from a file the record selected and the record displayed
+#   do not match.
 # * Style is garbage when importing PasswordPump file.
 # * When clicking on Next and Previous the Account List textbox selected
 #   account isn't following along.
@@ -54,7 +55,7 @@ import time
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('400x430')
+window.geometry('400x600')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
@@ -82,9 +83,6 @@ lbl_style.grid(column=1, row=5)
 
 lbl_url = Label(window, text="URL", anchor=E, justify=RIGHT, width=10)
 lbl_url.grid(column=1, row=6)
-
-lbl_help = Label(window, text="Instructions", anchor=W, justify=CENTER, width=11)
-lbl_help.grid(column=2, row=7)
 
 txt_acct = Entry(window, width=40)
 txt_acct.grid(column=2, row=2)
@@ -116,18 +114,18 @@ def clickedSave():
     clickedPass()
     clickedStyle()
     clickedUrl_New()
+    updateGroup()
     global state
     if (state == "Inserting"):
         lb.delete(0,END)
         loadListBox()
     state = "None"
 
-def clickedAcct(): #when acct = JetBrains/Intel... pyUpdateAccountName raises ValueError!  Number of arguemtn formats must match the number of received arguments
+def clickedAcct():
     aResAcct = txt_acct.get()
     resAcct = aResAcct[0:32]
     global position                                                            # the position on EEprom, don't confuse with selection
-    c.send("pyUpdateAccountName", resAcct)          # FindAccountPos called # on an insert, position is ignored here
-#   c.send("pyGetAcctPos")                                                     # get the (possibly) new account position
+    c.send("pyUpdateAccountName", resAcct)                                     # FindAccountPos called on an insert
     try:
         response = c.receive()                          # Number of argument formats must match the number of recieved arguments.
         print(response)
@@ -193,6 +191,18 @@ def clickedStyle():
     response_list = response[1]
     position = response_list[0]
     directions = """Updated style."""
+    updateDirections(directions)
+    window.update()
+
+def updateGroup():
+    global position
+    global group
+    c.send("pyUpdateGroup", position, group)
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    position = response_list[0]
+    directions = """Updated groups."""
     updateDirections(directions)
     window.update()
 
@@ -444,6 +454,7 @@ def clickedOpen():
                 ["pyReadPassword", "b"],
                 ["pyReadURL", "b"],
                 ["pyReadStyle", "b"],
+                ["pyReadGroup", "b"],
                 ["pyReadOldPassword", "b"],
                 ["pyUpdateAccountName", "s"],
                 ["pyUpdateUserName", "bs"],
@@ -453,6 +464,7 @@ def clickedOpen():
                 ["pyUpdateURL_2", "s"],
                 ["pyUpdateURL_3", "bs"],
                 ["pyUpdateStyle", "bs"],
+                ["pyUpdateGroup","bb"],
                 ["pyGetNextPos",""],
                 ["pyGetPrevPos",""],
                 ["pyGetAcctPos",""],
@@ -494,6 +506,7 @@ def clickedOpen():
 
 def getRecord():
     global position
+    global group
     print(position)
     c.send("pyReadAccountName", position)
     try:
@@ -556,6 +569,17 @@ def getRecord():
     txt_url.delete(0,END)
     txt_url.insert(0,url)
 
+    c.send("pyReadGroup", position)
+    try:
+        response = c.receive() # struct.error: unpack requires a buffer of 1 bytes for account USB
+        print(response)
+        group_list = response[1]
+        group = int(group_list[0])
+    except UnicodeDecodeError:
+        print("pyReadGroup did not return group")
+        group = 0
+    SetGroupCheckBoxes()
+
 def serial_ports():
     return comports()
 
@@ -598,6 +622,7 @@ def ImportFileChrome():
                     clickedPass()
                     clickedStyle()
                     clickedUrl_New()
+                    #updateGroup()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
                 #lb.delete(0, END)
@@ -614,6 +639,7 @@ def ImportFilePasswordPump():
                           )
     print (name)
     global position
+    global group
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
             fieldnames = ['accountname', 'username', 'password', 'url', 'group']
@@ -630,13 +656,15 @@ def ImportFilePasswordPump():
                     txt_user.insert(0,row['username'])
                     txt_pass.insert(0,row['password'])
                     txt_url.insert(0,row['url'])
-                    #txt_group.insert(0,row['group'])                          # TODO: add group to the UI
+                    group = int(row['group'])
+                    SetGroupCheckBoxes()
                     window.update()
                     clickedAcct()                                              # sets position = FindAccountPos()
                     clickedUser()
                     clickedPass()
                     clickedStyle()
                     clickedUrl_New()
+                    updateGroup()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
                 #lb.delete(0, END)
@@ -674,6 +702,7 @@ def ImportFileKeePass():
                     clickedPass()
                     clickedStyle()
                     clickedUrl_New()
+                    #updateGroup()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
                 #lb.delete(0, END)
@@ -708,6 +737,88 @@ def ExportFile():
     except:
         print("No file exists")
 
+def OnFavorites():
+    global group
+    global vFavorites
+    if (vFavorites == 1):
+        group = group | 1
+    else:
+        group = group & (~0)
+
+def OnWork():
+    global group
+    global vWork
+    if (vWork == 1):
+        group = group | 2
+    else:
+        group = group & (~2)
+
+def OnPersonal():
+    global group
+    global vPersonal
+    if (vPersonal == 1):
+        group = group | 4
+    else:
+        group = group & (~4)
+
+def OnHome():
+    global group
+    global vHome
+    if (vHome == 1):
+        group = group | 8
+    else:
+        group = group & (~8)
+
+def OnSchool():
+    global group
+    global vSchool
+    if (vSchool == 1):
+        group = group | 16
+    else:
+        group = group & (~16)
+
+def OnFinancial():
+    global group
+    global vFinancial
+    if (vFinancial == 1):
+        group = group | 32
+    else:
+        group = group & (~32)
+
+def OnMail():
+    global group
+    global vMail
+    if (vMail == 1):
+        group = group | 64
+    else:
+        group = group & (~64)
+
+def OnCustom():
+    global group
+    global vCustom
+    if (vCustom == 1):
+        group = group | 128
+    else:
+        group = group & (~128)
+
+def SetGroupCheckBoxes():
+    global vFavorites
+    global vWork
+    global vPersonal
+    global vHome
+    global vSchool
+    global vFinancial
+    global vMail
+    global vCustom
+    vFavorites = ((group & 1) == 1)
+    vWork = ((group & 2) == 1)
+    vPersonal = ((group & 4) == 1)
+    vHome = ((group & 8) == 1)
+    vSchool = ((group & 16) == 1)
+    vFinancial = ((group & 32) == 1)
+    vMail = ((group & 64) == 1)
+    vCustom = ((group & 128) == 1)
+
 menu = Menu(window)
 window.config(menu=menu)
 file = Menu(menu)
@@ -726,13 +837,13 @@ cbStyle.grid(column=2, row=5)
 cbStyle.bind('<<ComboboxSelected>>', on_style_select)
 
 btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
-btn_previous.grid(column=1, row=7)
+btn_previous.grid(column=1, row=17)
 
 btn_insert = Button(window, text="Insert", command=clickedInsert)
-btn_insert.grid(column=1, row=8)
+btn_insert.grid(column=1, row=18)
 
 btn_delete = Button(window, text="Delete", command=clickedDelete)
-btn_delete.grid(column=1, row=9)
+btn_delete.grid(column=1, row=19)
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=4, row=0)
@@ -740,19 +851,55 @@ btn_open.grid(column=4, row=0)
 lb.bind("<<ListboxSelect>>", clickedLoadDB)
 
 btn_url = Button(window, text="Save", command=clickedSave)
-btn_url.grid(column=4, row=6)
+btn_url.grid(column=4, row=18)
 
 btn_next = Button(window, text="Next>>", command=clickedNext)
-btn_next.grid(column=4, row=7)
+btn_next.grid(column=4, row=17)
 
 btn_close = Button(window, text=" Exit ", command=clickedClose)
-btn_close.grid(column=4, row=9)
+btn_close.grid(column=4, row=19)
 
 btn_url.config(state='normal')
 btn_close.config(state='normal')
 
+vFavorites = IntVar()
+vWork = IntVar()
+vPersonal = IntVar()
+vHome = IntVar()
+vSchool = IntVar()
+vFinancial = IntVar()
+vMail = IntVar()
+vCustom = IntVar()
+
+textboxFavorites = Checkbutton(window, text="Favorites", variable=vFavorites, command=OnFavorites)
+textboxFavorites.grid(column=1,row=11)
+
+textboxWork = Checkbutton(window, text="Work      ", variable=vWork, command=OnWork)
+textboxWork.grid(column=1,row=12)
+
+textboxPersonal = Checkbutton(window, text="Personal ", variable=vPersonal, command=OnPersonal)
+textboxPersonal.grid(column=1,row=13)
+
+textboxHome = Checkbutton(window, text="Home     ", variable=vHome, command=OnHome)
+textboxHome.grid(column=1,row=14)
+
+textboxSchool = Checkbutton(window, text="School   ", variable=vSchool, command=OnSchool)
+textboxSchool.grid(column=2,row=11)
+
+textboxFinancial = Checkbutton(window, text="Financial", variable=vFinancial, command=OnFinancial)
+textboxFinancial.grid(column=2,row=12)
+
+textboxMail = Checkbutton(window, text="Mail       ", variable=vMail, command=OnMail)
+textboxMail.grid(column=2,row=13)
+
+textboxCustom = Checkbutton(window, text="Custom", variable=vCustom, command=OnCustom)
+textboxCustom.grid(column=2,row=14)
+
+lbl_help = Label(window, text="Instructions", anchor=W, justify=CENTER, width=11)
+lbl_help.grid(column=2, row=15)
+
 txt_dir = Text(window, height=5, width=30, relief=FLAT, background="light grey")
-txt_dir.grid(column=2, row=8)
+txt_dir.grid(column=2, row=16)
 txt_dir.config(state=NORMAL)
 txt_dir.delete('1.0', END)
 directions = """Select Edit with Computer on
@@ -776,5 +923,6 @@ tail = 0
 selection = 0
 state = "None"
 arduinoAttached = 0
+group = 0
 
 window.mainloop()
