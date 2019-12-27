@@ -36,9 +36,23 @@
 # Enhancements:
 # - Add groups to the UI
 # - When importing from PasswordPump format, import the groups, too.
+# - Only allow one instance of the PasswordPump to run at a time.
+# - Generate password
+# - Save to old password
 # * Import files via this UI.
 # * Add a scrollbar to the account list box.
 #
+# Required Libraries:
+# - PyCmdMessenger
+#   https://github.com/harmsm/PyCmdMessenger
+#   sudo pip3 install PyCmdMessenger
+#   Then, starting on line 25 of PyCmdMessenger:
+#                           field_separator="~",
+#                           command_separator="|",
+#                           escape_separator="^",
+#   On line 361 and 362 of the same PyCmdMessenger file add the following:
+#   if value == 92:  # fix a defect whereby we freeze when the escape character is sent.
+#       value = 0
 
 from tkinter import *
 from tkinter.ttk import *
@@ -55,7 +69,7 @@ import time
 
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('400x600')
+window.geometry('400x580')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
@@ -125,7 +139,7 @@ def clickedAcct():
     aResAcct = txt_acct.get()
     resAcct = aResAcct[0:32]
     global position                                                            # the position on EEprom, don't confuse with selection
-    c.send("pyUpdateAccountName", resAcct)                                     # FindAccountPos called on an insert
+    c.send("pyUpdateAccountName", resAcct)                                 # FindAccountPos called on an insert
     try:
         response = c.receive()                          # Number of argument formats must match the number of recieved arguments.
         print(response)
@@ -139,21 +153,24 @@ def clickedAcct():
         updateDirections(directions)
         window.update()
     except ValueError as e:
-        updateDirections("Error encountered in clickedAcct; " + str(e))
+        updateDirections("Value error encountered in clickedAcct; " + str(e))
         #c.send("pyGetAcctPos");
         #response = c.receive()
         #print(response)
         #response_list = response[1]
         #position = response_list[0]
+    except Exception as ex:
+        updateDirections("Exception encountered in clickedAcct; " + str(ex))
+        raise ex
 
 def clickedUser():
     global position
     aResUser = txt_user.get()
     resUser = aResUser[0:32]
     if (len(resUser) > 0):
-        c.send("pyUpdateUserName", position, resUser)
+        c.send("pyUpdateUserName", position + 2, resUser)
     else:
-        c.send("pyUpdateUserName", position, "")
+        c.send("pyUpdateUserName", position + 2, "")
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -168,9 +185,9 @@ def clickedPass():
     aResPass = txt_pass.get()
     resPass = aResPass[0:32]
     if (len(resPass) > 0):
-        c.send("pyUpdatePassword", position, resPass)
+        c.send("pyUpdatePassword", position + 2, resPass)
     else:
-        c.send("pyUpdatePassword", position, "")
+        c.send("pyUpdatePassword", position + 2, "")
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -185,7 +202,7 @@ def clickedStyle():
     resStyle = cbStyle.current()
     if ((resStyle != 0) and (resStyle != 1)):                                  # style must be 0 or 1
         resStyle = 0;                                                          # default is 0
-    c.send("pyUpdateStyle", position, resStyle)
+    c.send("pyUpdateStyle", position + 2, resStyle)
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -197,7 +214,7 @@ def clickedStyle():
 def updateGroup():
     global position
     global group
-    c.send("pyUpdateGroup", position, group)
+    c.send("pyUpdateGroup", position + 2, group + 2)
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -213,9 +230,9 @@ def clickedUrl():
     #resURL = resURL.replace("/","^")
     txt_url.config(state='normal')
     if (len(resURL) > 0):                                                      # if the URL doesn't exist don't send it
-        c.send("pyUpdateURL", position, resURL)
+        c.send("pyUpdateURL", position + 2, resURL)
     else:
-        c.send("pyUpdateURL", position, "")
+        c.send("pyUpdateURL", position + 2, "")
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -245,25 +262,25 @@ def clickedUrl_New():                                                          #
             position = response_list[0]
             resURL_3 = aURL[64:96]                                             # max length of a URL is 96 chars
             if (len(resURL_3) > 0):                                            # if the URL doesn't exist don't send it
-                c.send("pyUpdateURL_3", position, resURL_3)
+                c.send("pyUpdateURL_3", position + 2, resURL_3)
                 response = c.receive()
                 print(response)
                 response_list = response[1]
                 position = response_list[0]
             else:
-                c.send("pyUpdateURL_3", position, "")
+                c.send("pyUpdateURL_3", position + 2, "")
                 response = c.receive()
                 print(response)
                 response_list = response[1]
                 position = response_list[0]
         else:
-            c.send("pyUpdateURL", position, aURL)
+            c.send("pyUpdateURL", position + 2, aURL)
             response = c.receive()
             print(response)
             response_list = response[1]
             position = response_list[0]
     else:
-        c.send("pyUpdateURL", position, "")
+        c.send("pyUpdateURL", position + 2, "")
         response = c.receive()
         print(response)
         response_list = response[1]
@@ -288,12 +305,12 @@ def clickedClose():
     sys.exit(1)
 
 def clickedPrevious():
-    c.send("pyGetPrevPos")
+    global position
+    c.send("pyGetPrevPos", position + 2)
     response = c.receive()
     print(response)
     response_list = response[1]
     global selection
-    global position
     last_position = position
     position = response_list[0]
     if position == 255:
@@ -306,12 +323,12 @@ def clickedPrevious():
         lb.see(selection)
 
 def clickedNext():
-    c.send("pyGetNextPos")
+    global position
+    c.send("pyGetNextPos", position + 2)
     response = c.receive()
     print(response)
     response_list = response[1]
     global selection
-    global position
     last_position = position
     position = response_list[0]
     if position == 255:
@@ -323,11 +340,12 @@ def clickedNext():
         OnEntryDownNoEvent()
         lb.see(selection)
 
-def loadListBox():
+def loadListBox():  # TODO: reorganize the logic in this function
     window.config(cursor="watch")                                              # TODO: this is not working
     lb.delete(0,END)                                                           # clear out the listbox
     c.send("pyReadHead")                                                       # Get the list head
     global position
+    global head
     try:
         response = c.receive()
         response_list = response[1]
@@ -336,28 +354,43 @@ def loadListBox():
         global accountDict
         accountDict = ({})                                                     # Load the dictionary
         while position < 255:                                                  # '<' not supported between instances of 'str' and 'int'
-            c.send("pyReadAccountName", position)                              # sets acctPosition in C program
+            c.send("pyReadAccountName", position + 2)
             try:
-                response = c.receive()
-                accountName_list = response[1]   # kAcknowledge instead of kStrAcknowledge
+                try:
+                    response = c.receive()
+                    accountName_list = response[1]
+                except Exception as e:
+                    updateDirections("Call to pyReadAccountName returned None; " + str(e) + " Trying again.")
+                    time.sleep(1)
+                    c.send("pyReadAccountName", position + 2)
+                    response = c.receive()
+                    accountName_list = response[1]
                 accountName = accountName_list[0]
             except UnicodeDecodeError as e:
-                updateDirections("Error in pyReadAccountName; " + str(e))
-                accountName = ""
+                updateDirections("UnicodeDecodeError in pyReadAccountName; " + str(e))
+                accountName = "UnicodeDecodeError"
             except ValueError as ve:
-                updateDirections("Error in pyReadAccountName; " + str(ve))
-                accountName = ""
+                updateDirections("ValueError in pyReadAccountName; " + str(ve))
+                accountName = "ValueError"
+            except Exception as e:
+                updateDirections("Exception in pyReadAccountName; " + str(e))
+                accountName = "Exception"
+                #raise e
             accountDict[accountName] = position
             lb.insert(END, accountName)                                        # Load the listbox
-            c.send("pyGetNextPos")                                             # calls getNextPtr(acctPosition) in C program
+            window.update()
+            c.send("pyGetNextPos", position + 2)                               # calls getNextPtr(acctPosition) in C program
             try:
                 response = c.receive()
                 response_list = response[1]
                 position = response_list[0]
             except ValueError as ve:
                 updateDirections("Error in pyGetNextPos; " + str(ve))
-                position = 255                                                 # exit the loop
-        lb.activate(0)                                                         # Activate the first item in the list
+                raise ve
+            except Exception as e:
+                updateDirections("Exception in pyGetNextPos; " + str(e))
+                raise e
+        lb.activate(0)
         global selection
         selection = 0
         lb.select_set(selection)
@@ -367,10 +400,10 @@ def loadListBox():
         lb.bind("<Up>", OnEntryUp)
         window.config(cursor="")
     except ValueError as ve:
-        updateDirections("ValueError in pyReadHead; " + str(ve))
+        updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
         head = 0
     except Exception as e:
-        updateDirections("Exception in pyReadHead; " + str(e))
+        updateDirections("Exception in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(e))
 
 def OnEntryDownNoEvent():
     OnEntryDown(0)
@@ -429,7 +462,7 @@ def clickedLoad():
 def clickedDelete():
     lb.delete(ANCHOR)                                                          # delete the account from the listbox
     global position
-    c.send("pyDeleteAccount",position)
+    c.send("pyDeleteAccount",position + 2)
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -465,8 +498,8 @@ def clickedOpen():
                 ["pyUpdateURL_3", "bs"],
                 ["pyUpdateStyle", "bs"],
                 ["pyUpdateGroup","bb"],
-                ["pyGetNextPos",""],
-                ["pyGetPrevPos",""],
+                ["pyGetNextPos","b"],
+                ["pyGetPrevPos","b"],
                 ["pyGetAcctPos",""],
                 ["pyReadHead",""],
                 ["pyReadTail",""],
@@ -478,19 +511,27 @@ def clickedOpen():
     global c                                                                   # Initialize the messenger
     c = PyCmdMessenger.CmdMessenger(arduino, commands)
     c.send("pyReadHead")
-    response = c.receive()
-    print(response)
-    response_list = response[1]
-    global head
-    head = response_list[0]
+    try:
+        response = c.receive() # struct.error: unpack requires a buffer of 1 bytes
+        print(response)
+        response_list = response[1]
+        global head
+        head = response_list[0]
+    except Exception as e:
+        updateDirections("Exception encountered reading return value from pyReadHead; " + str(e))
+        head = 0
     global position
     position = head
     c.send("pyGetAccountCount")
     response = c.receive()
     print(response)
-    response_list = response[1]
     global acctCount
-    acctCount = response_list[0]
+    try:
+        response_list = response[1]
+        acctCount = response_list[0]
+    except TypeError as te:
+        updateDirections("TypeError encountered in clickedOpen(); " + str(te))
+        acctCount = 0
     if (acctCount > 0):
         getRecord()
     btn_close.config(state='normal')
@@ -507,8 +548,16 @@ def clickedOpen():
 def getRecord():
     global position
     global group
+    global vFavorites
+    global vWork
+    global vPersonal
+    global vHome
+    global vSchool
+    global vFinancial
+    global vMail
+    global vCustom
     print(position)
-    c.send("pyReadAccountName", position)
+    c.send("pyReadAccountName", position + 2)
     try:
         response = c.receive()
         print (response)
@@ -521,7 +570,7 @@ def getRecord():
     txt_acct.insert(0,accountName)
 
     print (position)
-    c.send("pyReadUserName", position)
+    c.send("pyReadUserName", position + 2)
     try:
         response = c.receive()
         print (response)
@@ -534,7 +583,7 @@ def getRecord():
     txt_user.insert(0,userName)
 
     print (position)
-    c.send("pyReadPassword", position)
+    c.send("pyReadPassword", position + 2)
     try:
         response = c.receive()
         print(response)
@@ -546,7 +595,7 @@ def getRecord():
     txt_pass.delete(0,END)
     txt_pass.insert(0,password)
 
-    c.send("pyReadStyle", position)
+    c.send("pyReadStyle", position + 2)
     try:
         response = c.receive()
         print(response)
@@ -557,7 +606,7 @@ def getRecord():
         style = ""
     cbStyle.set(style)
 
-    c.send("pyReadURL", position)
+    c.send("pyReadURL", position + 2)
     try:
         response = c.receive()                                                 # EOFError: Incomplete message (1~https://www.cvs.com/account/login/|) (when a field ends with /)
         print(response)
@@ -569,15 +618,18 @@ def getRecord():
     txt_url.delete(0,END)
     txt_url.insert(0,url)
 
-    c.send("pyReadGroup", position)
+    c.send("pyReadGroup", position + 2)
     try:
         response = c.receive() # struct.error: unpack requires a buffer of 1 bytes for account USB
         print(response)
         group_list = response[1]
         group = int(group_list[0])
-    except UnicodeDecodeError:
+    except UnicodeDecodeError as ude:
         print("pyReadGroup did not return group")
+        updateDirections("pyReadGroup did not return group; " + str(ude))
         group = 0
+    except Struct.error as e:
+        updateDirections("Struct.error encountered after pyReadGroup; Group: " + str(group) + " " + str(e))
     SetGroupCheckBoxes()
 
 def serial_ports():
@@ -622,7 +674,6 @@ def ImportFileChrome():
                     clickedPass()
                     clickedStyle()
                     clickedUrl_New()
-                    #updateGroup()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
                 #lb.delete(0, END)
@@ -687,28 +738,27 @@ def ImportFileKeePass():
             try:
                 for row in reader:
                     print(row)
-                    print(row['name'], row['url'], row['username'], row['password'])
+                    print(row['Account'], row['Login Name'], row['Password'], row['Web Site'])
                     txt_acct.delete(0, END)
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
                     txt_url.delete(0, END)
-                    txt_acct.insert(0,row['name'])
-                    txt_user.insert(0,row['username'])
-                    txt_pass.insert(0,row['password'])
-                    txt_url.insert(0,row['url'])
+                    txt_acct.insert(0,row['Account'])
+                    txt_user.insert(0,row['Login Name'])
+                    txt_pass.insert(0,row['Password'])
+                    txt_url.insert(0,row['Web Site'])
                     window.update()
                     clickedAcct()                                              # sets position = FindAccountPos()
                     clickedUser()
                     clickedPass()
                     clickedStyle()
                     clickedUrl_New()
-                    #updateGroup()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
                 #lb.delete(0, END)
                 loadListBox()
             except Exception as e:
-                updateDirections("Error encountered reading file in ImportFileKeePass; "+ str(e))
+                updateDirections("Error encountered processing file in ImportFileKeePass; "+ str(e))
     except Exception as ex:
         updateDirections("Error encountered in ImportFileKeePass; " + ex)
 
@@ -740,15 +790,15 @@ def ExportFile():
 def OnFavorites():
     global group
     global vFavorites
-    if (vFavorites == 1):
+    if (vFavorites.get() == 1):
         group = group | 1
     else:
-        group = group & (~0)
+        group = group & (~1)
 
 def OnWork():
     global group
     global vWork
-    if (vWork == 1):
+    if (vWork.get() == 1):
         group = group | 2
     else:
         group = group & (~2)
@@ -756,7 +806,7 @@ def OnWork():
 def OnPersonal():
     global group
     global vPersonal
-    if (vPersonal == 1):
+    if (vPersonal.get() == 1):
         group = group | 4
     else:
         group = group & (~4)
@@ -764,7 +814,7 @@ def OnPersonal():
 def OnHome():
     global group
     global vHome
-    if (vHome == 1):
+    if (vHome.get() == 1):
         group = group | 8
     else:
         group = group & (~8)
@@ -772,7 +822,7 @@ def OnHome():
 def OnSchool():
     global group
     global vSchool
-    if (vSchool == 1):
+    if (vSchool.get() == 1):
         group = group | 16
     else:
         group = group & (~16)
@@ -780,7 +830,7 @@ def OnSchool():
 def OnFinancial():
     global group
     global vFinancial
-    if (vFinancial == 1):
+    if (vFinancial.get() == 1):
         group = group | 32
     else:
         group = group & (~32)
@@ -788,7 +838,7 @@ def OnFinancial():
 def OnMail():
     global group
     global vMail
-    if (vMail == 1):
+    if (vMail.get() == 1):
         group = group | 64
     else:
         group = group & (~64)
@@ -796,7 +846,7 @@ def OnMail():
 def OnCustom():
     global group
     global vCustom
-    if (vCustom == 1):
+    if (vCustom.get() == 1):
         group = group | 128
     else:
         group = group & (~128)
@@ -810,14 +860,39 @@ def SetGroupCheckBoxes():
     global vFinancial
     global vMail
     global vCustom
-    vFavorites = ((group & 1) == 1)
-    vWork = ((group & 2) == 1)
-    vPersonal = ((group & 4) == 1)
-    vHome = ((group & 8) == 1)
-    vSchool = ((group & 16) == 1)
-    vFinancial = ((group & 32) == 1)
-    vMail = ((group & 64) == 1)
-    vCustom = ((group & 128) == 1)
+    if ((group & 1) == 1):
+        vFavorites.set(1)
+    else:
+        vFavorites.set(0)
+    if ((group & 2) == 2):
+        vWork.set(1)
+    else:
+        vWork.set(0)
+    if ((group & 4) == 4):
+        vPersonal.set(1)
+    else:
+        vPersonal.set(0)
+    if ((group & 8) == 8):
+        vHome.set(1)
+    else:
+        vHome.set(0)
+    if ((group & 16) == 16):
+        vSchool.set(1)
+    else:
+        vSchool.set(0)
+    if ((group & 32) == 32):
+        vFinancial.set(1)
+    else:
+        vFinancial.set(0)
+    if ((group & 64) == 64):
+        vMail.set(1)
+    else:
+        vMail.set(0)
+    if ((group & 128) == 128):
+        vCustom.set(1)
+    else:
+        vCustom.set(0)
+    window.update()
 
 menu = Menu(window)
 window.config(menu=menu)
@@ -871,28 +946,36 @@ vFinancial = IntVar()
 vMail = IntVar()
 vCustom = IntVar()
 
-textboxFavorites = Checkbutton(window, text="Favorites", variable=vFavorites, command=OnFavorites)
+textboxFavorites = Checkbutton(window, text="Favorites", variable=vFavorites, command=OnFavorites, onvalue=1, offvalue=0)
+textboxFavorites.var = vFavorites
 textboxFavorites.grid(column=1,row=11)
 
-textboxWork = Checkbutton(window, text="Work      ", variable=vWork, command=OnWork)
+textboxWork = Checkbutton(window, text="Work      ", variable=vWork, command=OnWork, onvalue=1, offvalue=0)
+textboxWork.var = vWork
 textboxWork.grid(column=1,row=12)
 
-textboxPersonal = Checkbutton(window, text="Personal ", variable=vPersonal, command=OnPersonal)
+textboxPersonal = Checkbutton(window, text="Personal ", variable=vPersonal, command=OnPersonal, onvalue=1, offvalue=0)
+textboxPersonal.var = vPersonal
 textboxPersonal.grid(column=1,row=13)
 
-textboxHome = Checkbutton(window, text="Home     ", variable=vHome, command=OnHome)
+textboxHome = Checkbutton(window, text="Home     ", variable=vHome, command=OnHome, onvalue=1, offvalue=0)
+textboxHome.var = vHome
 textboxHome.grid(column=1,row=14)
 
-textboxSchool = Checkbutton(window, text="School   ", variable=vSchool, command=OnSchool)
+textboxSchool = Checkbutton(window, text="School   ", variable=vSchool, command=OnSchool, onvalue=1, offvalue=0)
+textboxSchool.var = vSchool
 textboxSchool.grid(column=2,row=11)
 
-textboxFinancial = Checkbutton(window, text="Financial", variable=vFinancial, command=OnFinancial)
+textboxFinancial = Checkbutton(window, text="Financial", variable=vFinancial, command=OnFinancial, onvalue=1, offvalue=0)
+textboxFinancial.var = vFinancial
 textboxFinancial.grid(column=2,row=12)
 
-textboxMail = Checkbutton(window, text="Mail       ", variable=vMail, command=OnMail)
+textboxMail = Checkbutton(window, text="Mail       ", variable=vMail, command=OnMail, onvalue=1, offvalue=0)
+textboxMail.var = vMail
 textboxMail.grid(column=2,row=13)
 
-textboxCustom = Checkbutton(window, text="Custom", variable=vCustom, command=OnCustom)
+textboxCustom = Checkbutton(window, text="Custom", variable=vCustom, command=OnCustom, onvalue=1, offvalue=0)
+textboxCustom.var = vCustom
 textboxCustom.grid(column=2,row=14)
 
 lbl_help = Label(window, text="Instructions", anchor=W, justify=CENTER, width=11)
