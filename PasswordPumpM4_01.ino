@@ -55,9 +55,10 @@
   
   Known Defects/Issues
   ====================  
-    - = 23 outstanding             XXXXXXXXXXXXXXXXXXXXXXX
+    - = 23 outstanding             XXXXXXXXXXXXXXXXXXXXXXXX
     x =  7 fixed but needs testing XXXXXXX
     * = 53 fixed                   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  - Old password is getting populated with junk
   - You can import 51 accounts, and exit from the python UI, and then navigate
     through the accounts on the device, but if you power cycle the device all of
     the accounts disappear.
@@ -1179,9 +1180,9 @@ const char * const fileMenu[] = {                "Backup EEprom",               
                                                                                 // CMDMessenger vars
 //char field_separator   = ',';                                                   
 //char command_separator = ';';
-char field_separator   = '~';                                                  // ascii record separator
-char command_separator = '|';                                                  // ascii unit separator
-char escape_separator  = '^';
+char field_separator   = '~';                                                   // ascii record separator
+char command_separator = '|';                                                   // ascii unit separator
+char escape_separator  = '\\';
                                                                                 // CSV Processing
 enum { NOMEM = -2 };                                                            // out of memory signal
 static char *line    = NULL;                                                    // input chars
@@ -3466,9 +3467,23 @@ void setUUID(char *uuid, uint8_t size, uint8_t appendNullTerm) {
   if (appendNullTerm) uuid[size - 1] = NULL_TERM;
 }
 
-void setSalt(char *salt, uint8_t size) {
-  DebugLN("setSalt()");
-  for (uint8_t i = 0; i < (size); i++) salt[i] = random(0,255);                 //
+void setSalt(char *uuid, uint8_t size) {
+  //DebugLN("setSalt()");
+  for (uint8_t i = 0; i < (size); i++) {
+    uuid[i] = random(0,255);                 //
+    while(uuid[i] == ','  ||                                                    // trips up CSV imports
+          uuid[i] == '"'  ||                                                    // trips up CSV imports
+          uuid[i] == '@'  ||                                                    // trips up Oracle
+          uuid[i] == '`'  ||                                                    // hard to distinguish between ' and `
+          uuid[i] == '\'' ||                                                    // hard to distinguish between ' and `
+          uuid[i] == '&'  ||                                                    // can cause problems inside of XML
+          uuid[i] == '~'  ||                                                    // separator for cmdMessenger
+          uuid[i] == '|'  ||                                                    // separator for cmdMessenger
+          uuid[i] == '\\' ||                                                    // interpreted as escape character
+          uuid[i] == '^' ||                                                     // interpreted as escape character
+          uuid[i] == '/'    )                                                   // escape character
+      uuid[i] = random(0,255);
+  }
 }
 
 //- Keyboard Functions
@@ -4065,7 +4080,7 @@ void writeAllToEEProm(char *accountName,                                        
 //- Read Attributes from EEprom
 
 void readAcctFromEEProm(uint8_t pos, char *buf) {
-  DebugLN("readAcctFromEEProm()");
+  //DebugLN("readAcctFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_ACCT(pos), buf, ACCOUNT_SIZE);
     if (buf[0] == INITIAL_MEMORY_STATE_CHAR) {                                  // 
@@ -4077,6 +4092,8 @@ void readAcctFromEEProm(uint8_t pos, char *buf) {
       memcpy(key + SALT_SIZE, masterPassword, MASTER_PASSWORD_SIZE);            // masterPassword should be padded w/ null terminator from processing in authenticateMaster
       aes.setKey(key,KEY_SIZE);                                                 // 
       decrypt32(buf, buf);
+      uint8_t len = strlen(buf);
+      while (len < ACCOUNT_SIZE) buf[len++] = NULL_TERM;                        // for safety
     }
   } else {
     buf[0] = NULL_TERM;
@@ -4084,7 +4101,7 @@ void readAcctFromEEProm(uint8_t pos, char *buf) {
 }
 
 void readUserFromEEProm(uint8_t pos, char *buf) {
-  DebugLN("readUserFromEEProm()");
+  //DebugLN("readUserFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_USER(pos), buf, USERNAME_SIZE);
   } else {
@@ -4098,7 +4115,7 @@ void readUserFromEEProm(uint8_t pos, char *buf) {
 }
 
 void readSaltFromEEProm(uint8_t pos, char *buf) {
-  DebugLN("readSaltFromEEProm()");
+  //DebugLN("readSaltFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_SALT(pos), buf, SALT_SIZE);
   } else {
@@ -4110,7 +4127,7 @@ void readSaltFromEEProm(uint8_t pos, char *buf) {
 }
 
 void readWebSiteFromEEProm(uint8_t pos, char *buf) {
-  DebugLN("readWebSiteFromEEProm()");
+  //DebugLN("readWebSiteFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_WEBSITE(pos), buf, WEBSITE_SIZE);
   } else {
@@ -4124,7 +4141,7 @@ void readWebSiteFromEEProm(uint8_t pos, char *buf) {
 }
 
 void readStyleFromEEProm(uint8_t pos, char *buf) {
-  DebugLN("readStyleFromEEProm()");
+  //DebugLN("readStyleFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_STYLE(pos), buf, STYLE_SIZE);
   } else {
@@ -4134,7 +4151,7 @@ void readStyleFromEEProm(uint8_t pos, char *buf) {
 }
 
 void readPassFromEEProm(uint8_t pos, char *buf) {                               // TODO: reduce readPassFromEEProm, readUserFromEEProm and readAcctFromEEProm to a single function.
-  DebugLN("readPassFromEEProm()");
+  //DebugLN("readPassFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_PASS(pos), buf, PASSWORD_SIZE);
   } else {
@@ -4148,7 +4165,7 @@ void readPassFromEEProm(uint8_t pos, char *buf) {                               
 }
 
 void readOldPassFromEEProm(uint8_t pos, char *buf) {
-  DebugLN("readOldPassFromEEProm()");
+  //DebugLN("readOldPassFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_OLD_PASS(pos), buf, PASSWORD_SIZE);
   } else {
@@ -4162,12 +4179,12 @@ void readOldPassFromEEProm(uint8_t pos, char *buf) {
 }
 
 uint8_t readGroupFromEEprom(uint8_t pos) {
-  DebugLN("readGroupFromEEprom()");
+  //DebugLN("readGroupFromEEprom()");
   return read_eeprom_byte(GET_ADDR_GROUP(pos));
 }
 
 uint8_t getListHeadPosition() {                                                 // returns the position of the first element in the linked list
-  DebugLN("getListHeadPosition()");
+  //DebugLN("getListHeadPosition()");
   uint8_t listHead = read_eeprom_byte(GET_ADDR_LIST_HEAD);
   if (listHead == INITIAL_MEMORY_STATE_BYTE) {                                  // TODO: this could be the wrong approach...
     listHead = getNextFreeAcctPos();
@@ -4178,13 +4195,13 @@ uint8_t getListHeadPosition() {                                                 
 }
 
 uint8_t getNextPtr(uint8_t pos) {                                               // given position, returns the address of the next element in the linked list
-  DebugLN("getNextPtr()");
-  DebugMetric("getNextPtr pos: ",pos);
+  //DebugLN("getNextPtr()");
+  //DebugMetric("getNextPtr pos: ",pos);
   return read_eeprom_byte(GET_ADDR_NEXT_POS(pos));
 }
 
 uint8_t getPrevPtr(uint8_t pos) {                                               // given position, returns the position of the previous element in the linked list
-  DebugLN("getPrevPtr()");
+  //DebugLN("getPrevPtr()");
   return read_eeprom_byte(GET_ADDR_PREV_POS(pos));
 }
 
@@ -5766,32 +5783,40 @@ void OnUnknownCommand()                                                         
 
 void OnReadAccountName() {
   char accountName[ACCOUNT_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();                            // 
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   readAcctFromEEProm(acctPosition, accountName);                                // read and decrypt the account name
-  DisplayToStatus(accountName);
-  cmdMessenger.sendCmd(kStrAcknowledge, accountName);
-  //DisplayToMenu(accountName);
+  if (strlen(accountName) > 0) {
+    cmdMessenger.sendCmd(kStrAcknowledge, accountName);
+  } else {
+    cmdMessenger.sendCmd(kStrAcknowledge, "Unknown");                           // I've never seen this happen
+  }
 }
 
 void OnReadUserName(){
   char username[USERNAME_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   readUserFromEEProm(acctPosition, username);                                   // read and decrypt the user
   cmdMessenger.sendCmd(kStrAcknowledge, username);
-  //DisplayToItem(username);
 }
 
 void OnReadPassword(){
   char password[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   readPassFromEEProm(acctPosition, password);                                   // read and decrypt the password
   cmdMessenger.sendCmd(kStrAcknowledge, password);
-  //DisplayToError(password);
 }
 
 void OnReadURL(){
   char url[WEBSITE_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   readWebSiteFromEEProm(acctPosition, url);                                     // read and decrypt the url
   cmdMessenger.sendCmd(kStrAcknowledge, url);
 }
@@ -5799,30 +5824,34 @@ void OnReadURL(){
 void OnReadStyle(){
   char style[STYLE_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   readStyleFromEEProm(acctPosition, style);
   cmdMessenger.sendCmd(kStrAcknowledge, style);
 }
 
 void OnReadGroup(){
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   //uint8_t group = readGroupFromEEProm(acctPosition);                          // for reasons I don't understand this will not compile
   uint8_t group = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));
-  cmdMessenger.sendCmd(kAcknowledge, group);
+  cmdMessenger.sendBinCmd(kAcknowledge, group);
 }
 
 void OnReadOldPassword(){
   char oldPassword[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   readOldPassFromEEProm(acctPosition, oldPassword);                             // read and decrypt the old password
   cmdMessenger.sendCmd(kStrAcknowledge, oldPassword);
 }
 
 void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
-//char *accountName;
   char accountName[ACCOUNT_SIZE];
   cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE - 1);
   boolean badAcctName = false;
-//accountName = cmdMessenger.readStringArg();
   DisplayToEdit((char *)accountName);                                           // Display the account name on the second line
   acctPosition = FindAccountPos(accountName);                                   // get the next open position, sets updateExistingAccount
   if (!updateExistingAccount) {                                                 // if we're not updating an existing account we must be inserting
@@ -5865,10 +5894,10 @@ void OnUpdateAccountName(){                                                     
 }
 
 void OnUpdateUserName(){
-//char *username;
   char username[USERNAME_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-//username = cmdMessenger.readStringArg();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   cmdMessenger.copyStringArg(username, USERNAME_SIZE - 1);
   uint8_t len = strlen(username);
   while (len < USERNAME_SIZE) username[len++] = NULL_TERM;
@@ -5881,10 +5910,10 @@ void OnUpdateUserName(){
 }
 
 void OnUpdatePassword(){
-//char *password;
   char password[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
-//password = cmdMessenger.readStringArg();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   cmdMessenger.copyStringArg(password, PASSWORD_SIZE - 1);
   uint8_t len = strlen(password);
   while (len < PASSWORD_SIZE) password[len++] = NULL_TERM;
@@ -5899,6 +5928,8 @@ void OnUpdatePassword(){
 void OnUpdateURL(){
   char urlArray[WEBSITE_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   cmdMessenger.copyStringArg(urlArray, WEBSITE_SIZE - 1);
   size_t len = strlen(urlArray);
   if (len > (WEBSITE_SIZE - 1)) {
@@ -5920,17 +5951,12 @@ void OnUpdateURL(){
 
 void OnUpdateURL_1(){
   cmdMessenger.copyStringArg(website, 32);                                      // was 32 when we were losing the 32nd character
-  //website[33] = NULL_TERM;                                                    //  "  "  " " "
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
 }
 
 void OnUpdateURL_2(){
   char website_2[33];
   cmdMessenger.copyStringArg(website_2, 32);
-  //website_2[32] = NULL_TERM;
-  //size_t lenWebsite = strlen(urlWork);
-  //size_t len = strlen(website_2);
-  //if ((len > 0) && (lenWebsite == 32 )) memcpy(website + 33, website_2, len);
   strcat(website, website_2);
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
 }
@@ -5938,12 +5964,11 @@ void OnUpdateURL_2(){
 void OnUpdateURL_3(){
   char website_3[33];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   cmdMessenger.copyStringArg(website_3, 32);
-  //website_3[32] = NULL_TERM;
   strcat(website, website_3);
   size_t lenWebsite = strlen(website);
-  //size_t len = strlen(website_3);
-  //if ((len > 0) && (lenWebsite == 64)) memcpy(website + 65, website_3, len);
   if (lenWebsite > 95) {
     website[95] = NULL_TERM;
     DisplayToError("ERR: 023");                                                 // Web site is too long
@@ -5964,6 +5989,8 @@ void OnUpdateURL_3(){
 void OnUpdateStyle(){
   char *style;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   style = cmdMessenger.readStringArg();
   uint8_t i = strlen(style);
   while (i < STYLE_SIZE) style[i++] = NULL_TERM;
@@ -5975,25 +6002,35 @@ void OnUpdateStyle(){
 void OnUpdateGroup(){
   uint8_t groups;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   groups = cmdMessenger.readBinArg<uint8_t>();
+  if (groups == 1) groups = 92;
+  groups -= 2;
   write_eeprom_byte(GET_ADDR_GROUP(acctPosition), groups);
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
 }
 
 void OnGetNextPos(){
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   cmdMessenger.sendBinCmd(kAcknowledge, getNextPtr(acctPosition));
 }
 
 void OnGetPrevPos(){
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   cmdMessenger.sendBinCmd(kAcknowledge, getPrevPtr(acctPosition));
 }
 
 void OnGetAcctPos(){
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);
+  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // ????????manipulate acctPosition here?
 }
 
 void OnReadHead(){
-  cmdMessenger.sendBinCmd(kAcknowledge, getListHeadPosition());                 // sending a single byte
+  cmdMessenger.sendBinCmd(kAcknowledge, getListHeadPosition());                 // sending a single byte ????????manipulate acctPosition here?
 }
 
 void OnReadTail(){
@@ -6008,17 +6045,19 @@ void OnGetNextFreePos(){
   DisplayToItem("2getNextFreeAcctPos");
   DisplayToDebug(bufferFree);
   acctPosition = nextFree;
-  cmdMessenger.sendBinCmd(kAcknowledge, nextFree);
+  cmdMessenger.sendBinCmd(kAcknowledge, nextFree);                              // ????????manipulate acctPosition here?
 }
 
 void OnDeleteAccount(){
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
   deleteAccount(acctPosition);
   cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
 }
 
 void OnGetAccountCount(){
-  cmdMessenger.sendBinCmd(kAcknowledge, acctCount);                             // sending a single byte
+  cmdMessenger.sendBinCmd(kAcknowledge, acctCount);                             // sending a single byte  ????????manipulate acctPosition here?
 }
 
 void OnExit() {
@@ -6028,7 +6067,7 @@ void OnExit() {
   setGreen();
   event = EVENT_SHOW_MAIN_MENU;
   machineState = STATE_SHOW_MAIN_MENU;
-  //writeListHeadPos();                                                           // for safety, didn't work
+  //writeListHeadPos();                                                         // for safety, didn't work
 }  
 
 /* This doesn't compile.
