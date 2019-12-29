@@ -6,6 +6,7 @@
 # Daniel Murphy
 #
 # Built on Python 3.8
+#
 # Purpose:
 #   This is the client side of the PasswordPump.  This program's job is to
 #   allow the user to edit the credentials that are stored inside the EEprom
@@ -17,14 +18,15 @@
 # * = fixed
 #
 # Defects:
-# - Leading spaces are not respected in Account Name.
-# - When an account is inserted the accounts list box doesn't refresh.
-# - If there's a / at the end of a URL python throws an exception
 # - If a password (or any other field) contains a ~ or a |, python throws an
 #   exception
 # - Sometimes changing the URL in place is not working
+# - If there's a / at the end of a URL python throws an exception, so strip it.
 # - The 32nd character of the URL is missing after import.
+# - When an account is inserted the accounts list box doesn't refresh, you must
+#   click on Save.
 # x Hangs the MCU when adding credentials without Style or URL.
+# * Leading spaces are not respected in Account Name.
 # * After importing from a file the record selected and the record displayed
 #   do not match.
 # * Style is garbage when importing PasswordPump file.
@@ -35,14 +37,13 @@
 #   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
-# - Confirm before deleting
 # - Export to PasswordPump format
-# - Strip the last character from url when it is /.
-# - When importing from PasswordPump format, import the groups, too.
-# - Only allow one instance of the PasswordPump to run at a time.
 # - Generate password
 # - Save to old password
 # - Respect the show password setting
+# * Only allow one instance of the PasswordPump to run at a time.
+# * Confirm before deleting
+# * When importing from PasswordPump format, import the groups, too.
 # * Save a field when it loses focus (via <Tab> or <Return> or clicking out of
 #   the field)
 # * Add groups to the UI
@@ -50,10 +51,12 @@
 # * Add a scrollbar to the account list box.
 #
 # Required Libraries:
+# pip install tendo
+# pip install PyCmdMessenger
 # - PyCmdMessenger
 #   https://github.com/harmsm/PyCmdMessenger
 #   sudo pip3 install PyCmdMessenger
-#   Then, starting on line 25 of PyCmdMessenger:
+#   Edit PyCmdMessenger.py starting on line 25:
 #                           field_separator="~",
 #                           command_separator="|",
 #                           escape_separator="\\",
@@ -66,6 +69,7 @@ from tkinter.ttk import *
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
 
+import tkinter.messagebox
 import PyCmdMessenger
 import serial
 import serial.tools.list_ports
@@ -73,6 +77,9 @@ from serial.tools.list_ports import comports
 import argparse
 import csv
 import time
+from tendo import singleton
+
+me = singleton.SingleInstance() # will sys.exit(-1) if other instance is running
 
 global c
 window = Tk()
@@ -226,9 +233,10 @@ def clickedAcct():
     aResAcct = txt_acct.get()
     resAcct = aResAcct[0:32]
     global position                                                            # the position on EEprom, don't confuse with selection
-    c.send("pyUpdateAccountName", resAcct)                                 # FindAccountPos called on an insert
+    global state
+    c.send("pyUpdateAccountName", resAcct)                                     # FindAccountPos called on an insert
     try:
-        response = c.receive()                          # Number of argument formats must match the number of recieved arguments.
+        response = c.receive()
         print(response)
         response_list = response[1]
         last_position = position
@@ -236,8 +244,11 @@ def clickedAcct():
         if position == 255:
             position = last_position
         txt_acct.config(state='normal')
-        directions = """Updated account name."""
-        updateDirections(directions)
+#       if (state == "Inserting"):
+#           lb.delete(0, END)
+#           loadListBox()
+#       state = "None"
+        updateDirections("Updated account name.")
         window.update()
     except ValueError as e:
         updateDirections("Value error encountered in clickedAcct; " + str(e))
@@ -517,7 +528,7 @@ def clickedInsert():
     global position
     #time.sleep(1)
     c.send("pyGetNextFreePos")
-    response = c.receive()  # freezes MCU (times out after 5 sec) when inserting second row of import file
+    response = c.receive()
     print(response)
     response_list = response[1]
     position = response_list[0]
@@ -540,14 +551,15 @@ def clickedLoad():
     getRecord()
 
 def clickedDelete():
-    lb.delete(ANCHOR)                                                          # delete the account from the listbox
-    global position
-    c.send("pyDeleteAccount",position + 2)
-    response = c.receive()
-    print(response)
-    response_list = response[1]
-    position = response_list[0]
-    getRecord()
+    if tkinter.messagebox.askyesno("Delete", "Delete this record?"):
+        lb.delete(ANCHOR)                                                      # delete the account from the listbox
+        global position
+        c.send("pyDeleteAccount",position + 2)
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        position = response_list[0]
+        getRecord()
 
 def getRecord():
     global position
@@ -626,11 +638,10 @@ def getRecord():
         group_list = response[1]
         group = int(group_list[0])
     except UnicodeDecodeError as ude:
-        updateDirections("pyReadGroup did not return group")
-        updateDirections("pyReadGroup did not return group; " + str(ude))
+        updateDirections("UnicodeDecodeError during pyReadGroup in getRecord(); " + str(ude))
         group = 0
     except Struct.error as e:
-        updateDirections("Struct.error encountered after pyReadGroup; Group: " + str(group) + " " + str(e))
+        updateDirections("Struct.error encountered after pyReadGroup in getRecord(); Group: " + str(group) + " " + str(e))
         group = 0
     SetGroupCheckBoxes()
 
