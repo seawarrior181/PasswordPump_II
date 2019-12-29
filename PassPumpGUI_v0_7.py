@@ -17,6 +17,7 @@
 # * = fixed
 #
 # Defects:
+# - Leading spaces are not respected in Account Name.
 # - When an account is inserted the accounts list box doesn't refresh.
 # - If there's a / at the end of a URL python throws an exception
 # - If a password (or any other field) contains a ~ or a |, python throws an
@@ -34,11 +35,17 @@
 #   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
-# - Add groups to the UI
+# - Confirm before deleting
+# - Export to PasswordPump format
+# - Strip the last character from url when it is /.
 # - When importing from PasswordPump format, import the groups, too.
 # - Only allow one instance of the PasswordPump to run at a time.
 # - Generate password
 # - Save to old password
+# - Respect the show password setting
+# * Save a field when it loses focus (via <Tab> or <Return> or clicking out of
+#   the field)
+# * Add groups to the UI
 # * Import files via this UI.
 # * Add a scrollbar to the account list box.
 #
@@ -52,7 +59,7 @@
 #                           escape_separator="\\",
 #   On line 361 and 362 of the same PyCmdMessenger file add the following:
 #   if value == 92:  # fix a defect whereby we freeze when the escape character is sent.
-#       value = 0
+#       value = 1
 
 from tkinter import *
 from tkinter.ttk import *
@@ -67,6 +74,7 @@ import argparse
 import csv
 import time
 
+global c
 window = Tk()
 window.title("PasswordPump Edit Credentials")
 window.geometry('400x580')
@@ -98,22 +106,98 @@ lbl_style.grid(column=1, row=5)
 lbl_url = Label(window, text="URL", anchor=E, justify=RIGHT, width=10)
 lbl_url.grid(column=1, row=6)
 
-txt_acct = Entry(window, width=40)
-txt_acct.grid(column=2, row=2)
+def clickedOpen():
+    global arduino
+    global arduinoAttached
+    try:                                                                       #
+        arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=5.0, settle_time=2.0, enable_dtr=False,
+                                              int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
+        arduinoAttached = 1
+    except serial.serialutil.SerialException:
+        updateDirections("Error when attaching to PasswordPump.  Device not found. Power cycle the PasswordPump and try again.")
 
-txt_user = Entry(window, width=40)
-txt_user.grid(column=2, row=3)
+    global commands
+    commands = [["kAcknowledge","b"],                                          # List of command names (and formats for their associated arguments). These must
+                ["kStrAcknowledge", "s"],                                      # be in the same order as in the Arduino sketch.
+                ["pyReadAccountName", "b"],
+                ["pyReadUserName", "b"],
+                ["pyReadPassword", "b"],
+                ["pyReadURL", "b"],
+                ["pyReadStyle", "b"],
+                ["pyReadGroup", "b"],
+                ["pyReadOldPassword", "b"],
+                ["pyUpdateAccountName", "s"],
+                ["pyUpdateUserName", "bs"],
+                ["pyUpdatePassword", "bs"],
+                ["pyUpdateURL", "bs"],
+                ["pyUpdateURL_1", "s"],
+                ["pyUpdateURL_2", "s"],
+                ["pyUpdateURL_3", "bs"],
+                ["pyUpdateStyle", "bs"],
+                ["pyUpdateGroup","bb"],
+                ["pyGetNextPos","b"],
+                ["pyGetPrevPos","b"],
+                ["pyGetAcctPos",""],
+                ["pyReadHead",""],
+                ["pyReadTail",""],
+                ["pyGetNextFreePos",""],
+                ["kError",""],
+                ["pyDeleteAccount","b"],
+                ["pyExit",""],
+                ["pyGetAccountCount",""]]
+    global c                                                                   # Initialize the messenger
+    c = PyCmdMessenger.CmdMessenger(arduino, commands)
 
-txt_pass = Entry(window, width=40)
-txt_pass.grid(column=2, row=4)
+    txt_acct.bind("<Return>",(lambda _: clickedAcctParam(txt_acct)))           # When the user clicks on return save the edited item
+    txt_user.bind("<Return>",(lambda _: clickedUserParam(txt_user)))
+    txt_pass.bind("<Return>",(lambda _: clickedPassParam(txt_pass)))
+    txt_url.bind("<Return>",(lambda _: clickedUrlParam(txt_url)))
 
-txt_url = Entry(window, width=40)
-txt_url.grid(column=2, row=6)
+    txt_acct.bind("<Tab>",(lambda _: clickedAcctParam(txt_acct)))              # When the user tabs off of the field save the edited item
+    txt_user.bind("<Tab>",(lambda _: clickedUserParam(txt_user)))
+    txt_pass.bind("<Tab>",(lambda _: clickedPassParam(txt_pass)))
+    txt_url.bind("<Tab>",(lambda _: clickedUrlParam(txt_url)))
 
-txt_acct.config(state='normal')
-txt_user.config(state='normal')
-txt_pass.config(state='normal')
-txt_url.config(state='normal')
+    txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the clicks off of the field save the edited item
+    txt_user.bind("<FocusOut>",(lambda _: clickedUserParam(txt_user)))
+    txt_pass.bind("<FocusOut>",(lambda _: clickedPassParam(txt_pass)))
+    txt_url.bind("<FocusOut>",(lambda _: clickedUrlParam(txt_url)))
+
+    c.send("pyReadHead")
+    try:
+        response = c.receive() # struct.error: unpack requires a buffer of 1 bytes
+        print(response)
+        response_list = response[1]
+        global head
+        head = response_list[0]
+    except Exception as e:
+        updateDirections("Exception encountered reading return value from pyReadHead; " + str(e))
+        head = 0
+    global position
+    position = head
+    c.send("pyGetAccountCount")
+    response = c.receive()
+    print(response)
+    global acctCount
+    try:
+        response_list = response[1]
+        acctCount = response_list[0]
+    except TypeError as te:
+        updateDirections("TypeError encountered in clickedOpen(); " + str(te))
+        acctCount = 0
+    if (acctCount > 0):
+        getRecord()
+    btn_close.config(state='normal')
+    updateDirections("Opened port")
+    #directions = """Opened port"""
+    #txt_dir.delete('1.0', END)
+    #txt_dir.insert(END, directions)
+    #print (directions)
+    if (acctCount > 0):
+        loadListBox()
+    btn_open.config(state='disabled')
+    cb.config(state='disabled')
+    window.update()
 
 def updateDirections(directions):
     txt_dir.delete('1.0', END)
@@ -135,6 +219,9 @@ def clickedSave():
         loadListBox()
     state = "None"
 
+def clickedAcctParam(txt_acct_param):
+    clickedAcct()
+
 def clickedAcct():
     aResAcct = txt_acct.get()
     resAcct = aResAcct[0:32]
@@ -154,14 +241,11 @@ def clickedAcct():
         window.update()
     except ValueError as e:
         updateDirections("Value error encountered in clickedAcct; " + str(e))
-        #c.send("pyGetAcctPos");
-        #response = c.receive()
-        #print(response)
-        #response_list = response[1]
-        #position = response_list[0]
     except Exception as ex:
         updateDirections("Exception encountered in clickedAcct; " + str(ex))
-        raise ex
+
+def clickedUserParam(txt_user_param):
+    clickedUser()
 
 def clickedUser():
     global position
@@ -179,6 +263,9 @@ def clickedUser():
     directions = """Updated user name."""
     updateDirections(directions)
     window.update()
+
+def clickedPassParam(txt_pass_param):
+    clickedPass()
 
 def clickedPass():
     global position
@@ -222,6 +309,9 @@ def updateGroup():
     directions = """Updated groups."""
     updateDirections(directions)
     window.update()
+
+def clickedUrlParam(txt_url_param):
+    clickedUrl()
 
 def clickedUrl():
     global position
@@ -299,7 +389,6 @@ def clickedClose():
             print(response)
             response_list = response[1]
             acctCount = response_list[0]
-            print(acctCount)
         except Exception as e:
             updateDirections("There was an error closing the application; " + str(e))
     sys.exit(1)
@@ -340,14 +429,16 @@ def clickedNext():
         OnEntryDownNoEvent()
         lb.see(selection)
 
-def loadListBox():  # TODO: reorganize the logic in this function
+def loadListBox():                                                             # TODO: reorganize the logic in this function
     window.config(cursor="watch")                                              # TODO: this is not working
+    window.update()
     lb.delete(0,END)                                                           # clear out the listbox
-    c.send("pyReadHead")                                                       # Get the list head
     global position
     global head
+    c.send("pyReadHead")                                                       # Get the list head
     try:
         response = c.receive()
+        print(response)
         response_list = response[1]
         head = response_list[0]
         position = head
@@ -356,15 +447,8 @@ def loadListBox():  # TODO: reorganize the logic in this function
         while position < 255:                                                  # '<' not supported between instances of 'str' and 'int'
             c.send("pyReadAccountName", position + 2)
             try:
-                try:
-                    response = c.receive()
-                    accountName_list = response[1]
-                except Exception as e:
-                    updateDirections("Call to pyReadAccountName returned None; " + str(e) + " Trying again.")
-                    time.sleep(1)
-                    c.send("pyReadAccountName", position + 2)
-                    response = c.receive()
-                    accountName_list = response[1]
+                response = c.receive()
+                accountName_list = response[1]
                 accountName = accountName_list[0]
             except UnicodeDecodeError as e:
                 updateDirections("UnicodeDecodeError in pyReadAccountName; " + str(e))
@@ -375,10 +459,8 @@ def loadListBox():  # TODO: reorganize the logic in this function
             except Exception as e:
                 updateDirections("Exception in pyReadAccountName; " + str(e))
                 accountName = "Exception"
-                #raise e
             accountDict[accountName] = position
             lb.insert(END, accountName)                                        # Load the listbox
-            window.update()
             c.send("pyGetNextPos", position + 2)                               # calls getNextPtr(acctPosition) in C program
             try:
                 response = c.receive()
@@ -399,11 +481,13 @@ def loadListBox():  # TODO: reorganize the logic in this function
         lb.bind("<Down>", OnEntryDown)
         lb.bind("<Up>", OnEntryUp)
         window.config(cursor="")
+        window.update()
     except ValueError as ve:
         updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
         head = 0
     except Exception as e:
         updateDirections("Exception in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(e))
+        head = 0
 
 def OnEntryDownNoEvent():
     OnEntryDown(0)
@@ -432,7 +516,6 @@ def clickedInsert():
     state = "Inserting"
     global position
     #time.sleep(1)
-    print("sending pyGetNextFreePos")
     c.send("pyGetNextFreePos")
     response = c.receive()  # freezes MCU (times out after 5 sec) when inserting second row of import file
     print(response)
@@ -454,9 +537,6 @@ def clickedLoad():
     selection = item[0]
     theText = lb.get(item)
     position = accountDict[theText]
-    print (item)
-    print(lb.get(item))
-    print(position)
     getRecord()
 
 def clickedDelete():
@@ -469,82 +549,6 @@ def clickedDelete():
     position = response_list[0]
     getRecord()
 
-def clickedOpen():
-    global arduino
-    global arduinoAttached
-    try:                                                                       #
-        arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=5.0, settle_time=2.0, enable_dtr=False,
-                                              int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
-        arduinoAttached = 1
-    except serial.serialutil.SerialException:
-        updateDirections("Error when attaching to PasswordPump.  Device not found. Power cycle the PasswordPump and try again.")
-
-    global commands
-    commands = [["kAcknowledge","b"],                                          # List of command names (and formats for their associated arguments). These must
-                ["kStrAcknowledge", "s"],                                      # be in the same order as in the Arduino sketch.
-                ["pyReadAccountName", "b"],
-                ["pyReadUserName", "b"],
-                ["pyReadPassword", "b"],
-                ["pyReadURL", "b"],
-                ["pyReadStyle", "b"],
-                ["pyReadGroup", "b"],
-                ["pyReadOldPassword", "b"],
-                ["pyUpdateAccountName", "s"],
-                ["pyUpdateUserName", "bs"],
-                ["pyUpdatePassword", "bs"],
-                ["pyUpdateURL", "bs"],
-                ["pyUpdateURL_1", "s"],
-                ["pyUpdateURL_2", "s"],
-                ["pyUpdateURL_3", "bs"],
-                ["pyUpdateStyle", "bs"],
-                ["pyUpdateGroup","bb"],
-                ["pyGetNextPos","b"],
-                ["pyGetPrevPos","b"],
-                ["pyGetAcctPos",""],
-                ["pyReadHead",""],
-                ["pyReadTail",""],
-                ["pyGetNextFreePos",""],
-                ["kError",""],
-                ["pyDeleteAccount","b"],
-                ["pyExit",""],
-                ["pyGetAccountCount",""]]
-    global c                                                                   # Initialize the messenger
-    c = PyCmdMessenger.CmdMessenger(arduino, commands)
-    c.send("pyReadHead")
-    try:
-        response = c.receive() # struct.error: unpack requires a buffer of 1 bytes
-        print(response)
-        response_list = response[1]
-        global head
-        head = response_list[0]
-    except Exception as e:
-        updateDirections("Exception encountered reading return value from pyReadHead; " + str(e))
-        head = 0
-    global position
-    position = head
-    c.send("pyGetAccountCount")
-    response = c.receive()
-    print(response)
-    global acctCount
-    try:
-        response_list = response[1]
-        acctCount = response_list[0]
-    except TypeError as te:
-        updateDirections("TypeError encountered in clickedOpen(); " + str(te))
-        acctCount = 0
-    if (acctCount > 0):
-        getRecord()
-    btn_close.config(state='normal')
-    directions = """Opened port"""
-    txt_dir.delete('1.0', END)
-    txt_dir.insert(END, directions)
-    print (directions)
-    if (acctCount > 0):
-        loadListBox()
-    btn_open.config(state='disabled')
-    cb.config(state='disabled')
-    window.update()
-
 def getRecord():
     global position
     global group
@@ -556,7 +560,6 @@ def getRecord():
     global vFinancial
     global vMail
     global vCustom
-    print(position)
     c.send("pyReadAccountName", position + 2)
     try:
         response = c.receive()
@@ -564,12 +567,11 @@ def getRecord():
         accountName_list = response[1]
         accountName = accountName_list[0]
     except UnicodeDecodeError:
-        print("pyReadAccountName returned empty string")
+        updateDirections("pyReadAccountName returned empty string")
         accountName = ""
     txt_acct.delete(0,END)
     txt_acct.insert(0,accountName)
 
-    print (position)
     c.send("pyReadUserName", position + 2)
     try:
         response = c.receive()
@@ -577,12 +579,11 @@ def getRecord():
         userName_list = response[1]
         userName = userName_list[0]
     except UnicodeDecodeError:
-        print("pyReadUserName returned empty string")
+        updateDirections("pyReadUserName returned empty string")
         userName = ""
     txt_user.delete(0,END)
     txt_user.insert(0,userName)
 
-    print (position)
     c.send("pyReadPassword", position + 2)
     try:
         response = c.receive()
@@ -590,7 +591,7 @@ def getRecord():
         password_list = response[1]
         password = password_list[0]
     except UnicodeDecodeError:
-        print("pyReadPassword returned empty string")
+        updateDirections("pyReadPassword returned empty string")
         password = ""
     txt_pass.delete(0,END)
     txt_pass.insert(0,password)
@@ -602,7 +603,7 @@ def getRecord():
         style_list = response[1]
         style = style_list[0]
     except UnicodeDecodeError:
-        print("pyReadStyle returned empty string")
+        updateDirections("pyReadStyle returned empty string")
         style = ""
     cbStyle.set(style)
 
@@ -613,23 +614,24 @@ def getRecord():
         url_list = response[1]
         url = url_list[0]
     except UnicodeDecodeError:
-        print("pyReadURL returned empty string")
+        updateDirections("pyReadURL returned empty string")
         url = ""
     txt_url.delete(0,END)
     txt_url.insert(0,url)
 
     c.send("pyReadGroup", position + 2)
     try:
-        response = c.receive() # struct.error: unpack requires a buffer of 1 bytes for account USB
+        response = c.receive()
         print(response)
         group_list = response[1]
         group = int(group_list[0])
     except UnicodeDecodeError as ude:
-        print("pyReadGroup did not return group")
+        updateDirections("pyReadGroup did not return group")
         updateDirections("pyReadGroup did not return group; " + str(ude))
         group = 0
     except Struct.error as e:
         updateDirections("Struct.error encountered after pyReadGroup; Group: " + str(group) + " " + str(e))
+        group = 0
     SetGroupCheckBoxes()
 
 def serial_ports():
@@ -640,11 +642,10 @@ def on_select(event=None):
     port_desc = cb.get()
     print (port_desc)
     port = port_desc[:port_desc.find(":")]
-    print (port)
-    print("comboboxes: ", cb.get())
 
 def on_style_select(event=None):
     print (cbStyle.get())
+    clickedStyle()
 
 def ImportFileChrome():
     name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
@@ -760,19 +761,7 @@ def ImportFileKeePass():
             except Exception as e:
                 updateDirections("Error encountered processing file in ImportFileKeePass; "+ str(e))
     except Exception as ex:
-        updateDirections("Error encountered in ImportFileKeePass; " + ex)
-
-def ImportFile():
-    name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
-                           filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
-                           title = "Choose a file."
-                          )
-    print (name)
-    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
-        with open(name,'r') as UseFile:
-            print(UseFile.read())
-    except:
-        print("No file exists")
+        updateDirections("Error encountered in ImportFileKeePass; " + str(ex))
 
 def ExportFile():
     name = asksaveasfilename(initialdir="C:/",                                 # TODO: make this work cross platform
@@ -794,6 +783,7 @@ def OnFavorites():
         group = group | 1
     else:
         group = group & (~1)
+    updateGroup()
 
 def OnWork():
     global group
@@ -802,6 +792,7 @@ def OnWork():
         group = group | 2
     else:
         group = group & (~2)
+    updateGroup()
 
 def OnPersonal():
     global group
@@ -810,6 +801,7 @@ def OnPersonal():
         group = group | 4
     else:
         group = group & (~4)
+    updateGroup()
 
 def OnHome():
     global group
@@ -818,6 +810,7 @@ def OnHome():
         group = group | 8
     else:
         group = group & (~8)
+    updateGroup()
 
 def OnSchool():
     global group
@@ -826,6 +819,7 @@ def OnSchool():
         group = group | 16
     else:
         group = group & (~16)
+    updateGroup()
 
 def OnFinancial():
     global group
@@ -834,6 +828,7 @@ def OnFinancial():
         group = group | 32
     else:
         group = group & (~32)
+    updateGroup()
 
 def OnMail():
     global group
@@ -842,6 +837,7 @@ def OnMail():
         group = group | 64
     else:
         group = group & (~64)
+    updateGroup()
 
 def OnCustom():
     global group
@@ -850,6 +846,7 @@ def OnCustom():
         group = group | 128
     else:
         group = group & (~128)
+    updateGroup()
 
 def SetGroupCheckBoxes():
     global vFavorites
@@ -893,6 +890,23 @@ def SetGroupCheckBoxes():
     else:
         vCustom.set(0)
     window.update()
+
+txt_acct = Entry(window, width=40)
+txt_acct.grid(column=2, row=2)
+
+txt_user = Entry(window, width=40)
+txt_user.grid(column=2, row=3)
+
+txt_pass = Entry(window, width=40)
+txt_pass.grid(column=2, row=4)
+
+txt_url = Entry(window, width=40)
+txt_url.grid(column=2, row=6)
+
+txt_acct.config(state='normal')
+txt_user.config(state='normal')
+txt_pass.config(state='normal')
+txt_url.config(state='normal')
 
 menu = Menu(window)
 window.config(menu=menu)
