@@ -55,19 +55,16 @@
   
   Known Defects/Issues
   ====================  
-    - = 23 outstanding             XXXXXXXXXXXXXXXXXXXXXXXX
-    x =  7 fixed but needs testing XXXXXXX
-    * = 53 fixed                   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    - = outstanding             
+    x = fixed but needs testing 
+    * = fixed                   
+  - When adding an account via rotary encoder it's automatically assigned to the
+    favorites group.
   - Old password is getting populated with junk
-  - You can import 51 accounts, and exit from the python UI, and then navigate
-    through the accounts on the device, but if you power cycle the device all of
-    the accounts disappear.
-  - URLs exceeding ABOUT 53 characters are not importing correctly.
   - A forward slash (escape character) at the end of a field causes the PC UI
     to throw an exception.
   - When there is a tilde (~) in a field this causes the PC UI to throw an 
     exception.
-  - PC client isn't working correctly, the fields are not getting enabled.
   - Navigation back to previous menu needs work (EVENT_LONG_CLICK).
   - Fix defect in FindAccountPos; ERR: 033 when importing existing account
     (intermittent) 
@@ -110,6 +107,11 @@
   x we are only encrypting the first 16 characters of account name, user name 
     and password.  The sha256 block size is 16.
   x single click after Reset brings you to alpha edit mode
+  * You can import 51 accounts, and exit from the python UI, and then navigate
+    through the accounts on the device, but if you power cycle the device all of
+    the accounts disappear.
+  * PC client isn't working correctly, the fields are not getting enabled.
+  * URLs exceeding ABOUT 53 characters are not importing correctly.
   * Add Web Site to the python client and test.
   * Entering Find Favorites when there are no Favorites yields undefined 
     behavior.
@@ -547,8 +549,8 @@
     [same as under Find All Account]
   Find All Account                 STATE_SHOW_MAIN_MENU ->STATE_FIND_ACCOUNT
     [scroll through accounts list] STATE_FIND_ACCOUNT   ->STATE_SEND_CREDS_MENU
-      Send User & Pass             STATE_SEND_CREDS_MENU
       Send Password <RET>          STATE_SEND_CREDS_MENU
+      Send User & Pass             STATE_SEND_CREDS_MENU
       Send URL
       Send User Name               STATE_SEND_CREDS_MENU
       Send Pass (no <RET>)
@@ -1695,7 +1697,7 @@ void ProcessEvent() {                                                           
         if (milliseconds < logoutTime) {      // check to see if the device has been idle for logoutTimeout milliseconds
         // Need to find a way to get the display to clear every time we display a new number...
         // if (authenticated) {                                                 // if authenticated display the time remaining until logout in seconds on display line 3, right justified
-            // long timeLeft = (lastActivityTime + logoutTimeout) - milliseconds;// calculate time remaining until logout 
+            // long timeLeft = (lastActivityTime + logoutTimeout)- milliseconds;// calculate time remaining until logout 
             // timeLeft /= 1000;                                                // convert timeLeft to seconds, max of 4 decimal places
             // char timeTillLogout[4]; 
             // ltoa(timeLeft,timeTillLogout,10);
@@ -1719,7 +1721,7 @@ void ProcessEvent() {                                                           
           return;                                                               // not time to logout yet and event == EVENT_NONE, so just return.
         } else {
           event = EVENT_LOGOUT;                                                 // otherwise we've been idle for more than logoutTimeout, logout.
-          DebugLN("Logging Out!");
+          //DebugLN("Logging Out!");
         }
       } else {
         return;                                                                 // logout timeout is not enabled
@@ -1729,8 +1731,8 @@ void ProcessEvent() {                                                           
     }
   }
 
-  DebugMetric("Event: ",event);
-  DebugMetric("machineState: ",machineState);
+  //DebugMetric("Event: ",event);
+  //DebugMetric("machineState: ",machineState);
   if        (event == EVENT_ROTATE_CW) {                                        // scroll forward through something depending on state...
     if ((STATE_SHOW_MAIN_MENU == machineState) &&
          authenticated                                                      ) { // this prevents navigation away from 'Enter Master Password' when not 
@@ -1758,8 +1760,8 @@ void ProcessEvent() {                                                           
         MenuDown(currentMenu);
       }
     } else if (STATE_EDIT_CREDS_MENU == machineState){
-      DebugMetric("position: ",position);
-      DebugMetric("acctCount: ",acctCount);
+      //DebugMetric("position: ",position);
+      //DebugMetric("acctCount: ",acctCount);
       if ((position < (EDIT_MENU_ELEMENTS - 1)) && (acctCount > 0)) {           // we'll only show the edit account options when there's at least one account
         position++;
         MenuDown(currentMenu);
@@ -1846,15 +1848,11 @@ void ProcessEvent() {                                                           
         MenuDown(currentMenu);                                                  // move one position down the current menu
       }
     }
-//      else {
-//      DisplayToError("ERR: 030");                                               // invalid state during event rotate clockwise
-//      delayNoBlock(ONE_SECOND * 2);
-//    }
     event = EVENT_NONE;                                                         // to prevent infinite looping
     
   } else if (event == EVENT_ROTATE_CC) {                                        // scroll backward through something depending on state...
     if (STATE_SHOW_MAIN_MENU == machineState) {
-      if (position > FIND_FAVORITE) {                                            // don't show the Master Password menu item after successful authentication
+      if (position > FIND_FAVORITE) {                                           // don't show the Master Password menu item after successful authentication
         position--;
         MenuUp(currentMenu);
       }
@@ -1917,7 +1915,7 @@ void ProcessEvent() {                                                           
         position = acctPosition;
         readAcctFromEEProm(position, accountName);
         DisplayToItem((char *) accountName);
-        DebugLN((char *) accountName);
+        //DebugLN((char *) accountName);
       } else {                                                                  // we reached the beginning of the linked list
         acctPosition = position;                                                // set acctPosition back to the last known member of the group
       }
@@ -1960,10 +1958,6 @@ void ProcessEvent() {                                                           
         MenuUp(currentMenu);
       }
     } 
-//      else {
-//      DisplayToError("ERR: 029");                                               // invalid state during event rotate counter clockwise
-//      delayNoBlock(ONE_SECOND * 2);
-//    }
     event = EVENT_NONE;
 
   } else if (event == EVENT_SINGLE_CLICK) {                                     // EVENT_SINGLE_CLICK
@@ -1993,7 +1987,7 @@ void ProcessEvent() {                                                           
               ShowMenu(FIND_FAVORITE, mainMenu, "   Find Favorite    ");
               readAcctFromEEProm(position, accountName);
               DisplayToItem((char *) accountName);
-              DebugLN((char *) accountName);
+              //DebugLN((char *) accountName);
             }
           }
           event = EVENT_NONE;
@@ -2024,12 +2018,12 @@ void ProcessEvent() {                                                           
           event = EVENT_NONE;
           int counter; counter = 0;
           setPurple();
-          while ((machineState == STATE_FEED_SERIAL_DATA) ) {//&&
-//                 (event != EVENT_SINGLE_CLICK           ) &&
-//                 (event != EVENT_LONG_CLICK             )   ) {
-//            encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
+          while ((machineState == STATE_FEED_SERIAL_DATA) &&
+//               (event != EVENT_SINGLE_CLICK           ) &&
+                 (event != EVENT_LONG_CLICK             )   ) {
+            encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
             cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
-//            if (counter%129792 == 0) {                                          //  259584 to slow down
+//            if (counter%129792 == 0) {                                        //  259584 to slow down
 //              if (isYellow) {
 //                setBlue();
 //              } else {
@@ -2038,10 +2032,10 @@ void ProcessEvent() {                                                           
 //            }
 //            counter++;
           }
-//          Serial.end();
-//          DisableInterrupts();
-//          setGreen();
-//          event = EVENT_SHOW_MAIN_MENU;
+//        Serial.end();
+//        DisableInterrupts();
+          setGreen();
+//        event = EVENT_SHOW_MAIN_MENU;
           break;
         case ADD_ACCOUNT:                                                       // Add account
           addFlag = true;                                                       // necessary for when we return to the main menu
@@ -2981,7 +2975,7 @@ void PopulateGlobals() {
     logoutTimeout = 60;
     writeLogoutTimeout();
   }
-  DebugMetric("logoutTimeout: ", logoutTimeout);
+  //DebugMetric("logoutTimeout: ", logoutTimeout);
   
   loginAttempts = getLoginAttempts;                                             // the maximum number of login attempts before factory reset
   if (loginAttempts == INITIAL_MEMORY_STATE_BYTE) {
@@ -2990,12 +2984,12 @@ void PopulateGlobals() {
   }
 
   headPosition = getListHeadPosition();                                         // read the head of the doubly linked list that sorts by account name
-  DebugMetric("headPosition: ",headPosition);
+  //DebugMetric("headPosition: ",headPosition);
   acctPosition = headPosition;                                                  // initially the current account is the head account
   tailPosition = findTailPosition(headPosition);                                // find the tail of the doubly linked list that sorts by account name
-  DebugMetric("tailPosition: ",tailPosition);
+  //DebugMetric("tailPosition: ",tailPosition);
   acctCount = countAccounts();                                                  // count the number of populated accounts in EEprom
-  DebugMetric("acctCount: ",acctCount);
+  //DebugMetric("acctCount: ",acctCount);
 
   EnableInterrupts();                                                           // Turn on global interrupts
 }
@@ -3014,7 +3008,11 @@ void ProcessAttributeInput( char *attributeName,
   setKey(acctPosition);
   encrypt32Bytes(buffer, attributeName);
   eeprom_write_bytes(address, buffer, attributeSize);
-  if (acctFlag) writePointers(acctPosition, attributeName);                     // insert the account into the linked list by updating prev and next pointers.
+  if (acctFlag) {
+    writePointers(acctPosition, attributeName);                                 // insert the account into the linked list by updating prev and next pointers.
+    uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));            // initialize the groups
+    if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(acctPosition, NONE);    // a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
+  }
   position = nextPosition;
   event = EVENT_SHOW_EDIT_MENU;   
 }
@@ -3062,7 +3060,7 @@ void enterAttributeChar(char *attribute, uint8_t passwordFlag) {
 }
 
 void ConfirmChoice(uint8_t state) {                                                 // display the menu item that confirms execution of some destructive function
-  DebugLN("ConfirmChoice()");
+  //DebugLN("ConfirmChoice()");
   machineState = state;                                                         // set machineState to the passed in state
   DisplayToEdit("Are you sure? ");
   position = 0;                                                                 // confirmChars[0] = 'N'
@@ -3071,10 +3069,10 @@ void ConfirmChoice(uint8_t state) {                                             
 }
 
 void ReadFromSerial(char *buffer, uint8_t size, const char *prompt) {           // get input from the keyboard
-  DebugLN("ReadFromSerial()");
+  //DebugLN("ReadFromSerial()");
   if(keyboardFlag) {                                                            // but only if the keyboard is enabled
     EnableInterrupts();
-//  DebugLN("");DebugLN(prompt);                                                // display the name of the element to be collected to the end user via serial terminal
+    //DebugLN("");DebugLN(prompt);                                                // display the name of the element to be collected to the end user via serial terminal
     uint8_t serialCharCount = Serial.available();
     if (serialCharCount > size) serialCharCount = size;                         // ensure we don't read more bytes than that which we can accomodate in the buffer
     if (serialCharCount > 0) {
@@ -3093,7 +3091,7 @@ void ReadFromSerial(char *buffer, uint8_t size, const char *prompt) {           
 }
 
 void switchToEditMenu(){
-  DebugLN("switchToEditMenu()");
+  //DebugLN("switchToEditMenu()");
   menuNumber = EDIT_MENU_NUMBER;
   elements = EDIT_MENU_ELEMENTS;
   int arraySize = 0;
@@ -3199,14 +3197,14 @@ void switchToFindByGroupMenu() {
   } else {                                                                      // no credentials belong to this group
     position = headPosition;
     acctPosition = headPosition;
-    DebugLN("No credentials belong to this group");
+    //DebugLN("No credentials belong to this group");
     DisplayToItem("None");                                                      // otherwise we're getting garbage in the item position
   }
   event = EVENT_NONE;
 }
 
 void switchToSendCredsMenu() {
-  DebugLN("switchToSendCredsMenu()");
+  //DebugLN("switchToSendCredsMenu()");
   //acctPosition = position;  //misbehaving
   menuNumber = SEND_MENU_NUMBER;
   elements = SEND_MENU_ELEMENTS;
@@ -3225,21 +3223,21 @@ void switchToSendCredsMenu() {
 }
 
 void switchToFindAcctMenu() {
-  DebugLN("switchToFindAcctMenu()");
+  //DebugLN("switchToFindAcctMenu()");
   machineState = STATE_FIND_ACCOUNT;
 //position = headPosition; 
 //acctPosition = headPosition;
   position = acctPosition;                                                      // substitute this line for the two above it (commented out) so we return to the right spot in Find Account
-  DebugMetric("position: ",position);
+  //DebugMetric("position: ",position);
   ShowMenu(FIND_ACCOUNT, mainMenu, " Find All Accounts  ");
   readAcctFromEEProm(position, accountName);
-  DebugLN((char *) accountName);
+  //DebugLN((char *) accountName);
   DisplayToItem((char *)accountName);
   event = EVENT_NONE;
 }
 
 void SwitchRotatePosition(uint8_t pos) {
-  DebugLN("SwitchRotatePosition()");
+  //DebugLN("SwitchRotatePosition()");
   switch(pos) {                                                                 // decide what to print on line 2 of the display
     case EDIT_ACCT_NAME:
       if (!addFlag) readAcctFromEEProm(acctPosition, accountName);
@@ -3310,7 +3308,7 @@ void ReadSaltAndSetKey(uint8_t position) {
 }
 
 void FactoryReset() {
-  DebugLN("FactoryReset()");
+  //DebugLN("FactoryReset()");
   if (authenticated || (loginFailures > loginAttempts)) {                       // TODO: re-enter master password here to authorize creds reset
     DisplayToStatus("Initializing...");
     InitializeGlobals();
@@ -3346,7 +3344,7 @@ void FactoryReset() {
 }
 
 void InitializeGlobals() {
-  DebugLN("InitializeGlobals()");
+  //DebugLN("InitializeGlobals()");
   uint8_t i;
   i = 0; while (i   < MASTER_PASSWORD_SIZE) masterPassword[i++] = NULL_TERM;    // when the device isn't authenticated you shouldn't be able to dump memory and see passwords and keys
 //i = 0; while (i   < MAX_LEN_CSV_LINE    ) buf[i++]            = NULL_TERM;    // input line buffer, CSV file processing
@@ -3399,7 +3397,7 @@ void buttonReleasedHandler(Button2& btn) {
 //- Delete Account
 
 void deleteAccount(uint8_t position) {
-  DebugLN("deleteAccount()");
+  //DebugLN("deleteAccount()");
   DisplayToStatus("Erasing creds");
 
   uint8_t prevPosition = getPrevPtr(position);                                  // get the previous account position from the linked list
@@ -3433,6 +3431,7 @@ void deleteAccount(uint8_t position) {
                     firstNullTermArray,                                         // user name: "\0", so when it is read it will come back empty
                     emptyPassword,                                              // password: "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", to overwrite the entire pw
                     position                );                                  // position to be deleted
+  writeGroup(position, NONE);
   accountName[0] = NULL_TERM;
   memcpy(password, emptyPassword, PASSWORD_SIZE);
   username[0] = NULL_TERM;
@@ -3446,7 +3445,7 @@ void deleteAccount(uint8_t position) {
 //- UUID & Salt Generation
 
 void setUUID(char *uuid, uint8_t size, uint8_t appendNullTerm) {
-  DebugLN("setUUID()");
+  //DebugLN("setUUID()");
 
   for (uint8_t i = 0; i < (size - 1); i++) {
     uuid[i] = random(33,126);                                                   // maybe we should use allChars here instead? We're generating PWs w/ chars that we can't input...
@@ -3470,26 +3469,26 @@ void setUUID(char *uuid, uint8_t size, uint8_t appendNullTerm) {
 void setSalt(char *uuid, uint8_t size) {
   //DebugLN("setSalt()");
   for (uint8_t i = 0; i < (size); i++) {
-    uuid[i] = random(0,255);                 //
-    while(uuid[i] == ','  ||                                                    // trips up CSV imports
-          uuid[i] == '"'  ||                                                    // trips up CSV imports
-          uuid[i] == '@'  ||                                                    // trips up Oracle
-          uuid[i] == '`'  ||                                                    // hard to distinguish between ' and `
-          uuid[i] == '\'' ||                                                    // hard to distinguish between ' and `
-          uuid[i] == '&'  ||                                                    // can cause problems inside of XML
-          uuid[i] == '~'  ||                                                    // separator for cmdMessenger
-          uuid[i] == '|'  ||                                                    // separator for cmdMessenger
-          uuid[i] == '\\' ||                                                    // interpreted as escape character
-          uuid[i] == '^' ||                                                     // interpreted as escape character
-          uuid[i] == '/'    )                                                   // escape character
-      uuid[i] = random(0,255);
+    uuid[i] = random(0,255);                                                    //
+    //while(uuid[i] == ','  ||                                                  // trips up CSV imports
+    //      uuid[i] == '"'  ||                                                  // trips up CSV imports
+    //      uuid[i] == '@'  ||                                                  // trips up Oracle
+    //      uuid[i] == '`'  ||                                                  // hard to distinguish between ' and `
+    //      uuid[i] == '\'' ||                                                  // hard to distinguish between ' and `
+    //      uuid[i] == '&'  ||                                                  // can cause problems inside of XML
+    //      uuid[i] == '~'  ||                                                  // separator for cmdMessenger
+    //      uuid[i] == '|'  ||                                                  // separator for cmdMessenger
+    //      uuid[i] == '\\' ||                                                  // interpreted as escape character
+    //      uuid[i] == '^' ||                                                   // interpreted as escape character
+    //      uuid[i] == '/'    )                                                 // escape character
+    //  uuid[i] = random(0,255);
   }
 }
 
 //- Keyboard Functions
 
 void sendAccount() {
-  DebugLN("sendAccount()");
+  //DebugLN("sendAccount()");
   readAcctFromEEProm(acctPosition, accountName);                                // read the account name from EEProm
   char accountNameChar[ACCOUNT_SIZE];
   memcpy(accountNameChar,accountName,ACCOUNT_SIZE);                             // TODO: is this necessary?
@@ -3503,7 +3502,7 @@ void sendAccount() {
 }
 
 void sendOldPassword() {
-  DebugLN("sendOldPassword()");
+  //DebugLN("sendOldPassword()");
   readOldPassFromEEProm(acctPosition, oldPassword);                             // read the old password from EEProm
   char oldPasswordChar[PASSWORD_SIZE];
   memcpy(oldPasswordChar,oldPassword,PASSWORD_SIZE);                            // TODO: is this necessary?
@@ -3516,7 +3515,7 @@ void sendOldPassword() {
 }
 
 void sendUsername() {
-  DebugLN("sendUsername()");
+  //DebugLN("sendUsername()");
   readUserFromEEProm(acctPosition, username);                                   // read the user name from EEProm
   char usernameChar[USERNAME_SIZE];
   memcpy(usernameChar,username,USERNAME_SIZE);
@@ -3526,7 +3525,7 @@ void sendUsername() {
 }
 
 void sendWebSite() {
-  DebugLN("sendWebSite()");
+  //DebugLN("sendWebSite()");
   readWebSiteFromEEProm(acctPosition, website);                                 // read the URL from EEProm
   char websiteChar[WEBSITE_SIZE];
   memcpy(websiteChar,website,WEBSITE_SIZE);
@@ -3536,7 +3535,7 @@ void sendWebSite() {
 }
 
 void sendGroup() {
-  DebugLN("sendGroup()");
+  //DebugLN("sendGroup()");
   uint8_t group = readGroupFromEEprom(acctPosition);                            // read the group from EEProm
   Keyboard.begin();                                                             // 
   Keyboard.println(group);                                                      // type the group through the keyboard
@@ -3544,7 +3543,7 @@ void sendGroup() {
 }
 
 void sendPassword() {                                                           // TODO: can we do a <CTL><A> <BS> here first? That will clear out pre-populated passwords.
-  DebugLN("sendPassword()");
+  //DebugLN("sendPassword()");
   readPassFromEEProm(acctPosition, password);                                   // read the password from EEProm
   char passwordChar[PASSWORD_SIZE];
   memcpy(passwordChar,password,PASSWORD_SIZE);
@@ -3560,7 +3559,7 @@ void sendRTN() {
 }
 
 void sendUsernameAndPassword() {
-  DebugLN("sendUsernameAndPassword()");
+  //DebugLN("sendUsernameAndPassword()");
   readAcctFromEEProm(acctPosition, accountName);                                // TODO: is the read from EEprom necessary at this point?
   char accountNameChar[ACCOUNT_SIZE];
   memcpy(accountNameChar,accountName,ACCOUNT_SIZE);
@@ -3590,7 +3589,7 @@ void sendUsernameAndPassword() {
 
 
 void BackupToPPCVSFile() {                                                      // before executing the function the user must open a text editor and place input focus there.
-  DebugLN("BackupToPPCVSFile()");
+  //DebugLN("BackupToPPCVSFile()");
   DisplayToStatus("Backup to CVS file");
   setPurple();
   acctPosition = headPosition;
@@ -3633,7 +3632,7 @@ void BackupToPPCVSFile() {                                                      
 
 /* Currently defunct
 void sendAll() {                                                                // this is the function we use to backup all of the account names, user names and passwords
-  DebugLN("sendAll()");
+  //DebugLN("sendAll()");
   DisplayToStatus("Backup to file");
   setPurple();
   acctPosition = headPosition;
@@ -3717,16 +3716,10 @@ void BlankLine3() {
 void DisplayBuffer() {
   //DebugLN("DisplayBuffer()");
   oled.clearDisplay();
-  //oled.setCursor(0,LINE_1_POS);                                               // x, y
-  //oled.println(spaceFilled);
   oled.setCursor(0,LINE_1_POS);                                                 // x, y
   oled.println(line1DispBuff);
-  //oled.setCursor(0,LINE_2_POS);                                               // x, y
-  //oled.println(spaceFilled);
   oled.setCursor(0,LINE_2_POS);                                                 // x, y
   oled.println(line2DispBuff);
-  //oled.setCursor(0,LINE_3_POS);                                               // x, y
-  //oled.println(spaceFilled);
   oled.setCursor(0,LINE_3_POS);                                                 // x, y
   oled.print(line3DispBuff);
   oled.display();
@@ -3734,34 +3727,34 @@ void DisplayBuffer() {
 }
 
 void ShowMenu(uint8_t position, char **menu, char *menuName) {
-  DebugLN("ShowMenu()");
-  DebugLN(menu[position]);
+  //DebugLN("ShowMenu()");
+  //DebugLN(menu[position]);
   DisplayToItem(menu[position]);
   DisplayToMenu(menuName);
 }
 
 void ShowMenu(uint8_t position, char **menu) {
-  DebugLN("ShowMenu()");
-  DebugLN(menu[position]);
+  //DebugLN("ShowMenu()");
+  //DebugLN(menu[position]);
   DisplayToItem(menu[position]);
 }
 
 void MenuUp(char **menu) { 
-  DebugLN("MenuUp()");
+  //DebugLN("MenuUp()");
   if (position > -1) {
     ShowMenu(position, menu);
   }
 }
 
 void MenuDown(char **menu){ 
-  DebugLN("MenuDown()");
+  //DebugLN("MenuDown()");
   if (position < elements) {
     ShowMenu(position, menu);
   }
 }
 
 void ShowChar(char charToShow, uint8_t  pos) {
-  DebugLN("ShowChar()");
+  //DebugLN("ShowChar()");
   DisplayToEdit(line3DispBuff);
   char charToPrint[2];
   charToPrint[0] = charToShow;
@@ -3821,28 +3814,28 @@ void setColorsFalse() {
 //- Encryption
 
 boolean authenticateMaster(char *enteredPassword) {                             // verify if the master password is correct here
-  DebugLN("authenticateMaster()");
+  //DebugLN("authenticateMaster()");
   char eepromMasterHash[HASHED_MASTER_PASSWORD_SZ];                             // buffer for the hashed master password; salt||masterPassword
   char enteredMasterPWUnHash[HASHED_MASTER_PASSWORD_SZ];                        // holds the unhashed master password after some processing
   uint8_t pos = 0;
   while (enteredPassword[pos++] != NULL_TERM);                                  // make sure the unencrypted password is 16 chars long
   while (pos < (MASTER_PASSWORD_SIZE - 1)) enteredPassword[pos++] = NULL_TERM;  // "           "              " , right padded w/ NULL terminator
   enteredPassword[MASTER_PASSWORD_SIZE - 1] = NULL_TERM;                        // NULL_TERM in index 15 no matter what
-  Debug("enteredPassword: ");DebugLN(enteredPassword);
+  //Debug("enteredPassword: ");DebugLN(enteredPassword);
   uint8_t aByte = read_eeprom_byte(GET_ADDR_MASTER_HASH);
-  DebugMetric("aByte: ",aByte);
+  //DebugMetric("aByte: ",aByte);
   if (aByte == INITIAL_MEMORY_STATE_BYTE){                                      // first time, we need to write instead of read
     setSalt(salt, MASTER_SALT_SIZE);                                            // generate a random salt
-    Debug("salt (INITIAL_MEMORY_STATE_BYTE=0xFF): ");DebugLN(salt);
+    //Debug("salt (INITIAL_MEMORY_STATE_BYTE=0xFF): ");DebugLN(salt);
     eeprom_write_bytes(GET_ADDR_MASTER_SALT, salt, MASTER_SALT_SIZE);           // save the un-encrypted/un-hashed salt to EEprom
     memcpy(eepromMasterHash, salt, MASTER_SALT_SIZE);                           // copy salt into the hashed master password variable
     memcpy(eepromMasterHash + MASTER_SALT_SIZE,                                 // concatenate the salt and the master password
            enteredPassword, 
            MASTER_PASSWORD_SIZE                          );
-    Debug("eepromMasterHash (INITIAL_MEMORY_STATE_BYTE=0xFF): ");DebugLN(eepromMasterHash);
+    //Debug("eepromMasterHash (INITIAL_MEMORY_STATE_BYTE=0xFF): ");DebugLN(eepromMasterHash);
     sha256Hash(eepromMasterHash);                                               // hash the master password in place; pass in 32, get back 32
-    Debug("sha256Hash(eepromMasterHash): ");DebugLN(eepromMasterHash);
-    DebugLN(" ");
+    //Debug("sha256Hash(eepromMasterHash): ");DebugLN(eepromMasterHash);
+    //DebugLN(" ");
     eeprom_write_bytes    (GET_ADDR_MASTER_HASH,                                // only write the first 16 bytes of the hashed master password
                            eepromMasterHash, 
                            HASHED_MASTER_PASSWORD_SZ);                          // write the (hased) master password to EEprom
@@ -3851,19 +3844,19 @@ boolean authenticateMaster(char *enteredPassword) {                             
     read_eeprom_array     (GET_ADDR_MASTER_HASH,                                // read hashed master password from EEprom
                            eepromMasterHash,                                    // to compare against the hash of the salt||entered password.
                            HASHED_MASTER_PASSWORD_SZ);
-    Debug("eepromMasterHash: ");DebugLN(eepromMasterHash);
-    DebugLN(" ");
+    //Debug("eepromMasterHash: ");DebugLN(eepromMasterHash);
+    //DebugLN(" ");
     read_eeprom_array     (GET_ADDR_MASTER_SALT,                                // read salt from EEprom
                            salt, 
                            MASTER_SALT_SIZE);
-    Debug("salt: ");DebugLN(salt);
+    //Debug("salt: ");DebugLN(salt);
     memcpy(enteredMasterPWUnHash, salt, MASTER_SALT_SIZE);                      // copy salt into the hashed master password variable
     memcpy(enteredMasterPWUnHash + MASTER_SALT_SIZE,                            // concatenate the salt and the master password
            enteredPassword,                                                     // entered password
            MASTER_PASSWORD_SIZE                          );
-    Debug("enteredMasterPWUnHash: ");DebugLN(enteredMasterPWUnHash);
+    //Debug("enteredMasterPWUnHash: ");DebugLN(enteredMasterPWUnHash);
     sha256Hash(enteredMasterPWUnHash);                                          // hash the master salt||entered password
-    Debug("Hashed enteredMasterPWUnHash: ");DebugLN(enteredMasterPWUnHash);
+    //Debug("Hashed enteredMasterPWUnHash: ");DebugLN(enteredMasterPWUnHash);
     if (0 == memcmp(enteredMasterPWUnHash,
                     eepromMasterHash,
                     HASHED_MASTER_PASSWORD_SZ)) {                               // entered password hash matches master password hash, authenticated
@@ -3900,14 +3893,14 @@ boolean authenticateMaster(char *enteredPassword) {                             
 }
 
 void sha256Hash(char *password) {                                               // hash password SHA_ITERATIONS times
-  DebugLN("sha256Hash()");
+  //DebugLN("sha256Hash()");
   for (int i = 0; i < SHA_ITERATIONS; i++) {
     sha256HashOnce(password);
   }
 }
 
 void sha256HashOnce(char *password) {                                           // hash password using SHA256
-  DebugLN("sha256HashOnce()");
+  //DebugLN("sha256HashOnce()");
   size_t size = strlen(password);
   if (DEBUG_ENABLED) {
     Serial.print("Size: ");Serial.println(size);
@@ -3928,7 +3921,7 @@ void sha256HashOnce(char *password) {                                           
 }
 
 void encrypt32Bytes(char *outBuffer, char *inBuffer) {
-  DebugLN("encrypt32Bytes()");
+  //DebugLN("encrypt32Bytes()");
   uint8_t leftInBuffer[16];
   uint8_t rightInBuffer[16];
 
@@ -3943,7 +3936,7 @@ void encrypt32Bytes(char *outBuffer, char *inBuffer) {
 }
 
 void encrypt64Bytes(char *outBuffer, char *inBuffer) {                          // TODO: make this handle any length of string to encrypt
-  DebugLN("encrypt64Bytes()");
+  //DebugLN("encrypt64Bytes()");
   uint8_t firstInBuffer[16];
   uint8_t secondInBuffer[16];
   uint8_t thirdInBuffer[16];
@@ -3966,7 +3959,7 @@ void encrypt64Bytes(char *outBuffer, char *inBuffer) {                          
 }
 
 void encrypt96Bytes(char *outBuffer, char *inBuffer) {                          // TODO: make this handle any length of string to encrypt
-  DebugLN("encrypt96Bytes()");
+  //DebugLN("encrypt96Bytes()");
   uint8_t firstInBuffer[16];
   uint8_t secondInBuffer[16];
   uint8_t thirdInBuffer[16];
@@ -3997,7 +3990,7 @@ void encrypt96Bytes(char *outBuffer, char *inBuffer) {                          
 }
 
 void decrypt32(char *outBuffer, char *inBuffer) {                               // Necessary because blocksize of AES128/256 = 16 bytes.
-  DebugLN("decrypt32()");
+  //DebugLN("decrypt32()");
   uint8_t leftInBuf[16];
   uint8_t rightInBuf[16];
 
@@ -4012,7 +4005,7 @@ void decrypt32(char *outBuffer, char *inBuffer) {                               
 }
 
 void decrypt64(char *outBuffer, char *inBuffer) {                               // Necessary because blocksize of AES128/256 = 16 bytes.
-  DebugLN("decrypt64()");
+  //DebugLN("decrypt64()");
   uint8_t firstInBuf[16];
   uint8_t secondInBuf[16];
   uint8_t thirdInBuf[16];
@@ -4035,7 +4028,7 @@ void decrypt64(char *outBuffer, char *inBuffer) {                               
 }
 
 void decrypt96(char *outBuffer, char *inBuffer) {                               // Necessary because blocksize of AES128/256 = 16 bytes.
-  DebugLN("decrypt32()");
+  //DebugLN("decrypt32()");
   uint8_t firstInBuf[16];
   uint8_t secondInBuf[16];
   uint8_t thirdInBuf[16];
@@ -4071,7 +4064,7 @@ void writeAllToEEProm(char *accountName,                                        
                       char *username, 
                       char *password, 
                       uint8_t pos)        {                                     // used by delete account and factory reset.
-  DebugLN("writeAllToEEProm()");
+  //DebugLN("writeAllToEEProm()");
   eeprom_write_bytes(GET_ADDR_ACCT(pos), accountName, ACCOUNT_SIZE);
   eeprom_write_bytes(GET_ADDR_USER(pos), username, USERNAME_SIZE);
   eeprom_write_bytes(GET_ADDR_PASS(pos), password, PASSWORD_SIZE);
@@ -4208,69 +4201,69 @@ uint8_t getPrevPtr(uint8_t pos) {                                               
 //- Write Attributes to EEprom
 
 void writeNextPtr(uint8_t pos, uint8_t nextPtr) {                               // writes the next pointer to EEprom for position, pos.
-  DebugLN("writeNextPtr()");
+  //DebugLN("writeNextPtr()");
   write_eeprom_byte(GET_ADDR_NEXT_POS(pos), nextPtr);
 }
 
 void writePrevPtr(uint8_t pos, uint8_t prevPtr) {                               // writes the previous pointer to EEprom for position, pos.
-  DebugLN("writePrevPtr()");
+  //DebugLN("writePrevPtr()");
   write_eeprom_byte(GET_ADDR_PREV_POS(pos), prevPtr);
 }
 
 void writeGroup(uint8_t pos, uint8_t group) {
-  DebugLN("writeGroup()");
+  //DebugLN("writeGroup()");
   write_eeprom_byte(GET_ADDR_GROUP(pos), group);
 }
 
 void writeLoginFailures() {                                                     // writes the number of login failures to EEprom
-  DebugLN("writeLoginFailures()");
+  //DebugLN("writeLoginFailures()");
   write_eeprom_byte(GET_ADDR_LOGIN_FAILURES, loginFailures);
 }
 
 void writeResetFlag(uint8_t buf) {                                              // writes the value of the reset flag to EEprom
-  DebugLN("writeResetFlag()");
+  //DebugLN("writeResetFlag()");
   write_eeprom_byte(GET_ADDR_RESET_FLAG, buf);
 }
 
 void writeShowPasswordsFlag() {
-  DebugLN("writeShowPasswordsFlag()");
+  //DebugLN("writeShowPasswordsFlag()");
   write_eeprom_byte(GET_ADDR_SHOW_PW, showPasswordsFlag);
 }
 
 void writeDecoyPWFlag() {
-  DebugLN("writeDecoyPWFlag()");
+  //DebugLN("writeDecoyPWFlag()");
   write_eeprom_byte(GET_ADDR_DECOY_PW, decoyPassword);
 }
 
 void writeKeyboardFlag() {
-  DebugLN("writeKeyboardFlag()");
+  //DebugLN("writeKeyboardFlag()");
   write_eeprom_byte(GET_ADDR_KEYBOARD_FLAG, keyboardFlag);
 }
 
 void writeListHeadPos() {                                                       // writes the position of the beginning of the linked list to EEprom
-  DebugLN("writeListHeadPos()");
+  //DebugLN("writeListHeadPos()");
   write_eeprom_byte(GET_ADDR_LIST_HEAD, headPosition);
 }
 
 void writeRGBLEDIntensity() {
-  DebugLN("writeRGBLEDIntensity()");
+  //DebugLN("writeRGBLEDIntensity()");
   write_eeprom_byte(GET_ADDR_RGB_LED_INT, RGBLEDIntensity);
 }
 
 void writeLogoutTimeout() {
-  DebugLN("writeLogoutTimeout()");
+  //DebugLN("writeLogoutTimeout()");
   write_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT, logoutTimeout);
 }
 
 void writeLoginAttempts() {
-  DebugLN("writeLoginAttempts()");
+  //DebugLN("writeLoginAttempts()");
   write_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM, loginAttempts);
 }
 
                                                                                 // This function is used by the other, higher-level functions
                                                                                 // to prevent bugs and runtime errors due to invalid addresses.
 boolean eeprom_is_addr_ok(uint32_t addr) {                                      // Returns true if the address is between the
-  DebugLN("eeprom_is_addr_ok()");
+  //DebugLN("eeprom_is_addr_ok()");
   return ((addr >= MIN_AVAIL_ADDR) && (addr <= MAX_AVAIL_ADDR));                // minimum and maximum allowed values, false otherwise.
 }
                                                                                 // Writes a sequence of bytes to eeprom starting at the specified address.
@@ -4282,7 +4275,7 @@ boolean eeprom_write_bytes( uint32_t startAddr,                                 
                             char* buf,
                             uint8_t numBytes) {
                                                                                 // counter
-  DebugLN("eeprom_write_bytes()");
+  //DebugLN("eeprom_write_bytes()");
   uint8_t i;
                                                                                 // both first byte and last byte addresses must fall within
                                                                                 // the allowed range 
@@ -4292,7 +4285,7 @@ boolean eeprom_write_bytes( uint32_t startAddr,                                 
 }
 
 void InitializeEEProm(void) {                                                   // Initializes all of external EEprom; sets every address = 255.
-  DebugLN("InitializeEEProm()");
+  //DebugLN("InitializeEEProm()");
   DisplayToStatus("Initializing EEprom");
   //DisableInterrupts();                                                        // disable global interrupts
   boolean colorRed = true;                                                      // show purple during healthy EEprom initialize
@@ -4377,7 +4370,7 @@ uint8_t EEPROM_readStatus(void) {
 }
 
 uint8_t EEPROM_readStatusSecondary(void) {
-  DebugLN("EEPROM_readStatusSecondary()");
+  //DebugLN("EEPROM_readStatusSecondary()");
   SPI.begin();                                                                  // Initializes the SPI bus by setting SCK, MOSI, and SS to outputs, pulling SCK and MOSI low, and SS high.
   SPI.beginTransaction(SPISettings(SPI_SPEED,MSBFIRST,SPI_MODE));               // max clock = 5mhz @ 3.3v 
   SLAVE_SECONDARY_SELECT;
@@ -4413,8 +4406,8 @@ void EEPROM_writeEnableSecondary(void) {
 
 void TestEEPromRead() {
   uint8_t aByte;
-  DebugLN("");
-  DebugLN("Reading...");
+  //DebugLN("");
+  //DebugLN("Reading...");
   //for (uint32_t address = MIN_AVAIL_ADDR; address < MAX_AVAIL_INT_ADDR; address++) {
   for (uint32_t address = MIN_AVAIL_ADDR; address < 128; address++) {
     aByte = read_eeprom_byte(address);
@@ -4426,8 +4419,8 @@ void TestEEPromRead() {
 }
 
 void TestEEPromWrite() {
-  DebugLN("");
-  DebugLN("Writing...");
+  //DebugLN("");
+  //DebugLN("Writing...");
   //for (uint32_t address = MIN_AVAIL_ADDR; address < MAX_AVAIL_INT_ADDR; address++) {
   for (uint32_t address = MIN_AVAIL_ADDR; address < 128; address++) {
     write_eeprom_byte(address, address%64);
@@ -4439,8 +4432,8 @@ void TestEEPromWrite() {
 }
 
 void InitAllEEProm() {
-  DebugLN("");
-  DebugLN("Initializing...");
+  //DebugLN("");
+  //DebugLN("Initializing...");
   for (uint32_t address = MIN_AVAIL_ADDR; address < MAX_AVAIL_ADDR; address++) {
     write_eeprom_byte(address, 0xFF);
     if (DEBUG_ENABLED) {
@@ -4489,7 +4482,7 @@ void read_eeprom_array( uint32_t address,                                       
 void read_eeprom_array_secondary( uint32_t address, 
                                   char *buffer, 
                                   uint8_t sizeOfBuffer  ) {                     // READ EEPROM bytes
-//DebugLN("read_eeprom_array_secondary()");
+  //DebugLN("read_eeprom_array_secondary()");
   //DisableInterrupts();                                                        // disable global interrupts
   SPI.begin();                                                                  // Initializes the SPI bus by setting SCK, MOSI, and SS to outputs, pulling SCK and MOSI low, and SS high.
   SPI.beginTransaction(SPISettings(SPI_SPEED,MSBFIRST,SPI_MODE));               // max clock = 5mhz @ 3.3v 
@@ -4542,7 +4535,7 @@ void write_eeprom_array(uint32_t passedAddress,                                 
                         char *buffer, 
                         uint8_t sizeOfBuffer) {                                 // if > EEPROM_BYTES_PER_PAGE, an even multiple of EEPROM_BYTES_PER_PAGE
   //DisableInterrupts();                                                        // disable global interrupts
-  DebugLN("write_eeprom_array()");
+  //DebugLN("write_eeprom_array()");
   for(uint8_t baseArrayAddr = 0;
       baseArrayAddr < sizeOfBuffer;
       baseArrayAddr += EEPROM_BYTES_PER_PAGE) {
@@ -4592,7 +4585,7 @@ void write_eeprom_array(uint32_t passedAddress,                                 
 }
 
 void CopyEEPromToBackup() {                                                     // Make a byte for byte duplicate of the primary external EEprom device
-  DebugLN("CopyEEPromToBackup()");                                              // flash the LED red and yellow during this operation
+  //DebugLN("CopyEEPromToBackup()");                                              // flash the LED red and yellow during this operation
   //DisableInterrupts();                                                        // disable global interrupts
   DisplayToStatus("Backing up...");
   write_eeprom_byte(GET_ADDR_KEYBOARD_FLAG, false);                             // keyboard should always be off for a restored backup.
@@ -4644,7 +4637,7 @@ void CopyEEPromToBackup() {                                                     
 }
 
 void RestoreEEPromBackup() {                                                    // From Secondary to Primary, make a byte for byte duplicate of the backup external EEprom device
-  DebugLN("RestoreEEPromBackup()");
+  //DebugLN("RestoreEEPromBackup()");
   //DisableInterrupts();                                                        // disable global interrupts
   DisplayToStatus("Restoring...");
   char buffer[EEPROM_BYTES_PER_PAGE];                                           // make a buffer the same size as the page size.
@@ -4700,14 +4693,14 @@ void RestoreEEPromBackup() {                                                    
 
 /*
   uint8_t countAccounts(uint8_t pos) {                                            // count all of the account names from EEprom.
-  DebugLN("countAccounts()");
+  //DebugLN("countAccounts()");
   acctCount = -1;                                                               // so when there are 2 accounts we're returning 1 here, defect.
   while(pos != INITIAL_MEMORY_STATE_BYTE) {
     uint8_t nextPos;
     acctCount++;
     nextPos = getNextPtr(pos);
     if (nextPos == pos) {
-      DebugLN("Corruption in countAccounts()");
+      //DebugLN("Corruption in countAccounts()");
       return(acctCount);
     }
     pos = nextPos;
@@ -4717,7 +4710,7 @@ void RestoreEEPromBackup() {                                                    
 */
 
 uint8_t countAccounts() {                                                       // count all of the account names from EEprom.
-  DebugLN("countAccounts()");
+  //DebugLN("countAccounts()");
   if (headPosition == INITIAL_MEMORY_STATE_BYTE) {
     acctCount = 0;
     return acctCount;
@@ -4734,7 +4727,7 @@ uint8_t countAccounts() {                                                       
     uint8_t prevPos = pos;
     pos = getNextPtr(pos);
     if (pos == prevPos) {
-      DebugLN("Corruption in countAccounts()");
+      //DebugLN("Corruption in countAccounts()");
       DisplayToError("ERR: 041");
       delayNoBlock(ONE_SECOND * 2);
       return(acctCount);
@@ -4744,29 +4737,24 @@ uint8_t countAccounts() {                                                       
 }
 
 uint8_t getNextFreeAcctPos() {                                                  // return the position of the next EEprom location for account name marked empty.
-  DebugLN("getNextFreeAcctPos()");
+  //DebugLN("getNextFreeAcctPos()");
   for(uint8_t acctPos = 0; acctPos < (CREDS_ACCOMIDATED - 1); acctPos++) {
       if (read_eeprom_byte(GET_ADDR_ACCT(acctPos)) == 
           INITIAL_MEMORY_STATE_BYTE                     ) {
-        DebugMetric("next acctPos: ",acctPos);                                  // TODO: remove from HERE
-        char sacctPos[5];
-        itoa(acctPos, sacctPos, 10);
-        DisplayToError(sacctPos);                                               // TODO: to HERE; shouldn't be 0 for the second account
         return acctPos;
       }
   }
- DebugMetric("acctPos: ",INITIAL_MEMORY_STATE_BYTE);
  return INITIAL_MEMORY_STATE_BYTE;
 }
 
 uint8_t findTailPosition(uint8_t pos) {                                         // find the position of the last element in the linked list
   uint8_t nextPos;
-  DebugLN("findTailPosition()");
+  //DebugLN("findTailPosition()");
   while (getNextPtr(pos) != INITIAL_MEMORY_STATE_BYTE) {                        // the last element in the linked list will always have a nextPtr that points to INITIAL_MEMORY_STATE_BYTE
     nextPos = getNextPtr(pos);
     if (pos == nextPos) {
-      DebugLN("Infinite loop detected in findTailPosition().  Corruption. ");
-      DebugMetric("getNextPointer(pos) returned: ",nextPos);
+      //DebugLN("Infinite loop detected in findTailPosition().  Corruption. ");
+      //DebugMetric("getNextPointer(pos) returned: ",nextPos);
       DisplayToError("ERR: 011");
       DisplayToItem("Restore backup");
       return(pos);
@@ -4778,13 +4766,13 @@ uint8_t findTailPosition(uint8_t pos) {                                         
 }
 
 void writePointers(uint8_t accountPosition, char *accountName) {                // traverse through the linked list finding the right spot to insert this record in the list
-  DebugLN("writePointers()");
-  DebugLN("--------------");
-  DebugMetric("1: ",accountPosition);
+  //DebugLN("writePointers()");
+  //DebugLN("--------------");
+  //DebugMetric("1: ",accountPosition);
   if ((headPosition    == 0) &&
       (tailPosition    == 0) &&
       (accountPosition == 0)   ) {                                              // this is the first element added to the linked list
-    DebugLN("2");
+    //DebugLN("2");
     writePrevPtr(accountPosition, INITIAL_MEMORY_STATE_BYTE);
     writeNextPtr(accountPosition, INITIAL_MEMORY_STATE_BYTE);
     writeListHeadPos();
@@ -4793,39 +4781,39 @@ void writePointers(uint8_t accountPosition, char *accountName) {                
   
   char acctBuf[ACCOUNT_SIZE];                                                   // a buffer large enough to accomodate the account name
   uint8_t currentPosition = headPosition;                                       // pointer to the position we're at as we step through the linked list
-  DebugMetric("3: ",currentPosition);
+  //DebugMetric("3: ",currentPosition);
   uint8_t prevPosition = getPrevPtr(currentPosition);                           // should always be INTIAL_MEMORY_STATE_BYTE.  This IS necessary.
-  DebugMetric("4: ",prevPosition);
+  //DebugMetric("4: ",prevPosition);
   readAcctFromEEProm(headPosition, acctBuf);                                    // reading the accountName for the head, decrypt
-  Debug("5: ");DebugLN(acctBuf);
+  //Debug("5: ");DebugLN(acctBuf);
   while ((currentPosition != INITIAL_MEMORY_STATE_BYTE   ) && 
          (strncmp(acctBuf, accountName, ACCOUNT_SIZE) < 0)     ) {              // if Return value < 0 then it indicates str1 is less than str2.
     prevPosition = currentPosition;                                             // save prevPosition as currentPosition because we'll eventually step over the element that's > accountPosition
-    DebugMetric("6: ",prevPosition);
+    //DebugMetric("6: ",prevPosition);
     currentPosition = getNextPtr(currentPosition);                              // move to the next element in the linked list
-    DebugMetric("7: ",currentPosition);
+    //DebugMetric("7: ",currentPosition);
     readAcctFromEEProm(currentPosition,acctBuf);                                // read that account name from EEprom, decrypt
-    Debug("8: ");DebugLN(acctBuf);
+    //Debug("8: ");DebugLN(acctBuf);
   }
   if(currentPosition == headPosition) {                                         // inserting before the first element in the list
     headPosition = accountPosition;
-    DebugMetric("9: ",headPosition);
+    //DebugMetric("9: ",headPosition);
     writeListHeadPos();
   }
   if (currentPosition == INITIAL_MEMORY_STATE_BYTE) {                           // inserting an element at the end of the linked list
     tailPosition = accountPosition;
-    DebugMetric("10: ",tailPosition);
+    //DebugMetric("10: ",tailPosition);
   }
   writePrevPtr(accountPosition, prevPosition   );                               // insert between prevPosition and currentPosition
-  DebugMetric("11: ",prevPosition);
+  //DebugMetric("11: ",prevPosition);
   writeNextPtr(accountPosition, currentPosition);
-  DebugMetric("12: ",currentPosition);
+  //DebugMetric("12: ",currentPosition);
   if (prevPosition != INITIAL_MEMORY_STATE_BYTE) {                              // if we're not the new head
-    DebugLN("13");
+    //DebugLN("13");
     writeNextPtr(prevPosition, accountPosition);                                // update the next pointer of the previous element with the account position.
   }
   if (currentPosition != INITIAL_MEMORY_STATE_BYTE) {                           // if we're not the next element of the tail
-    DebugMetric("14: ",accountPosition);
+    //DebugMetric("14: ",accountPosition);
     writePrevPtr(currentPosition, accountPosition);                             // write set the previous pointer of the current element to the account position
   }
 }
@@ -4859,30 +4847,30 @@ void FixCorruptLinkedList() {                                                   
 //- Import/Export File Functions
 
 void importKeePassCSV() {
-  DebugLN("importKeePassCSV()");
+  //DebugLN("importKeePassCSV()");
   DisplayToStatus("Importing...");
   setYellow();
   if (!flash.begin()) {
     DisplayToError("ERR: 015");
     return;
   }
-  Debug("Flash chip JEDEC ID: 0x"); if (DEBUG_ENABLED) Serial.println(flash.getJEDECID(), HEX);
+  //Debug("Flash chip JEDEC ID: 0x"); if (DEBUG_ENABLED) Serial.println(flash.getJEDECID(), HEX);
 
   // First call begin to mount the filesystem.  Check that it returns true
   // to make sure the filesystem was mounted.
   if (!fatfs.begin(&flash)) {
     DisplayToError("ERR: 014");
-    DebugLN("Error, failed to mount newly formatted filesystem!");
-    DebugLN("Was the flash chip formatted with the SdFat_format example?");
+    //DebugLN("Error, failed to mount newly formatted filesystem!");
+    //DebugLN("Was the flash chip formatted with the SdFat_format example?");
     return;
   }
   DisplayToStatus("Mounted filesystem");
-  DebugLN("Mounted filesystem!");
+  //DebugLN("Mounted filesystem!");
 
   File myFile;                                                                  
   myFile = fatfs.open(KEEPASS_CSV);                                             // open the file "KPEXPORT.CSV" for reading
   if (myFile) {
-    DebugLN("Opened file");
+    //DebugLN("Opened file");
     DisplayToStatus("File open");
     uint8_t fieldNum, numFields, pos;
     char *line;
@@ -4894,7 +4882,7 @@ void importKeePassCSV() {
       String dummy = myFile.readStringUntil('\n');
       for (fieldNum = 0; fieldNum < csvnfield(); fieldNum++) {
         char *field = csvfield(fieldNum);
-        DebugMetric("fieldNum: ", fieldNum);Debug(field);
+        //DebugMetric("fieldNum: ", fieldNum);Debug(field);
         size_t len = strlen(field);
         uint8_t key[KEY_SIZE];                                                  // set the key so we're prepared when we write the account to EEprom
         switch (fieldNum)
@@ -4934,7 +4922,7 @@ void importKeePassCSV() {
                   writePointers(pos, field);                                    // insert the account into the linked list by updating prev and next pointers.
                   acctCount++;                                                  // increment the account count
                   uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(pos));       // read the groups
-                  if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(pos, NONE); // a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
+                  if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(pos,NONE);// a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
                 }
               } else {
                 fieldNum = 100;                                                 // force our way out of the for loop
@@ -5014,10 +5002,10 @@ void importKeePassCSV() {
     setGreen();
   } else {
     DisplayToError("ERR: 013");
-    DebugLN("Failed to open file for reading");
+    //DebugLN("Failed to open file for reading");
   }
 
-  Debug("Total size of file (bytes): "); if (DEBUG_ENABLED) Serial.println(myFile.size(), DEC); // You can get the current position, remaining data, and total size of the file:
+  //Debug("Total size of file (bytes): "); if (DEBUG_ENABLED) Serial.println(myFile.size(), DEC); // You can get the current position, remaining data, and total size of the file:
 //Debug("Current position in file: "); if (DEBUG_ENABLED) Serial.println(myFile.position(), DEC);
 //Debug("Available data to read in file: "); if (DEBUG_ENABLED) Serial.println(myFile.available(), DEC);
 //Debug("File name: "); if (DEBUG_ENABLED) Serial.println(myFile.getName());    // And a few other interesting attributes of a file:
@@ -5035,30 +5023,30 @@ void importKeePassCSV() {
 }
 
 void RestoreFromPPCVSFile() {
-  DebugLN("RestoreFromPPCVSFile()");
+  //DebugLN("RestoreFromPPCVSFile()");
   DisplayToStatus("Importing...");
   setYellow();
   if (!flash.begin()) {
     DisplayToError("ERR: 034");
     return;
   }
-  Debug("Flash chip JEDEC ID: 0x"); if (DEBUG_ENABLED) Serial.println(flash.getJEDECID(), HEX);
+  //Debug("Flash chip JEDEC ID: 0x"); if (DEBUG_ENABLED) Serial.println(flash.getJEDECID(), HEX);
 
   // First call begin to mount the filesystem.  Check that it returns true
   // to make sure the filesystem was mounted.
   if (!fatfs.begin(&flash)) {
     DisplayToError("ERR: 014");
-    DebugLN("Error, failed to mount newly formatted filesystem!");
-    DebugLN("Was the flash chip formatted with the SdFat_format example?");
+    //DebugLN("Error, failed to mount newly formatted filesystem!");
+    //DebugLN("Was the flash chip formatted with the SdFat_format example?");
     return;
   }
   DisplayToStatus("Mounted filesystem");
-  DebugLN("Mounted filesystem!");
+  //DebugLN("Mounted filesystem!");
 
   File myFile;                                                                  
   myFile = fatfs.open(PP_CSV);                                                  // open the file "KPEXPORT.CSV" for reading
   if (myFile) {
-    DebugLN("Opened file");
+    //DebugLN("Opened file");
     DisplayToStatus("File open");
     uint8_t fieldNum, numFields, pos;
     char *line;
@@ -5067,7 +5055,7 @@ void RestoreFromPPCVSFile() {
       String dummy = myFile.readStringUntil('\n');                              // TODO: check to see if we're skipping the first set of credentials
       for (fieldNum = 0; fieldNum < csvnfield(); fieldNum++) {
         char *field = csvfield(fieldNum);
-        DebugMetric("fieldNum: ", fieldNum);Debug(field);
+        //DebugMetric("fieldNum: ", fieldNum);Debug(field);
         size_t len = strlen(field);
         uint8_t key[KEY_SIZE];                                                  // set the key so we're prepared when we write the account to EEprom
         switch (fieldNum)
@@ -5079,7 +5067,7 @@ void RestoreFromPPCVSFile() {
               DisplayToError("ERR: 024");                                       // User name is too long
               delayNoBlock(ONE_SECOND * 2);
             }
-            Debug("Account: ");DebugLN(field);
+            //Debug("Account: ");DebugLN(field);
             DisplayToStatus(field);                                             // show the account name on the display
             pos = FindAccountPos(field);                                        // get the next open position
             if (!updateExistingAccount) {                                       // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
@@ -5109,7 +5097,7 @@ void RestoreFromPPCVSFile() {
                     acctCount++;
                   }
                   uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(pos));       // initialize the groups
-                  if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(pos, NONE); // a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
+                  if (groups ==INITIAL_MEMORY_STATE_BYTE) writeGroup(pos,NONE); // a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
                 }
               } else {
                 fieldNum = 100;                                                 // force our way out of the for loop
@@ -5202,10 +5190,10 @@ void RestoreFromPPCVSFile() {
     setGreen();
   } else {
     DisplayToError("ERR: 037");
-    DebugLN("Failed to open PasswordPump csv file for reading");
+    //DebugLN("Failed to open PasswordPump csv file for reading");
   }
 
-  Debug("Total size of file (bytes): "); if (DEBUG_ENABLED) Serial.println(myFile.size(), DEC); // You can get the current position, remaining data, and total size of the file:
+  //Debug("Total size of file (bytes): "); if (DEBUG_ENABLED) Serial.println(myFile.size(), DEC); // You can get the current position, remaining data, and total size of the file:
 //Debug("Current position in file: "); if (DEBUG_ENABLED) Serial.println(myFile.position(), DEC);
 //Debug("Available data to read in file: "); if (DEBUG_ENABLED) Serial.println(myFile.available(), DEC);
 //Debug("File name: "); if (DEBUG_ENABLED) Serial.println(myFile.getName());    // And a few other interesting attributes of a file:
@@ -5223,25 +5211,25 @@ void RestoreFromPPCVSFile() {
 }
 
 void ImportChromeExportFile() {
-  DebugLN("ImportChromeExportFile()");
+  //DebugLN("ImportChromeExportFile()");
   DisplayToStatus("Importing...");
   setYellow();
   if (!flash.begin()) {
     DisplayToError("ERR: 034");
     return;
   }
-  Debug("Flash chip JEDEC ID: 0x"); if (DEBUG_ENABLED) Serial.println(flash.getJEDECID(), HEX);
+  //Debug("Flash chip JEDEC ID: 0x"); if (DEBUG_ENABLED) Serial.println(flash.getJEDECID(), HEX);
 
   // First call begin to mount the filesystem.  Check that it returns true
   // to make sure the filesystem was mounted.
   if (!fatfs.begin(&flash)) {
     DisplayToError("ERR: 014");
-    DebugLN("Error, failed to mount newly formatted filesystem!");
-    DebugLN("Was the flash chip formatted with the SdFat_format example?");
+    //DebugLN("Error, failed to mount newly formatted filesystem!");
+    //DebugLN("Was the flash chip formatted with the SdFat_format example?");
     return;
   }
   DisplayToStatus("Mounted filesystem");
-  DebugLN("Mounted filesystem!");
+  //DebugLN("Mounted filesystem!");
 
   File myFile;                                                                  
   myFile = fatfs.open(CP_CSV);                                                  // open the file "KPEXPORT.CSV" for reading
@@ -5249,7 +5237,7 @@ void ImportChromeExportFile() {
     String header = myFile.readStringUntil('\n');                               // read and throw away the header
   }
   if (myFile) {
-    DebugLN("Opened file");
+    //DebugLN("Opened file");
     DisplayToStatus("File open");
     uint8_t fieldNum, numFields, pos;
     char *line;
@@ -5258,7 +5246,7 @@ void ImportChromeExportFile() {
       String dummy = myFile.readStringUntil('\n');                              // TODO: check to see if we're skipping the first set of credentials
       for (fieldNum = 0; fieldNum < csvnfield(); fieldNum++) {
         char *field = csvfield(fieldNum);
-        DebugMetric("fieldNum: ", fieldNum);Debug(field);
+        //DebugMetric("fieldNum: ", fieldNum);Debug(field);
         size_t len = strlen(field);
         uint8_t key[KEY_SIZE];                                                  // set the key so we're prepared when we write the account to EEprom
         switch (fieldNum)
@@ -5270,7 +5258,7 @@ void ImportChromeExportFile() {
               DisplayToError("ERR: 024");                                       // User name is too long
               delayNoBlock(ONE_SECOND * 2);
             }
-            Debug("Account: ");DebugLN(field);
+            //Debug("Account: ");DebugLN(field);
             DisplayToStatus(field);                                             // show the account name on the display
             pos = FindAccountPos(field);                                        // get the next open position
             if (!updateExistingAccount) {                                       // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
@@ -5300,7 +5288,7 @@ void ImportChromeExportFile() {
                     acctCount++;
                   }
                   uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(pos));       // initialize the groups
-                  if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(pos, NONE); // a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
+                  if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(pos,NONE);// a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
                 }
               } else {
                 fieldNum = 100;                                                 // force our way out of the for loop
@@ -5383,10 +5371,10 @@ void ImportChromeExportFile() {
     setGreen();
   } else {
     DisplayToError("ERR: 037");
-    DebugLN("Failed to open PasswordPump csv file for reading");
+    //DebugLN("Failed to open PasswordPump csv file for reading");
   }
 
-  Debug("Total size of file (bytes): "); if (DEBUG_ENABLED) Serial.println(myFile.size(), DEC); // You can get the current position, remaining data, and total size of the file:
+  //Debug("Total size of file (bytes): "); if (DEBUG_ENABLED) Serial.println(myFile.size(), DEC); // You can get the current position, remaining data, and total size of the file:
 //Debug("Current position in file: "); if (DEBUG_ENABLED) Serial.println(myFile.position(), DEC);
 //Debug("Available data to read in file: "); if (DEBUG_ENABLED) Serial.println(myFile.available(), DEC);
 //Debug("File name: "); if (DEBUG_ENABLED) Serial.println(myFile.getName());    // And a few other interesting attributes of a file:
@@ -5598,7 +5586,7 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
   
   uint8_t len = strlen(localNewPassword);
   while (len < MASTER_PASSWORD_SIZE) localNewPassword[len++] = NULL_TERM;       // right pad the new password w/ null terminators
-  Debug("localNewPassword: ");DebugLN(localNewPassword);
+  //Debug("localNewPassword: ");DebugLN(localNewPassword);
 
   setRed();
   for (uint8_t pos = 0; pos < CREDS_ACCOMIDATED; pos++) {                       // TODO: ? Might want to go through the linked list instead.
@@ -5641,7 +5629,7 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
     uint8_t localNewKey[KEY_SIZE];                                              // set the key so we're prepared when we write the account to EEprom
     memcpy(localNewKey, localNewSalt, SALT_SIZE);                               // copy the localNewSalt to the first part of the localNewKey
     memcpy(localNewKey + SALT_SIZE, localNewPassword, MASTER_PASSWORD_SIZE);    // copy the new master password to the second part of the key, masterPassword should be padded w/ null terminator from processing in authenticateMaster
-    Debug("localNewKey: ");DebugLN((char *) localNewKey);
+    //Debug("localNewKey: ");DebugLN((char *) localNewKey);
     aes.setKey(localNewKey, KEY_SIZE);                                          // set the key for this set of credentials
 
     encrypt32Bytes(bufferAcct, accountName);                                    // encrypt the account name
@@ -5788,6 +5776,11 @@ void OnReadAccountName() {
   acctPosition -= 2;
   readAcctFromEEProm(acctPosition, accountName);                                // read and decrypt the account name
   if (strlen(accountName) > 0) {
+    if (accountName[0] == ' ') {
+      accountName[0] = '_';
+    }
+  }
+  if (strlen(accountName) > 0) {
     cmdMessenger.sendCmd(kStrAcknowledge, accountName);
   } else {
     cmdMessenger.sendCmd(kStrAcknowledge, "Unknown");                           // I've never seen this happen
@@ -5851,6 +5844,11 @@ void OnReadOldPassword(){
 void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
   char accountName[ACCOUNT_SIZE];
   cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE - 1);
+  if (strlen(accountName) > 0) {
+    if (accountName[0] == '_') {
+      accountName[0] = ' ';
+    }
+  }
   boolean badAcctName = false;
   DisplayToEdit((char *)accountName);                                           // Display the account name on the second line
   acctPosition = FindAccountPos(accountName);                                   // get the next open position, sets updateExistingAccount
@@ -6007,7 +6005,7 @@ void OnUpdateGroup(){
   groups = cmdMessenger.readBinArg<uint8_t>();
   if (groups == 1) groups = 92;
   groups -= 2;
-  write_eeprom_byte(GET_ADDR_GROUP(acctPosition), groups);
+  write_eeprom_byte(GET_ADDR_GROUP(acctPosition), groups);                      // should we call writeGroup() here instead?
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
 }
 
@@ -6030,7 +6028,8 @@ void OnGetAcctPos(){
 }
 
 void OnReadHead(){
-  cmdMessenger.sendBinCmd(kAcknowledge, getListHeadPosition());                 // sending a single byte ????????manipulate acctPosition here?
+  acctPosition = getListHeadPosition();
+  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // sending a single byte 
 }
 
 void OnReadTail(){
@@ -6038,12 +6037,7 @@ void OnReadTail(){
 }
 
 void OnGetNextFreePos(){
-  DisplayToMenu("1getNextFreeAcctPos");
   uint8_t nextFree = getNextFreeAcctPos();
-  char bufferFree[4];
-  itoa(nextFree, bufferFree, 10);                                               // convert account count to a string and put it in buffer.
-  DisplayToItem("2getNextFreeAcctPos");
-  DisplayToDebug(bufferFree);
   acctPosition = nextFree;
   cmdMessenger.sendBinCmd(kAcknowledge, nextFree);                              // ????????manipulate acctPosition here?
 }
@@ -6085,5 +6079,116 @@ uint32_t trueRandom()
     while (! (TRNG->TRNG_ISR & TRNG_ISR_DATRDY))
         ;
     return TRNG->TRNG_ODATA;
+}
+*/
+
+// samd51 AES CBC 128-bit key
+
+/* THIS IS PASTED HERE FOR FUTURE USE
+#define PRREG(x) Serial.print(#x" 0x"); Serial.println(x,HEX)
+#define NBYTES (1024)
+
+void aes_init() {
+  MCLK->APBCMASK.reg |= MCLK_APBCMASK_AES;
+}
+
+void aes_setkey(const uint8_t *key, size_t keySize) {
+  memcpy((uint8_t *)&REG_AES_KEYWORD0, key, keySize);
+}
+
+void aes_cbc_encrypt(const uint8_t *plaintext, uint8_t *ciphertext, size_t size, const uint8_t iv[16])
+{
+  int i;
+
+  memcpy((uint8_t *)&REG_AES_INTVECTV0, iv, 16);
+  REG_AES_CTRLA = 0;
+  REG_AES_CTRLA = AES_CTRLA_AESMODE_CBC | AES_CTRLA_CIPHER_ENC | AES_CTRLA_ENABLE;
+  REG_AES_CTRLB |= AES_CTRLB_NEWMSG;
+  uint32_t *wp = (uint32_t *) plaintext;   // need to do by word ?
+  uint32_t *wc = (uint32_t *) ciphertext;
+  // block 4-words  16B
+  int word = 0;
+  while (size > 0) {
+    for (i = 0;  i < 4; i++) REG_AES_INDATA = wp[i + word];
+    REG_AES_CTRLB |=  AES_CTRLB_START;
+    while ((REG_AES_INTFLAG & AES_INTENCLR_ENCCMP) == 0);  // wait for done
+    for (i = 0;  i < 4; i++) wc[i + word] = REG_AES_INDATA;
+    size -= 16;
+    word += 4;
+  }
+}
+
+void aes_cbc_decrypt(const uint8_t *ciphertext, uint8_t *plaintext, size_t size, const uint8_t iv[16])
+{
+  int i;
+
+  memcpy((uint8_t *)&REG_AES_INTVECTV0, iv, 16);
+  REG_AES_CTRLA = 0;
+  REG_AES_CTRLA = AES_CTRLA_AESMODE_CBC | AES_CTRLA_CIPHER_DEC | AES_CTRLA_ENABLE;
+  REG_AES_CTRLB |= AES_CTRLB_NEWMSG ;
+  uint32_t *wp = (uint32_t *) plaintext;   // need to do by word ?
+  uint32_t *wc = (uint32_t *) ciphertext;
+  // block 4-words  16B
+  int word = 0;
+  while (size > 0) {
+    for (i = 0;  i < 4; i++) REG_AES_INDATA = wc[i + word];
+    REG_AES_CTRLB |= AES_CTRLB_START;
+    while ((REG_AES_INTFLAG & AES_INTENCLR_ENCCMP) == 0);  // wait for done
+    for (i = 0;  i < 4; i++) wp[i + word] = REG_AES_INDATA;
+    size -= 16;
+    word += 4;
+  }
+}
+
+void setup() {
+  Serial.begin(9600);
+  while (!Serial);
+  delay(1000);
+  PRREG(MCLK->APBCMASK.reg);   //aes bit 9
+  PRREG(REG_PAC_STATUSC);      // aes bit 9
+  aes_init();
+
+  PRREG(MCLK->APBCMASK.reg);
+  PRREG(REG_AES_CTRLA);
+  PRREG(REG_AES_CTRLB);
+}
+
+void loop() {
+  static const uint8_t keyAes128[]  =
+  { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
+    0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c
+  };
+  static const uint8_t ive[] =
+  { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+    0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+  };
+  static const uint8_t plainAes128[] =
+  { 0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96,
+    0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a
+  };
+  static const uint8_t cipherAes128[] =
+  { 0x76, 0x49, 0xab, 0xac, 0x81, 0x19, 0xb2, 0x46,
+    0xce, 0xe9, 0x8e, 0x9b, 0x12, 0xe9, 0x19, 0x7d
+  };
+  uint8_t  inmsg[NBYTES], cipherout[NBYTES], clearout[NBYTES];
+  uint32_t t, i;
+
+  for (i = 0; i < sizeof(inmsg); i++) inmsg[i] = i;
+  memset(cipherout, 0, NBYTES);
+  aes_setkey(keyAes128, 16);
+  // verify
+  aes_cbc_encrypt(plainAes128, cipherout, 16, ive);
+  Serial.print("enc memcmp "); Serial.println(memcmp(cipherout, cipherAes128, 16));
+  aes_cbc_decrypt(cipherout, clearout, 16, ive);
+  Serial.print("dec memcmp "); Serial.println(memcmp(clearout, plainAes128, 16));
+
+  memset(cipherout, 7, NBYTES);
+  t = micros();
+  aes_cbc_encrypt(inmsg, cipherout, sizeof(inmsg), ive);
+  t = micros() - t;
+  Serial.print(t); Serial.println(" us");
+  aes_cbc_decrypt(cipherout, clearout, sizeof(inmsg), ive);
+  Serial.print("memcmp "); Serial.println(memcmp(inmsg, clearout, sizeof(inmsg)));
+  delay(3000);
 }
 */
