@@ -29,10 +29,13 @@
   - Authenticate with 16 character master password
   - Search for accounts
     - Send user name and password as if typed in keyboard
-    - Add account name, user name, password (generated or not)
-    - Edit existing user name, password, URL, style
+    - Add account name, user name, password (generated or not), url, old 
+      password
+    - Edit existing user name, password, URL, style (inter-username/password
+      character, <Return> or <Tab>)
     - Delete account
     - Generate password
+    - Store old password
   - Data entry via rotary encoder or keyboard and serial monitor, or via client
     Python program running in Windows.
   - Accounts added in alphabetical order
@@ -40,26 +43,27 @@
   - Backup all accounts to a second encrypted external EEprom
   - Logout / de-authenticate via menu
   - Factory reset via menu (when authenticated)
-  - Mandatory factory reset after a customized number of failed login attempts
-  - Automatic logout countdown
   - Configurable password display on or off
+  - Configurable failed login count factory reset (3, 5, 10, 25)
+  - Configurable automatic logout after count of minutes (30, 60, 90, 120, 240,
+    1, Never)
+  - Configurable RGB LED intensity (high, medium, low, off)
   - All passwords (except master password) are encrypted w/ AES-256; master 
     password is hashed w/ SHA-256.
   - Change master password
-  - Export/Import to/from PasswordPump CSV format
+  - Export/Import to/from PasswordPump CSV format (dumps output to an editor)
   - Import KeePass exported CSV file
   - Import passwords from Chrome
   - Associate credentials with groups for better organization; search by group
+    (Favorites, Work, Personal, Home, School, Financial, Mail, Custom)
   - Decoy password feature that automatically factory resets the device if
-    entered while the user is under duress
+    entered (e.g. while the user is under duress)
   
   Known Defects/Issues
   ====================  
     - = outstanding             
     x = fixed but needs testing 
     * = fixed                   
-  - When adding an account via rotary encoder it's automatically assigned to the
-    favorites group.
   - Old password is getting populated with junk
   - A forward slash (escape character) at the end of a field causes the PC UI
     to throw an exception.
@@ -72,13 +76,11 @@
     isn't populated at all (it's blank).
   - It's possible to enter a duplicate account name when entering credentials
     via the rotary encoder.
-  - It's not possible to add a new account via the PC client.
   - Embedded quote in a CSV import file are not getting saved to the filed e.g.
     password.
   - When you import credentials with <CR><LF> in the account name bad things
     happen.
   - Nail down the menu / UI layout.  Invert the top line.
-  - See if you can add one more char to the horizontal size of the SSD1306.
   - See if you can change the font of the UI and add a fourth line.
   - Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
   - Get better USB cables.
@@ -107,6 +109,10 @@
   x we are only encrypting the first 16 characters of account name, user name 
     and password.  The sha256 block size is 16.
   x single click after Reset brings you to alpha edit mode
+  * See if you can add one more char to the horizontal size of the SSD1306. (No)
+  * It's not possible to add a new account via the PC client.
+  * When adding an account via rotary encoder it's automatically assigned to the
+    favorites group.
   * You can import 51 accounts, and exit from the python UI, and then navigate
     through the accounts on the device, but if you power cycle the device all of
     the accounts disappear.
@@ -196,8 +202,10 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
+  - Always reflect the account that's selected in the PC client on the device.
   - Somehow signal to the user when entering the master password for the first 
     time.
+  - Make the size of generated passwords configurable
   - Make UN_PW_DELAY configurable
   - Dim the display when it's not in use.
   - Build a Windows client (in python) for editing credentials; 
@@ -218,6 +226,7 @@
   - re-enter master password to authorize credentials reset
   - Consolidate code in the import files sections
   - A back space should be available during character input via rotary encoder.
+  - Automatic logout countdown
   ? Add a feature whereby the unit factory resets after two triple clicks, even
     if not yet authenticated. (commented out, caused problems)
   ? Add a feature whereby the unit logs out after two double clicks. (commented
@@ -5953,13 +5962,13 @@ void OnUpdateURL(){
 }
 
 void OnUpdateURL_1(){
-  cmdMessenger.copyStringArg(website, 32);                                      // was 32 when we were losing the 32nd character
+  cmdMessenger.copyStringArg(website, 33);                                      // was 32 when we were losing the 32nd character
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
 }
 
 void OnUpdateURL_2(){
   char website_2[33];
-  cmdMessenger.copyStringArg(website_2, 32);
+  cmdMessenger.copyStringArg(website_2, 33);
   strcat(website, website_2);
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
 }
@@ -5969,17 +5978,17 @@ void OnUpdateURL_3(){
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
-  cmdMessenger.copyStringArg(website_3, 32);
+  cmdMessenger.copyStringArg(website_3, 33);
   strcat(website, website_3);
   size_t lenWebsite = strlen(website);
-  if (lenWebsite > 95) {
-    website[95] = NULL_TERM;
+  if (lenWebsite > (WEBSITE_SIZE - 1)) {
+    website[WEBSITE_SIZE - 1] = NULL_TERM;
     DisplayToError("ERR: 023");                                                 // Web site is too long
     delayNoBlock(ONE_SECOND * 2);
   } else {
-    while (lenWebsite < 96) website[lenWebsite++] = NULL_TERM;
+    while (lenWebsite < WEBSITE_SIZE) website[lenWebsite++] = NULL_TERM;
   }
-  char bufferWebsite[96];
+  char bufferWebsite[WEBSITE_SIZE];
   if (lenWebsite < 1) {
     website[0] = NULL_TERM;
   }
