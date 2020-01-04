@@ -22,10 +22,10 @@
 #   exception
 # - Sometimes changing the URL in place is not working
 # - If there's a / at the end of a URL python throws an exception, so strip it.
-# - The 32nd character of the URL is missing after import.
 # - When an account is inserted the accounts list box doesn't refresh, you must
 #   click on Save.
 # x Hangs the MCU when adding credentials without Style or URL.
+# * The 32nd character of the URL is missing after import.
 # * Leading spaces are not respected in Account Name.
 # * After importing from a file the record selected and the record displayed
 #   do not match.
@@ -354,7 +354,7 @@ def clickedUrl_New():                                                          #
         print(response)
         response_list = response[1]
         position = response_list[0]
-        resURL_2 = aURL[32:63]                                                 # max length of a URL is 96 chars
+        resURL_2 = aURL[32:64]                                                 # max length of a URL is 96 chars
         if (len(resURL_2) > 0):                                                # if the URL doesn't exist don't send it
             c.send("pyUpdateURL_2", resURL_2)
             response = c.receive()
