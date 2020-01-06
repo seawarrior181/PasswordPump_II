@@ -4752,13 +4752,13 @@ uint8_t countAccounts() {                                                       
 
 uint8_t getNextFreeAcctPos() {                                                  // return the position of the next EEprom location for account name marked empty.
   //DebugLN("getNextFreeAcctPos()");
-  for(uint8_t acctPos = 0; acctPos < (CREDS_ACCOMIDATED - 1); acctPos++) {
+  for(uint8_t acctPos = 0; acctPos < (CREDS_ACCOMIDATED - 1); acctPos++) {      // Subtract 1 from CREDS_ACCOMIDATED because CREDS_ACCOMIDATED = INITIAL_MEMORY_STATE_BYTE
       if (read_eeprom_byte(GET_ADDR_ACCT(acctPos)) == 
           INITIAL_MEMORY_STATE_BYTE                     ) {
         return acctPos;
       }
   }
- return INITIAL_MEMORY_STATE_BYTE;
+ return INITIAL_MEMORY_STATE_BYTE;                                              // 255 unsigned int
 }
 
 uint8_t findTailPosition(uint8_t pos) {                                         // find the position of the last element in the linked list
@@ -5605,7 +5605,7 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
   setRed();
   for (uint8_t pos = 0; pos < CREDS_ACCOMIDATED; pos++) {                       // TODO: ? Might want to go through the linked list instead.
     byte aByte = read_eeprom_byte(GET_ADDR_ACCT(pos));
-    if (aByte == NULL_TERM) continue;                                           // skip this iteration of the for loop, there are no creds here
+    if ((aByte == NULL_TERM) || (aByte == INITIAL_MEMORY_STATE_BYTE)) continue; // skip this iteration of the for loop, there are no credentials here
     char accountName[ACCOUNT_SIZE];
     char username[USERNAME_SIZE];                                               // holds the user name of the current account
     char salt[SALT_SIZE];                                                       // holds the salt for each set of credentials
