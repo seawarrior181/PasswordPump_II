@@ -241,13 +241,26 @@ def clickedAcct():
         response_list = response[1]
         last_position = position
         position = response_list[0]
+        local_position = position
         if position == 255:
-            position = last_position
+            position = last_position                                           # TODO: not sure if this is necessary...
         txt_acct.config(state='normal')
-#       if (state == "Inserting"):
-#           lb.delete(0, END)
-#           loadListBox()
-#       state = "None"
+        if (state == "Inserting"):
+            lb.delete(0, END)
+            loadListBox()                                                      # as a side effect position is changed
+            selection = 0
+            for key in accountDict:
+                if accountDict[key] != local_position:
+                    selection += 1
+                else:
+                    break
+            lb.activate(selection)
+            lb.select_set(selection)
+            position = local_position                                          # because loadListBox changes position
+            getRecord()
+            lb.see(selection)
+            window.update()
+        state = "None"
         updateDirections("Updated account name.")
         window.update()
     except ValueError as e:
@@ -322,7 +335,7 @@ def updateGroup():
     window.update()
 
 def clickedUrlParam(txt_url_param):
-    clickedUrl()
+    clickedUrl_New()
 
 def clickedUrl():
     global position
@@ -525,13 +538,15 @@ def OnEntryUp(event):
 def clickedInsert():
     global state
     state = "Inserting"
-    global position
+#    global position
     #time.sleep(1)
-    c.send("pyGetNextFreePos")
-    response = c.receive()
-    print(response)
-    response_list = response[1]
-    position = response_list[0]
+#    c.send("pyGetNextFreePos")
+#    response = c.receive()
+#    print(response)
+#    response_list = response[1]
+#    position = response_list[0]
+#    print("pyGetNextFreePos")
+#    print(position)
     txt_acct.delete(0, END)
     txt_user.delete(0, END)
     txt_pass.delete(0, END)
@@ -575,7 +590,7 @@ def getRecord():
     c.send("pyReadAccountName", position + 2)
     try:
         response = c.receive()
-        print (response)
+        print(response)
         accountName_list = response[1]
         accountName = accountName_list[0]
     except UnicodeDecodeError:
@@ -651,11 +666,11 @@ def serial_ports():
 def on_select(event=None):
     global port
     port_desc = cb.get()
-    print (port_desc)
+#   print (port_desc)
+    updateDirections(port_desc)
     port = port_desc[:port_desc.find(":")]
 
 def on_style_select(event=None):
-    print (cbStyle.get())
     clickedStyle()
 
 def ImportFileChrome():
@@ -663,15 +678,15 @@ def ImportFileChrome():
                            filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
                            title = "Choose a file."
                           )
-    print (name)
+    updateDirections(name)
     global position
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             try:
                 for row in reader:
-                    print(row)
-                    print(row['name'], row['url'], row['username'], row['password'])
+                    #print(row)
+                    #print(row['name'], row['url'], row['username'], row['password'])
                     txt_acct.delete(0, END)
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
@@ -700,7 +715,7 @@ def ImportFilePasswordPump():
                            filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
                            title = "Choose a file."
                           )
-    print (name)
+    updateDirections (name)
     global position
     global group
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
@@ -709,8 +724,8 @@ def ImportFilePasswordPump():
             reader = csv.DictReader(csvfile, fieldnames=fieldnames)
             try:
                 for row in reader:
-                    print(row)
-                    print(row['accountname'], row['username'], row['password'], row['url'], row['group'])
+                    #print(row)
+                    #print(row['accountname'], row['username'], row['password'], row['url'], row['group'])
                     txt_acct.delete(0, END)
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
@@ -742,15 +757,15 @@ def ImportFileKeePass():
                            filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
                            title = "Choose a file."
                           )
-    print (name)
+    updateDirections(name)
     global position
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             try:
                 for row in reader:
-                    print(row)
-                    print(row['Account'], row['Login Name'], row['Password'], row['Web Site'])
+                    #print(row)
+                    #print(row['Account'], row['Login Name'], row['Password'], row['Web Site'])
                     txt_acct.delete(0, END)
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
@@ -780,12 +795,12 @@ def ExportFile():
                              initialfile='PasswordPumpExport.csv',
                              title = "Create a file."
                             )
-    print (name)
+    updateDirections(name)
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name,'r') as UseFile:
             print(UseFile.read())
     except:
-        print("No file exists")
+        updateDirections("No file exists")
 
 def OnFavorites():
     global group
@@ -925,8 +940,8 @@ file = Menu(menu)
 file.add_command(label = 'Import from Chrome', command = ImportFileChrome)
 file.add_command(label = 'Import from KeePass', command = ImportFileKeePass)
 file.add_command(label = 'Import from PasswordPump', command = ImportFilePasswordPump)
-file.add_command(label = 'Export to Chrome', command = ExportFile)
-file.add_command(label = 'Export to KeePass', command = ExportFile)
+#file.add_command(label = 'Export to Chrome', command = ExportFile)
+#file.add_command(label = 'Export to KeePass', command = ExportFile)
 file.add_command(label = 'Export to PasswordPump', command = ExportFile)
 file.add_command(label = 'Exit', command = clickedClose)
 menu.add_cascade(label = 'File', menu = file)
