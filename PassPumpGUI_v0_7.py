@@ -155,15 +155,15 @@ def clickedOpen():
     global c                                                                   # Initialize the messenger
     c = PyCmdMessenger.CmdMessenger(arduino, commands)
 
-    txt_acct.bind("<Return>",(lambda _: clickedAcctParam(txt_acct)))           # When the user clicks on return save the edited item
-    txt_user.bind("<Return>",(lambda _: clickedUserParam(txt_user)))
-    txt_pass.bind("<Return>",(lambda _: clickedPassParam(txt_pass)))
-    txt_url.bind("<Return>",(lambda _: clickedUrlParam(txt_url)))
+#    txt_acct.bind("<Return>",(lambda _: clickedAcctParam(txt_acct)))           # When the user clicks on return save the edited item
+#    txt_user.bind("<Return>",(lambda _: clickedUserParam(txt_user)))
+#    txt_pass.bind("<Return>",(lambda _: clickedPassParam(txt_pass)))
+#    txt_url.bind("<Return>",(lambda _: clickedUrlParam(txt_url)))
 
-    txt_acct.bind("<Tab>",(lambda _: clickedAcctParam(txt_acct)))              # When the user tabs off of the field save the edited item
-    txt_user.bind("<Tab>",(lambda _: clickedUserParam(txt_user)))
-    txt_pass.bind("<Tab>",(lambda _: clickedPassParam(txt_pass)))
-    txt_url.bind("<Tab>",(lambda _: clickedUrlParam(txt_url)))
+#    txt_acct.bind("<Tab>",(lambda _: clickedAcctParam(txt_acct)))              # When the user tabs off of the field save the edited item
+#    txt_user.bind("<Tab>",(lambda _: clickedUserParam(txt_user)))
+#    txt_pass.bind("<Tab>",(lambda _: clickedPassParam(txt_pass)))
+#    txt_url.bind("<Tab>",(lambda _: clickedUrlParam(txt_url)))
 
     txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the clicks off of the field save the edited item
     txt_user.bind("<FocusOut>",(lambda _: clickedUserParam(txt_user)))
@@ -192,19 +192,21 @@ def clickedOpen():
     except TypeError as te:
         updateDirections("TypeError encountered in clickedOpen(); " + str(te))
         acctCount = 0
-    if (acctCount > 0):
-        getRecord()
-    btn_close.config(state='normal')
-    updateDirections("Opened port")
     #directions = """Opened port"""
     #txt_dir.delete('1.0', END)
     #txt_dir.insert(END, directions)
     #print (directions)
     if (acctCount > 0):
         loadListBox()
+        selection = 0
+        lb.select_set(selection)
+        lb.see(selection)
+        getRecord()
+        lb.activate(selection)
     btn_open.config(state='disabled')
     cb.config(state='disabled')
-    window.update()
+    btn_close.config(state='normal')
+    updateDirections("Opened port")
 
 def updateDirections(directions):
     txt_dir.delete('1.0', END)
@@ -234,6 +236,7 @@ def clickedAcct():
     resAcct = aResAcct[0:32]
     global position                                                            # the position on EEprom, don't confuse with selection
     global state
+    global selection
     c.send("pyUpdateAccountName", resAcct)                                     # FindAccountPos called on an insert
     try:
         response = c.receive()
@@ -254,15 +257,13 @@ def clickedAcct():
                     selection += 1
                 else:
                     break
-            lb.activate(selection)
             lb.select_set(selection)
             position = local_position                                          # because loadListBox changes position
             getRecord()
             lb.see(selection)
-            window.update()
+            lb.activate(selection)
         state = "None"
         updateDirections("Updated account name.")
-        window.update()
     except ValueError as e:
         updateDirections("Value error encountered in clickedAcct; " + str(e))
     except Exception as ex:
@@ -434,6 +435,8 @@ def clickedPrevious():
         lb.activate(items[0] - 1)
         OnEntryUpNoEvent()
         lb.see(selection)
+        lb.activate(selection)
+        UpdateDirections("Navigated to previous record.")
 
 def clickedNext():
     global position
@@ -452,6 +455,8 @@ def clickedNext():
         lb.activate(items[0] + 1)
         OnEntryDownNoEvent()
         lb.see(selection)
+        lb.activate(selection)
+        updateDirections("Navigated to next record.")
 
 def loadListBox():                                                             # TODO: reorganize the logic in this function
     window.config(cursor="watch")                                              # TODO: this is not working
@@ -497,11 +502,11 @@ def loadListBox():                                                             #
                 updateDirections("Exception in pyGetNextPos; " + str(e))
                 raise e
         lb.activate(0)
-        global selection
-        selection = 0
-        lb.select_set(selection)
+        #global selection
+        #selection = 0
+        #lb.select_set(selection)
         position = head
-        getRecord()
+        #getRecord()
         lb.bind("<Down>", OnEntryDown)
         lb.bind("<Up>", OnEntryUp)
         window.config(cursor="")
@@ -553,7 +558,20 @@ def clickedInsert():
     txt_url.delete(0, END)
 
 def clickedLoadDB(event):
+    #btn_delete['state'] = 'normal'
+
+    # Note here that Tkinter passes an event object to onselect()
+    global selection
+    w = event.widget
+    selection = int(w.curselection()[0])
+    value = w.get(selection)
+    print('You selected item %d: "%s"' % (selection, value))
+
+    btn_delete.config(state='normal')
     clickedLoad()
+
+def clickedOutOfListBox(event):
+    btn_delete.confg(state='disabled')
 
 def clickedLoad():
     global position
@@ -574,7 +592,12 @@ def clickedDelete():
         print(response)
         response_list = response[1]
         position = response_list[0]
+        selection = 0
+        lb.select_set(selection)
+        lb.see(selection)
         getRecord()
+        lb.activate(selection)
+        updateDirections("Record deleted.")
 
 def getRecord():
     global position
@@ -957,13 +980,14 @@ btn_previous.grid(column=1, row=17)
 btn_insert = Button(window, text="Insert", command=clickedInsert)
 btn_insert.grid(column=1, row=18)
 
-btn_delete = Button(window, text="Delete", command=clickedDelete)
+btn_delete = Button(window, text="Delete", state=DISABLED, command=clickedDelete)
 btn_delete.grid(column=1, row=19)
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=4, row=0)
 
 lb.bind("<<ListboxSelect>>", clickedLoadDB)
+lb.bind('<FocusOut>', clickedOutOfListBox)
 
 btn_url = Button(window, text="Save", command=clickedSave)
 btn_url.grid(column=4, row=18)
