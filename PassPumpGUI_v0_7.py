@@ -571,7 +571,8 @@ def clickedLoadDB(event):
     clickedLoad()
 
 def clickedOutOfListBox(event):
-    btn_delete.confg(state='disabled')
+    btn_delete.config(state='disabled')
+    updateDirections("Clicked out of ListBox")
 
 def clickedLoad():
     global position
