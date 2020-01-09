@@ -186,6 +186,7 @@ def clickedOpen():
     response = c.receive()
     print(response)
     global acctCount
+    global selection
     try:
         response_list = response[1]
         acctCount = response_list[0]
@@ -420,11 +421,13 @@ def clickedClose():
 
 def clickedPrevious():
     global position
+    global selection
+    #if (selection > 0):
+    #    selection -= 1
     c.send("pyGetPrevPos", position + 2)
     response = c.receive()
     print(response)
     response_list = response[1]
-    global selection
     last_position = position
     position = response_list[0]
     if position == 255:
@@ -432,30 +435,34 @@ def clickedPrevious():
         updateDirections("Reached the beginning of the list.")
     else:
         items = lb.curselection()
-        lb.activate(items[0] - 1)
+        selection = items[0]
+        #lb.activate(selection - 1)
         OnEntryUpNoEvent()
-        lb.see(selection)
-        lb.activate(selection)
+        #lb.see(selection)
+        #lb.activate(selection)
         UpdateDirections("Navigated to previous record.")
 
 def clickedNext():
     global position
+    global selection
+    #if (selection < lb.size()-1):
+    #    selection += 1
     c.send("pyGetNextPos", position + 2)
     response = c.receive()
     print(response)
     response_list = response[1]
-    global selection
     last_position = position
-    position = response_list[0]
+    position = response_list[0]                                                # used when we call OnEntryDownNoEvent->OnEntryDown->clickedLoad->getRecord
     if position == 255:
         position = last_position
         updateDirections("Reached the end of the list")
     else:
-        items = lb.curselection()
-        lb.activate(items[0] + 1)
+        items = lb.curselection()                                              # Gets a list of the currently selected alternatives.
+        selection = items[0]
+        #lb.activate(selection + 1)
         OnEntryDownNoEvent()
-        lb.see(selection)
-        lb.activate(selection)
+        #lb.see(selection)
+        #lb.activate(selection)
         updateDirections("Navigated to next record.")
 
 def loadListBox():                                                             # TODO: reorganize the logic in this function
@@ -501,14 +508,14 @@ def loadListBox():                                                             #
             except Exception as e:
                 updateDirections("Exception in pyGetNextPos; " + str(e))
                 raise e
-        lb.activate(0)
+        #lb.activate(0)
         #global selection
         #selection = 0
         #lb.select_set(selection)
         position = head
         #getRecord()
-        lb.bind("<Down>", OnEntryDown)
-        lb.bind("<Up>", OnEntryUp)
+        lb.bind("<Down>", OnEntryDown)                                         # TODO: should this be done outside of this function?
+        lb.bind("<Up>", OnEntryUp)                                             # "                  "
         window.config(cursor="")
         window.update()
     except ValueError as ve:
@@ -524,10 +531,12 @@ def OnEntryDownNoEvent():
 def OnEntryDown(event):
     global selection
     if selection < lb.size()-1:
-        lb.select_clear(selection)
+        lb.select_clear(selection)                                             # Removes one or more items from the selection.
         selection += 1
-        lb.select_set(selection)
-        clickedLoad()
+        lb.select_set(selection)                                               # Adds one or more items to the selection.
+        lb.see(selection)                                                      # Makes sure the given list index is visible.
+        lb.activate(selection)                                                 # Activates the given index (it will be marked with an underline).
+        clickedLoad()                                                          # calls getRecord()
 
 def OnEntryUpNoEvent():
     OnEntryUp(0)
@@ -535,10 +544,12 @@ def OnEntryUpNoEvent():
 def OnEntryUp(event):
     global selection
     if selection > 0:
-        lb.select_clear(selection)
+        lb.select_clear(selection)                                             # Removes one or more items from the selection.
         selection -= 1
-        lb.select_set(selection)
-        clickedLoad()
+        lb.select_set(selection)                                               # Adds one or more items to the selection.
+        lb.see(selection)                                                      # Makes sure the given list index is visible.
+        lb.activate(selection)                                                 # Activates the given index (it will be marked with an underline).
+        clickedLoad()                                                          # calls getRecord()
 
 def clickedInsert():
     global state
@@ -568,7 +579,7 @@ def clickedLoadDB(event):
     print('You selected item %d: "%s"' % (selection, value))
 
     btn_delete.config(state='normal')
-    clickedLoad()
+    clickedLoad()                                                              # calls getRecord()
 
 def clickedOutOfListBox(event):
     btn_delete.config(state='disabled')
