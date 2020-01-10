@@ -21,7 +21,7 @@
   Purpose
   =======
   - To manage user names and passwords and to type them in via keyboard/USB.  To
-    facilitate  the use of really strong 32 character UUID like passwords on all
+    facilitate  the use of really strong 31 character UUID like passwords on all
     accounts.
     
   Features
@@ -109,6 +109,8 @@
   x we are only encrypting the first 16 characters of account name, user name 
     and password.  The sha256 block size is 16.
   x single click after Reset brings you to alpha edit mode
+  * We are only accommodating password length of 30 instead of 31 when 
+    interacting with the PasswordPumpGUI.  Same problem with user names.
   * See if you can add one more char to the horizontal size of the SSD1306. (No)
   * It's not possible to add a new account via the PC client.
   * When adding an account via rotary encoder it's automatically assigned to the
@@ -275,7 +277,7 @@
   * Make style indicator more intelligent e.g. <RETURN> or <TAB>
   * Consider halving the number of possible accounts (from 256 to 128) and 
     doubling the size of the account name, usern ame, and password fields (from
-    32 to 64).
+    31 to 63).
   * Turn off the RGB LED, configurable
   * Make brightness of RGB LED configurable (use PWM)
   * Add the ability to send the URL through the keyboard
@@ -3005,13 +3007,14 @@ void PopulateGlobals() {
 
 void ProcessAttributeInput( char *attributeName, 
                             uint8_t attributeSize, 
-                            const char    *menuName, 
+                            const char *menuName, 
                             uint8_t nextPosition,
                             uint8_t acctFlag,
                             uint32_t address          ) {
   ReadFromSerial(attributeName, attributeSize, menuName);
+  attributeName[attributeSize - 1] = NULL_TERM;                                 // for safety
   uint8_t pos = 0;
-  while (attributeName[pos++] != NULL_TERM);                                    // make sure the account name is 16 chars long, pad with NULL_TERM
+  while (attributeName[pos++] != NULL_TERM);                                    // make sure the account name is attributeSize chars long, pad with NULL_TERM
   while (pos < attributeSize) attributeName[pos++] = NULL_TERM;                 // "           "              "
   char buffer[attributeSize];
   setKey(acctPosition);
@@ -5857,7 +5860,8 @@ void OnReadOldPassword(){
 
 void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
   char accountName[ACCOUNT_SIZE];
-  cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE - 1);
+  //cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE - 1);
+  cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE);
   if (strlen(accountName) > 0) {
     if (accountName[0] == '_') {
       accountName[0] = ' ';
@@ -5910,7 +5914,8 @@ void OnUpdateUserName(){
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
-  cmdMessenger.copyStringArg(username, USERNAME_SIZE - 1);
+  //cmdMessenger.copyStringArg(username, USERNAME_SIZE - 1);
+  cmdMessenger.copyStringArg(username, USERNAME_SIZE);
   uint8_t len = strlen(username);
   while (len < USERNAME_SIZE) username[len++] = NULL_TERM;
   username[USERNAME_SIZE - 1] = NULL_TERM;
@@ -5926,7 +5931,8 @@ void OnUpdatePassword(){
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
-  cmdMessenger.copyStringArg(password, PASSWORD_SIZE - 1);
+  //cmdMessenger.copyStringArg(password, PASSWORD_SIZE - 1);                    // uses strlcpy, which will not write more than bytes expressed in the second parameter
+  cmdMessenger.copyStringArg(password, PASSWORD_SIZE);                          // uses strlcpy, which will not write more than bytes expressed in the second parameter
   uint8_t len = strlen(password);
   while (len < PASSWORD_SIZE) password[len++] = NULL_TERM;
   password[PASSWORD_SIZE - 1] = NULL_TERM;
@@ -5942,7 +5948,8 @@ void OnUpdateURL(){
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
-  cmdMessenger.copyStringArg(urlArray, WEBSITE_SIZE - 1);
+  //cmdMessenger.copyStringArg(urlArray, WEBSITE_SIZE - 1);
+  cmdMessenger.copyStringArg(urlArray, WEBSITE_SIZE);
   size_t len = strlen(urlArray);
   if (len > (WEBSITE_SIZE - 1)) {
     urlArray[WEBSITE_SIZE - 1] = NULL_TERM;
