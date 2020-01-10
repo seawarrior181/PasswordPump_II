@@ -200,9 +200,9 @@ def clickedOpen():
     if (acctCount > 0):
         loadListBox()
         selection = 0
+        getRecord()
         lb.select_set(selection)
         lb.see(selection)
-        getRecord()
         lb.activate(selection)
     btn_open.config(state='disabled')
     cb.config(state='disabled')
@@ -258,9 +258,9 @@ def clickedAcct():
                     selection += 1
                 else:
                     break
-            lb.select_set(selection)
             position = local_position                                          # because loadListBox changes position
             getRecord()
+            lb.select_set(selection)
             lb.see(selection)
             lb.activate(selection)
         state = "None"
@@ -436,10 +436,8 @@ def clickedPrevious():
     else:
         items = lb.curselection()
         selection = items[0]
-        #lb.activate(selection - 1)
         OnEntryUpNoEvent()
-        #lb.see(selection)
-        #lb.activate(selection)
+        lb.activate(selection)                                                 # has no effect
         UpdateDirections("Navigated to previous record.")
 
 def clickedNext():
@@ -459,10 +457,8 @@ def clickedNext():
     else:
         items = lb.curselection()                                              # Gets a list of the currently selected alternatives.
         selection = items[0]
-        #lb.activate(selection + 1)
         OnEntryDownNoEvent()
-        #lb.see(selection)
-        #lb.activate(selection)
+        lb.activate(selection)                                                 # has no effect
         updateDirections("Navigated to next record.")
 
 def loadListBox():                                                             # TODO: reorganize the logic in this function
@@ -535,7 +531,7 @@ def OnEntryDown(event):
         selection += 1
         lb.select_set(selection)                                               # Adds one or more items to the selection.
         lb.see(selection)                                                      # Makes sure the given list index is visible.
-        lb.activate(selection)                                                 # Activates the given index (it will be marked with an underline).
+        #lb.activate(selection)                                                 # Activates the given index (it will be marked with an underline).
         clickedLoad()                                                          # calls getRecord()
 
 def OnEntryUpNoEvent():
@@ -548,7 +544,7 @@ def OnEntryUp(event):
         selection -= 1
         lb.select_set(selection)                                               # Adds one or more items to the selection.
         lb.see(selection)                                                      # Makes sure the given list index is visible.
-        lb.activate(selection)                                                 # Activates the given index (it will be marked with an underline).
+        #lb.activate(selection)                                                 # Activates the given index (it will be marked with an underline).
         clickedLoad()                                                          # calls getRecord()
 
 def clickedInsert():
@@ -578,12 +574,12 @@ def clickedLoadDB(event):
     value = w.get(selection)
     print('You selected item %d: "%s"' % (selection, value))
 
-    btn_delete.config(state='normal')
+    #btn_delete.config(state='normal')
     clickedLoad()                                                              # calls getRecord()
 
-def clickedOutOfListBox(event):
-    btn_delete.config(state='disabled')
-    updateDirections("Clicked out of ListBox")
+#def clickedOutOfListBox(event):
+#    btn_delete.config(state='disabled')
+#    updateDirections("Clicked out of ListBox")
 
 def clickedLoad():
     global position
@@ -597,17 +593,19 @@ def clickedLoad():
 
 def clickedDelete():
     if tkinter.messagebox.askyesno("Delete", "Delete this record?"):
-        lb.delete(ANCHOR)                                                      # delete the account from the listbox
+        global selection
+        #lb.delete(ANCHOR)                                                      # delete the account from the listbox
+        lb.delete(selection)
         global position
         c.send("pyDeleteAccount",position + 2)
         response = c.receive()
         print(response)
         response_list = response[1]
-        position = response_list[0]
+        position = response_list[0]                                            # returns head position
+        getRecord()
         selection = 0
         lb.select_set(selection)
         lb.see(selection)
-        getRecord()
         lb.activate(selection)
         updateDirections("Record deleted.")
 
@@ -992,14 +990,15 @@ btn_previous.grid(column=1, row=17)
 btn_insert = Button(window, text="Insert", command=clickedInsert)
 btn_insert.grid(column=1, row=18)
 
-btn_delete = Button(window, text="Delete", state=DISABLED, command=clickedDelete)
+#btn_delete = Button(window, text="Delete", state=DISABLED, command=clickedDelete)
+btn_delete = Button(window, text="Delete", command=clickedDelete)
 btn_delete.grid(column=1, row=19)
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=4, row=0)
 
 lb.bind("<<ListboxSelect>>", clickedLoadDB)
-lb.bind('<FocusOut>', clickedOutOfListBox)
+#lb.bind('<FocusOut>', clickedOutOfListBox)
 
 btn_url = Button(window, text="Save", command=clickedSave)
 btn_url.grid(column=4, row=18)
