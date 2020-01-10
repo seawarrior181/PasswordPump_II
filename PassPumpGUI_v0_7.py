@@ -443,8 +443,6 @@ def clickedPrevious():
 def clickedNext():
     global position
     global selection
-    #if (selection < lb.size()-1):
-    #    selection += 1
     c.send("pyGetNextPos", position + 2)
     response = c.receive()
     print(response)
@@ -830,8 +828,11 @@ def ExportFile():
                             )
     updateDirections(name)
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
-        with open(name,'r') as UseFile:
-            print(UseFile.read())
+        with open(name, mode='w') as pp_file:
+            pp_writer = csv.writer(pp_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+            pp_writer.writerow(['John Smith', 'Accounting', 'November'])
+            pp_writer.writerow(['Erica Meyers', 'IT', 'March'])
     except:
         updateDirections("No file exists")
 
