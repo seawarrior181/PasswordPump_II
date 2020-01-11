@@ -18,13 +18,18 @@
 # * = fixed
 #
 # Defects:
+# - All buttons except Exit disabled before the port is opened.
 # - If a password (or any other field) contains a ~ or a |, python throws an
 #   exception
 # - Sometimes changing the URL in place is not working
 # - If there's a / at the end of a URL python throws an exception, so strip it.
-# - When an account is inserted the accounts list box doesn't refresh, you must
-#   click on Save.
 # x Hangs the MCU when adding credentials without Style or URL.
+# * When an account is inserted the accounts list box doesn't refresh, you must
+#   click on Save.
+# * Add style to the PP format.
+# * Remove the Save button.
+# * skip the heading row if it exists when importing PasswordPump format.
+# * In this UI make style last
 # * The 32nd character of the URL is missing after import.
 # * Leading spaces are not respected in Account Name.
 # * After importing from a file the record selected and the record displayed
@@ -37,10 +42,10 @@
 #   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
-# - Export to PasswordPump format
-# - Generate password
 # - Save to old password
 # - Respect the show password setting
+# * Generate password
+# * Export to PasswordPump format
 # * Only allow one instance of the PasswordPump to run at a time.
 # * Confirm before deleting
 # * When importing from PasswordPump format, import the groups, too.
@@ -78,13 +83,15 @@ import argparse
 import csv
 import time
 from tendo import singleton
+import string
+from random import *
 
 me = singleton.SingleInstance() # will sys.exit(-1) if other instance is running
 
 global c
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('400x580')
+window.geometry('400x555')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
@@ -108,10 +115,10 @@ lbl_pass = Label(window, text="Password", anchor=E, justify=RIGHT, width=10)
 lbl_pass.grid(column=1, row=4)
 
 lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
-lbl_style.grid(column=1, row=5)
+lbl_style.grid(column=1, row=6)
 
 lbl_url = Label(window, text="URL", anchor=E, justify=RIGHT, width=10)
-lbl_url.grid(column=1, row=6)
+lbl_url.grid(column=1, row=5)
 
 def clickedOpen():
     global arduino
@@ -142,6 +149,7 @@ def clickedOpen():
                 ["pyUpdateURL_3", "bs"],
                 ["pyUpdateStyle", "bs"],
                 ["pyUpdateGroup","bb"],
+                ["pyUpdateOldPassword","bs"],
                 ["pyGetNextPos","b"],
                 ["pyGetPrevPos","b"],
                 ["pyGetAcctPos",""],
@@ -215,19 +223,19 @@ def updateDirections(directions):
     print (directions)
     window.update()
 
-def clickedSave():
-    global position
-    clickedAcct()
-    clickedUser()
-    clickedPass()
-    clickedStyle()
-    clickedUrl_New()
-    updateGroup()
-    global state
-    if (state == "Inserting"):
-        lb.delete(0,END)
-        loadListBox()
-    state = "None"
+#def clickedSave():
+#    global position
+#    clickedAcct()
+#    clickedUser()
+#    clickedPass()
+#    clickedStyle()
+#    clickedUrl_New()
+#    updateGroup()
+#    global state
+#    if (state == "Inserting"):
+#        lb.delete(0,END)
+#        loadListBox()
+#    state = "None"
 
 def clickedAcctParam(txt_acct_param):
     clickedAcct()
@@ -502,15 +510,9 @@ def loadListBox():                                                             #
             except Exception as e:
                 updateDirections("Exception in pyGetNextPos; " + str(e))
                 raise e
-        #lb.activate(0)
-        #global selection
-        #selection = 0
-        #lb.select_set(selection)
         position = head
-        #getRecord()
-        lb.bind("<Down>", OnEntryDown)                                         # TODO: should this be done outside of this function?
-        lb.bind("<Up>", OnEntryUp)                                             # "                  "
         window.config(cursor="")
+        #txt_user.focus()
         window.update()
     except ValueError as ve:
         updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
@@ -751,30 +753,32 @@ def ImportFilePasswordPump():
     global group
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
-            fieldnames = ['accountname', 'username', 'password', 'url', 'group']
+            fieldnames = ['accountname', 'username', 'password', 'url', 'style', 'group']
             reader = csv.DictReader(csvfile, fieldnames=fieldnames)
             try:
                 for row in reader:
                     #print(row)
-                    #print(row['accountname'], row['username'], row['password'], row['url'], row['group'])
+                    #print(row['accountname'], row['username'], row['password'], row['url'], row['style'], row['group'])
                     txt_acct.delete(0, END)
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
                     txt_url.delete(0, END)
                     txt_acct.insert(0,row['accountname'])
-                    txt_user.insert(0,row['username'])
-                    txt_pass.insert(0,row['password'])
-                    txt_url.insert(0,row['url'])
-                    group = int(row['group'])
-                    SetGroupCheckBoxes()
-                    window.update()
-                    clickedAcct()                                              # sets position = FindAccountPos()
-                    clickedUser()
-                    clickedPass()
-                    clickedStyle()
-                    clickedUrl_New()
-                    updateGroup()
-                    updateDirections("Record saved.")
+                    if (txt_acct.get() != 'accountname'):
+                        txt_user.insert(0,row['username'])
+                        txt_pass.insert(0,row['password'])
+                        txt_url.insert(0,row['url'])
+                        #txt_style.insert(0,row['style'])
+                        group = int(row['group'])
+                        SetGroupCheckBoxes()
+                        window.update()
+                        clickedAcct()                                              # sets position = FindAccountPos()
+                        clickedUser()
+                        clickedPass()
+                        clickedStyle()
+                        clickedUrl_New()
+                        updateGroup()
+                        updateDirections("Record saved.")
                 updateDirections("All records saved.")
                 #lb.delete(0, END)
                 loadListBox()
@@ -829,10 +833,127 @@ def ExportFile():
     updateDirections(name)
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, mode='w') as pp_file:
-            pp_writer = csv.writer(pp_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            pp_writer = csv.writer(pp_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            pp_writer.writerow(['accountname', 'username', 'password', 'url', 'style', 'group'])
+            global position
+            global head
+            c.send("pyReadHead")  # Get the list head
+            try:
+                response = c.receive()
+                print(response)
+                response_list = response[1]
+                head = response_list[0]
+                position = head
+                while position < 255:  # '<' not supported between instances of 'str' and 'int'
+                    c.send("pyReadAccountName", position + 2)
+                    try:
+                        response = c.receive()
+                        accountName_list = response[1]
+                        accountName = accountName_list[0]
+                    except UnicodeDecodeError as e:
+                        updateDirections("UnicodeDecodeError in pyReadAccountName; " + str(e))
+                        accountName = "UnicodeDecodeError"
+                    except ValueError as ve:
+                        updateDirections("ValueError in pyReadAccountName; " + str(ve))
+                        accountName = "ValueError"
+                    except Exception as e:
+                        updateDirections("Exception in pyReadAccountName; " + str(e))
+                        accountName = "Exception"
 
-            pp_writer.writerow(['John Smith', 'Accounting', 'November'])
-            pp_writer.writerow(['Erica Meyers', 'IT', 'March'])
+                    c.send("pyReadUserName", position + 2)
+                    try:
+                        response = c.receive()
+                        userName_list = response[1]
+                        userName = userName_list[0]
+                    except UnicodeDecodeError as e:
+                        updateDirections("UnicodeDecodeError in pyReadUserName; " + str(e))
+                        userName = "UnicodeDecodeError"
+                    except ValueError as ve:
+                        updateDirections("ValueError in pyReadUserName; " + str(ve))
+                        userName = "ValueError"
+                    except Exception as e:
+                        updateDirections("Exception in pyReadUserName; " + str(e))
+                        userName = "Exception"
+
+                    c.send("pyReadPassword", position + 2)
+                    try:
+                        response = c.receive()
+                        password_list = response[1]
+                        password = password_list[0]
+                    except UnicodeDecodeError as e:
+                        updateDirections("UnicodeDecodeError in pyReadPassword; " + str(e))
+                        password = "UnicodeDecodeError"
+                    except ValueError as ve:
+                        updateDirections("ValueError in pyReadPassword; " + str(ve))
+                        password = "ValueError"
+                    except Exception as e:
+                        updateDirections("Exception in pyReadPassword; " + str(e))
+                        password = "Exception"
+
+                    c.send("pyReadURL", position + 2)
+                    try:
+                        response = c.receive()
+                        url_list = response[1]
+                        url = url_list[0]
+                    except UnicodeDecodeError as e:
+                        updateDirections("UnicodeDecodeError in pyReadURL; " + str(e))
+                        password = "UnicodeDecodeError"
+                    except ValueError as ve:
+                        updateDirections("ValueError in pyReadURL; " + str(ve))
+                        password = "ValueError"
+                    except Exception as e:
+                        updateDirections("Exception in pyReadURL; " + str(e))
+                        password = "Exception"
+
+                    c.send("pyReadStyle", position + 2)
+                    try:
+                        response = c.receive()
+                        style_list = response[1]
+                        style = style_list[0]
+                    except UnicodeDecodeError as e:
+                        updateDirections("UnicodeDecodeError in pyReadStyle; " + str(e))
+                        password = "UnicodeDecodeError"
+                    except ValueError as ve:
+                        updateDirections("ValueError in pyReadStyle; " + str(ve))
+                        password = "ValueError"
+                    except Exception as e:
+                        updateDirections("Exception in pyReadStyle; " + str(e))
+                        password = "Exception"
+
+                    c.send("pyReadGroup", position + 2)
+                    try:
+                        response = c.receive()
+                        group_list = response[1]
+                        group = group_list[0]
+                    except UnicodeDecodeError as e:
+                        updateDirections("UnicodeDecodeError in pyReadGroup; " + str(e))
+                        password = "UnicodeDecodeError"
+                    except ValueError as ve:
+                        updateDirections("ValueError in pyReadGroup; " + str(ve))
+                        password = "ValueError"
+                    except Exception as e:
+                        updateDirections("Exception in pyReadGroup; " + str(e))
+                        password = "Exception"
+
+                    pp_writer.writerow([accountName, userName, password, url, style, group])
+
+                    c.send("pyGetNextPos", position + 2)  # calls getNextPtr(acctPosition) in C program
+                    try:
+                        response = c.receive()
+                        response_list = response[1]
+                        position = response_list[0]
+                    except ValueError as ve:
+                        updateDirections("Error in pyGetNextPos; " + str(ve))
+                        raise ve
+                    except Exception as e:
+                        updateDirections("Exception in pyGetNextPos; " + str(e))
+                        raise e
+            except ValueError as ve:
+                updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
+                head = 0
+            except Exception as e:
+                updateDirections("Exception in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(e))
+                head = 0
     except:
         updateDirections("No file exists")
 
@@ -908,6 +1029,14 @@ def OnCustom():
         group = group & (~128)
     updateGroup()
 
+def generatePassword():
+    characters = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%*()?-_=+:;{}[]"
+    password = "".join(choice(characters) for x in range(31))
+    txt_pass.delete(0, END)
+    txt_pass.insert(END, password)
+    txt_pass.focus()
+
+
 def SetGroupCheckBoxes():
     global vFavorites
     global vWork
@@ -961,7 +1090,7 @@ txt_pass = Entry(window, width=40)
 txt_pass.grid(column=2, row=4)
 
 txt_url = Entry(window, width=40)
-txt_url.grid(column=2, row=6)
+txt_url.grid(column=2, row=5)
 
 txt_acct.config(state='normal')
 txt_user.config(state='normal')
@@ -982,7 +1111,7 @@ menu.add_cascade(label = 'File', menu = file)
 
 styles = ["0 - Tab","1 - Return"]
 cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
-cbStyle.grid(column=2, row=5)
+cbStyle.grid(column=2, row=6)
 cbStyle.bind('<<ComboboxSelected>>', on_style_select)
 
 btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
@@ -1001,8 +1130,11 @@ btn_open.grid(column=4, row=0)
 lb.bind("<<ListboxSelect>>", clickedLoadDB)
 #lb.bind('<FocusOut>', clickedOutOfListBox)
 
-btn_url = Button(window, text="Save", command=clickedSave)
-btn_url.grid(column=4, row=18)
+#btn_save = Button(window, text="Save", command=clickedSave)
+#btn_save.grid(column=4, row=18)
+
+btn_generate = Button(window, text="Generate", command=generatePassword)
+btn_generate.grid(column=4, row=4)
 
 btn_next = Button(window, text="Next>>", command=clickedNext)
 btn_next.grid(column=4, row=17)
@@ -1010,7 +1142,7 @@ btn_next.grid(column=4, row=17)
 btn_close = Button(window, text=" Exit ", command=clickedClose)
 btn_close.grid(column=4, row=19)
 
-btn_url.config(state='normal')
+#btn_save.config(state='normal')
 btn_close.config(state='normal')
 
 vFavorites = IntVar()
@@ -1054,6 +1186,9 @@ textboxCustom = Checkbutton(window, text="Custom", variable=vCustom, command=OnC
 textboxCustom.var = vCustom
 textboxCustom.grid(column=2,row=14)
 
+lb.bind("<Down>", OnEntryDown)
+lb.bind("<Up>", OnEntryUp)
+
 lbl_help = Label(window, text="Instructions", anchor=W, justify=CENTER, width=11)
 lbl_help.grid(column=2, row=15)
 
@@ -1065,6 +1200,7 @@ directions = """Select Edit with Computer on
 the PasswordPump. After 
 selecting the port click on
 the Open Port button to open
+the Open Port button to open
 the port for the PasswordPump."""
 txt_dir.insert(END, directions)
 
@@ -1075,6 +1211,7 @@ for n, (port, desc, hwid) in enumerate(sorted(comports()), 1):
 cb = Combobox(window, values=ports, justify=LEFT, width=37, exportselection=False)
 cb.grid(column=2, row=0)
 cb.bind('<<ComboboxSelected>>', on_select)
+#txt_user.focus_set()
 
 position = 0                                                                   # Global variables
 head = 0
