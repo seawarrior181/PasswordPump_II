@@ -204,6 +204,8 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
+  - Setting master password mode
+  - Make the size of the generated password configurable.
   - Always reflect the account that's selected in the PC client on the device.
   - Somehow signal to the user when entering the master password for the first 
     time.
@@ -378,10 +380,6 @@
   necessary for your intended use. For example, other rights such as publicity,
   privacy, or moral rights may limit how you use the material.
 
-  AdaFruit WIndows Drivers
-  ========================
-  https://github.com/adafruit/Adafruit_Windows_Drivers/releases/tag/2.4.0.0
-  
   Library Modifications
   =====================
   - In PyCmdMessenger.py, at lines 25 and 26, change to the following:
@@ -407,6 +405,7 @@
   =======
   - It might be necessary to install the following drivers: 
     https://github.com/adafruit/Adafruit_Windows_Drivers/releases
+    https://github.com/adafruit/Adafruit_Windows_Drivers/releases/tag/2.4.0.0
   
   Other Artifacts                                                               // TODO: update these with URLs.
   ===============
@@ -433,6 +432,25 @@
   - 2 4.7kohm resistors (to hold i2c SDA and SCL lines high)
   - 1 plastic knob for rotary encoder
 
+  Cost
+  ====
+  - 1 AdaFruit ItsyBitsy (32-bit ARM®, SAMD51 Cortex®-M4F MCU)        $14.95
+  - 2 MICROCHIP - 25LC512-I/P - 512K SPI™ Bus Serial EEPROM DIP8        3.80
+  - 1 SSD1306 I2C LED display 128x32 pixels.                            2.23
+  - 1 Custom PCB                                                        1.50
+  - 1 micro USB to USB cable 100cm                                      0.69
+  - 1 Rotary Encoder                                                    0.46
+  - 1 plastic knob for rotary encoder                                   0.11
+  - 2 IC DIP Sockets, 8 pins each                                       0.10
+  - Solder                                                              0.10
+  - 1 RGB LED diffused 5mm                                              0.03
+  - 3 220ohm resistors                                                  0.01
+  - 2 4.7kohm resistors                                                 0.01
+                                                                      ------
+  - Total Parts                                                       $23.99
+                                                                      ======
+  + Labor for assembly, packaging & shipping
+  
   Connections
   ===========
   - ItsyBitsy M0/M4
@@ -1235,11 +1253,12 @@ boolean isGreen   = false;
 boolean isYellow  = false;
 boolean isBlue    = false;
 
-#define LEN_ALL_CHARS             96
-#define DEFAULT_ALPHA_EDIT_POS    41                                            // allChars is sort of unnecessary TODO: eliminate allChars?
-#define DEFAULT_STYLE_EDIT_POS    30
+#define LEN_ALL_CHARS             88
+#define DEFAULT_ALPHA_EDIT_POS    33                                            // allChars is sort of unnecessary TODO: eliminate allChars?
+#define DEFAULT_STYLE_EDIT_POS    22
+
 const char allChars[LEN_ALL_CHARS] =                                            // used to edit text via rotary encoder (164 bytes)
-" /?><,:';|}{][+_)(*&^%$#!~=\-@. 0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz«"; 
+" ?><:';}{][+_)(*%$#!=-. 0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz«"; 
 #define POS_Y_N_CONFIRM           14                                            // position of Y and N for the confirm menu item
 const char confirmChars[3] = "NY";                                              // used to select N(o) or Y(es) via rotary encoder to confirm a destructive action
 
@@ -1297,10 +1316,10 @@ enum                                                                            
   pyReadAccountName     ,
   pyReadUserName        ,
   pyReadPassword        ,
+  pyReadOldPassword     ,
   pyReadURL             ,
   pyReadStyle           ,
   pyReadGroup           ,
-  pyReadOldPassword     ,
   pyUpdateAccountName   ,
   pyUpdateUserName      ,
   pyUpdatePassword      ,
@@ -1310,6 +1329,7 @@ enum                                                                            
   pyUpdateURL_3         ,
   pyUpdateStyle         ,
   pyUpdateGroup         ,
+  pyUpdateOldPassword   ,
   pyGetNextPos          ,
   pyGetPrevPos          ,
   pyGetAcctPos          ,
@@ -5757,10 +5777,10 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyReadAccountName     , OnReadAccountName);
   cmdMessenger.attach(pyReadUserName        , OnReadUserName);
   cmdMessenger.attach(pyReadPassword        , OnReadPassword);
+  cmdMessenger.attach(pyReadOldPassword     , OnReadOldPassword);
   cmdMessenger.attach(pyReadURL             , OnReadURL);
   cmdMessenger.attach(pyReadStyle           , OnReadStyle);
   cmdMessenger.attach(pyReadGroup           , OnReadGroup);
-  cmdMessenger.attach(pyReadOldPassword     , OnReadOldPassword);
   cmdMessenger.attach(pyUpdateAccountName   , OnUpdateAccountName);
   cmdMessenger.attach(pyUpdateUserName      , OnUpdateUserName);
   cmdMessenger.attach(pyUpdatePassword      , OnUpdatePassword);
@@ -5770,6 +5790,7 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyUpdateURL_3         , OnUpdateURL_3);
   cmdMessenger.attach(pyUpdateStyle         , OnUpdateStyle);
   cmdMessenger.attach(pyUpdateGroup         , OnUpdateGroup);
+  cmdMessenger.attach(pyUpdateOldPassword   , OnUpdateOldPassword);
   cmdMessenger.attach(pyGetNextPos          , OnGetNextPos);
   cmdMessenger.attach(pyGetPrevPos          , OnGetPrevPos);
   cmdMessenger.attach(pyGetAcctPos          , OnGetAcctPos);
@@ -5822,6 +5843,15 @@ void OnReadPassword(){
   cmdMessenger.sendCmd(kStrAcknowledge, password);
 }
 
+void OnReadOldPassword(){
+  char oldPassword[PASSWORD_SIZE];
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
+  readOldPassFromEEProm(acctPosition, oldPassword);                             // read and decrypt the password
+  cmdMessenger.sendCmd(kStrAcknowledge, oldPassword);
+}
+
 void OnReadURL(){
   char url[WEBSITE_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
@@ -5847,15 +5877,6 @@ void OnReadGroup(){
   //uint8_t group = readGroupFromEEProm(acctPosition);                          // for reasons I don't understand this will not compile
   uint8_t group = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));
   cmdMessenger.sendBinCmd(kAcknowledge, group);
-}
-
-void OnReadOldPassword(){
-  char oldPassword[PASSWORD_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
-  readOldPassFromEEProm(acctPosition, oldPassword);                             // read and decrypt the old password
-  cmdMessenger.sendCmd(kStrAcknowledge, oldPassword);
 }
 
 void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
@@ -6027,6 +6048,22 @@ void OnUpdateGroup(){
   if (groups == 1) groups = 92;
   groups -= 2;
   write_eeprom_byte(GET_ADDR_GROUP(acctPosition), groups);                      // should we call writeGroup() here instead?
+  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+}
+
+void OnUpdateOldPassword(){
+  char oldPassword[PASSWORD_SIZE];
+  acctPosition = cmdMessenger.readBinArg<uint8_t>();
+  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
+  acctPosition -= 2;
+  cmdMessenger.copyStringArg(oldPassword, PASSWORD_SIZE);                       // uses strlcpy, which will not write more than bytes expressed in the second parameter
+  uint8_t len = strlen(oldPassword);
+  while (len < PASSWORD_SIZE) oldPassword[len++] = NULL_TERM;
+  oldPassword[PASSWORD_SIZE - 1] = NULL_TERM;
+  char bufferOldPass[PASSWORD_SIZE];                                            // for the encrypted old password
+  ReadSaltAndSetKey(acctPosition);
+  encrypt32Bytes(bufferOldPass, oldPassword);                                   // encrypt the old password
+  eeprom_write_bytes(GET_ADDR_OLD_PASS(acctPosition), bufferOldPass, PASSWORD_SIZE);
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
 }
 
