@@ -18,12 +18,16 @@
 # * = fixed
 #
 # Defects:
-# - All buttons except Exit disabled before the port is opened.
-# - If a password (or any other field) contains a ~ or a |, python throws an
-#   exception
-# - Sometimes changing the URL in place is not working
-# - If there's a / at the end of a URL python throws an exception, so strip it.
-# x Hangs the MCU when adding credentials without Style or URL.
+# * Similarly, if any of the fields have an embedded | (pipe) character the
+#   fields in the PasswordPumpGUI can get out of synch; e.g. account name
+#   appears in the username field.
+# * If a password (or any other field) contains a ~ or a |, python throws an
+#   exception during import or changes those characters into /1 otherwise.
+# * If there's a / at the end of a URL during import python throws an
+#   exception, so strip it.
+# * Hangs the MCU when adding credentials without Style or URL.
+# * Sometimes changing the URL in place is not working
+# * All buttons except Exit should be disabled before the port is opened.
 # * When an account is inserted the accounts list box doesn't refresh, you must
 #   click on Save.
 # * Add style to the PP format.
@@ -42,8 +46,9 @@
 #   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
-# - Save to old password
-# - Respect the show password setting
+# * Respect the show password setting
+# * Add old password to PasswordPump format
+# * Save to old password
 # * Generate password
 # * Export to PasswordPump format
 # * Only allow one instance of the PasswordPump to run at a time.
@@ -91,7 +96,7 @@ me = singleton.SingleInstance() # will sys.exit(-1) if other instance is running
 global c
 window = Tk()
 window.title("PasswordPump Edit Credentials")
-window.geometry('400x555')
+window.geometry('400x580')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
@@ -111,14 +116,26 @@ lbl_acct.grid(column=1, row=2)
 lbl_user = Label(window, text="User Name", anchor=E, justify=RIGHT, width=10)
 lbl_user.grid(column=1, row=3)
 
-lbl_pass = Label(window, text="Password", anchor=E, justify=RIGHT, width=10)
-lbl_pass.grid(column=1, row=4)
+#lbl_pass = Label(window, text="Password", anchor=E, justify=RIGHT, width=10)
+#lbl_pass.grid(column=1, row=4)
 
-lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
-lbl_style.grid(column=1, row=6)
+lbl_old_pass = Label(window, text="Old Password", anchor=E, justify=RIGHT, width=10)
+lbl_old_pass.grid(column=1, row=5)
 
 lbl_url = Label(window, text="URL", anchor=E, justify=RIGHT, width=10)
-lbl_url.grid(column=1, row=5)
+lbl_url.grid(column=1, row=6)
+
+lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
+lbl_style.grid(column=1, row=7)
+
+translation_table = dict.fromkeys(map(ord, '!@#$'), None)
+
+def stripBadChars(unicode_line):
+    unicode_line = unicode_line.translate(translation_table)
+    return(unicode_line)
+
+def calcPosition(aPosition):
+    return(aPosition + 2)
 
 def clickedOpen():
     global arduino
@@ -136,10 +153,10 @@ def clickedOpen():
                 ["pyReadAccountName", "b"],
                 ["pyReadUserName", "b"],
                 ["pyReadPassword", "b"],
+                ["pyReadOldPassword", "b"],
                 ["pyReadURL", "b"],
                 ["pyReadStyle", "b"],
                 ["pyReadGroup", "b"],
-                ["pyReadOldPassword", "b"],
                 ["pyUpdateAccountName", "s"],
                 ["pyUpdateUserName", "bs"],
                 ["pyUpdatePassword", "bs"],
@@ -176,6 +193,7 @@ def clickedOpen():
     txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the clicks off of the field save the edited item
     txt_user.bind("<FocusOut>",(lambda _: clickedUserParam(txt_user)))
     txt_pass.bind("<FocusOut>",(lambda _: clickedPassParam(txt_pass)))
+    txt_old_pass.bind("<FocusOut>",(lambda _: clickedOldPassParam(txt_old_pass)))
     txt_url.bind("<FocusOut>",(lambda _: clickedUrlParam(txt_url)))
 
     c.send("pyReadHead")
@@ -212,9 +230,15 @@ def clickedOpen():
         lb.select_set(selection)
         lb.see(selection)
         lb.activate(selection)
-    btn_open.config(state='disabled')
     cb.config(state='disabled')
+    btn_open.config(state='disabled')
     btn_close.config(state='normal')
+    btn_next.config(state='normal')
+    btn_previous.config(state='normal')
+    btn_insert.config(state='normal')
+    btn_delete.config(state='normal')
+    btn_generate.config(state='normal')
+    btn_flip_pw.config(state='normal')
     updateDirections("Opened port")
 
 def updateDirections(directions):
@@ -241,7 +265,7 @@ def clickedAcctParam(txt_acct_param):
     clickedAcct()
 
 def clickedAcct():
-    aResAcct = txt_acct.get()
+    aResAcct = stripBadChars(txt_acct.get())
     resAcct = aResAcct[0:32]
     global position                                                            # the position on EEprom, don't confuse with selection
     global state
@@ -283,12 +307,12 @@ def clickedUserParam(txt_user_param):
 
 def clickedUser():
     global position
-    aResUser = txt_user.get()
+    aResUser = stripBadChars(txt_user.get())
     resUser = aResUser[0:32]
     if (len(resUser) > 0):
-        c.send("pyUpdateUserName", position + 2, resUser)
+        c.send("pyUpdateUserName", calcPosition(position), resUser)
     else:
-        c.send("pyUpdateUserName", position + 2, "")
+        c.send("pyUpdateUserName", calcPosition(position), "")
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -303,12 +327,12 @@ def clickedPassParam(txt_pass_param):
 
 def clickedPass():
     global position
-    aResPass = txt_pass.get()
+    aResPass = stripBadChars(txt_pass.get())
     resPass = aResPass[0:32]
     if (len(resPass) > 0):
-        c.send("pyUpdatePassword", position + 2, resPass)
+        c.send("pyUpdatePassword", calcPosition(position), resPass)
     else:
-        c.send("pyUpdatePassword", position + 2, "")
+        c.send("pyUpdatePassword", calcPosition(position), "")
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -318,12 +342,32 @@ def clickedPass():
     updateDirections(directions)
     window.update()
 
+def clickedOldPassParam(txt_pass_param):
+    clickedOldPass()
+
+def clickedOldPass():
+    global position
+    aResOldPass = stripBadChars(txt_old_pass.get())
+    resOldPass = aResOldPass[0:32]
+    if (len(resOldPass) > 0):
+        c.send("pyUpdateOldPassword", calcPosition(position), resOldPass)
+    else:
+        c.send("pyUpdateOldPassword", calcPosition(position), "")
+    response = c.receive()
+    print(response)
+    response_list = response[1]
+    position = response_list[0]
+    txt_old_pass.config(state='normal')
+    directions = """Updated old password."""
+    updateDirections(directions)
+    window.update()
+
 def clickedStyle():
     global position
     resStyle = cbStyle.current()
     if ((resStyle != 0) and (resStyle != 1)):                                  # style must be 0 or 1
         resStyle = 0;                                                          # default is 0
-    c.send("pyUpdateStyle", position + 2, resStyle)
+    c.send("pyUpdateStyle", calcPosition(position), resStyle)
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -335,7 +379,7 @@ def clickedStyle():
 def updateGroup():
     global position
     global group
-    c.send("pyUpdateGroup", position + 2, group + 2)
+    c.send("pyUpdateGroup", calcPosition(position), group + 2)
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -349,14 +393,13 @@ def clickedUrlParam(txt_url_param):
 
 def clickedUrl():
     global position
-    aURL = txt_url.get()
+    aURL = stripBadChars(txt_url.get())
     resURL = aURL[0:32]                                                        # max length of a URL is 96 chars
-    #resURL = resURL.replace("/","^")
     txt_url.config(state='normal')
     if (len(resURL) > 0):                                                      # if the URL doesn't exist don't send it
-        c.send("pyUpdateURL", position + 2, resURL)
+        c.send("pyUpdateURL", calcPosition(position), resURL)
     else:
-        c.send("pyUpdateURL", position + 2, "")
+        c.send("pyUpdateURL", calcPosition(position), "")
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -369,7 +412,7 @@ def clickedUrl():
 def clickedUrl_New():                                                          # send the website over in 3 chunks instead of all at once to circumvent problems encountered when sending it all at once.
     txt_url.config(state='normal')
     global position
-    aURL = txt_url.get()
+    aURL = stripBadChars(txt_url.get())
     resURL_1 = aURL[0:32]                                                      # max length of a URL is 96 chars
     if (len(resURL_1) > 0):                                                    # if the URL doesn't exist don't send it
         c.send("pyUpdateURL_1", resURL_1)
@@ -386,25 +429,25 @@ def clickedUrl_New():                                                          #
             position = response_list[0]
             resURL_3 = aURL[64:96]                                             # max length of a URL is 96 chars
             if (len(resURL_3) > 0):                                            # if the URL doesn't exist don't send it
-                c.send("pyUpdateURL_3", position + 2, resURL_3)
+                c.send("pyUpdateURL_3", calcPosition(position), resURL_3)
                 response = c.receive()
                 print(response)
                 response_list = response[1]
                 position = response_list[0]
             else:
-                c.send("pyUpdateURL_3", position + 2, "")
+                c.send("pyUpdateURL_3", calcPosition(position), "")
                 response = c.receive()
                 print(response)
                 response_list = response[1]
                 position = response_list[0]
         else:
-            c.send("pyUpdateURL", position + 2, aURL)
+            c.send("pyUpdateURL", calcPosition(position), aURL)
             response = c.receive()
             print(response)
             response_list = response[1]
             position = response_list[0]
     else:
-        c.send("pyUpdateURL", position + 2, "")
+        c.send("pyUpdateURL", calcPosition(position), "")
         response = c.receive()
         print(response)
         response_list = response[1]
@@ -422,7 +465,7 @@ def clickedClose():
             response = c.receive()
             print(response)
             response_list = response[1]
-            acctCount = response_list[0]
+            acctCount = response_list[0]                                       # not used
         except Exception as e:
             updateDirections("There was an error closing the application; " + str(e))
     sys.exit(1)
@@ -432,7 +475,7 @@ def clickedPrevious():
     global selection
     #if (selection > 0):
     #    selection -= 1
-    c.send("pyGetPrevPos", position + 2)
+    c.send("pyGetPrevPos", calcPosition(position))
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -446,12 +489,12 @@ def clickedPrevious():
         selection = items[0]
         OnEntryUpNoEvent()
         lb.activate(selection)                                                 # has no effect
-        UpdateDirections("Navigated to previous record.")
+        updateDirections("Navigated to previous record.")
 
 def clickedNext():
     global position
     global selection
-    c.send("pyGetNextPos", position + 2)
+    c.send("pyGetNextPos", calcPosition(position))
     response = c.receive()
     print(response)
     response_list = response[1]
@@ -483,7 +526,7 @@ def loadListBox():                                                             #
         global accountDict
         accountDict = ({})                                                     # Load the dictionary
         while position < 255:                                                  # '<' not supported between instances of 'str' and 'int'
-            c.send("pyReadAccountName", position + 2)
+            c.send("pyReadAccountName", calcPosition(position))
             try:
                 response = c.receive()
                 accountName_list = response[1]
@@ -499,7 +542,7 @@ def loadListBox():                                                             #
                 accountName = "Exception"
             accountDict[accountName] = position
             lb.insert(END, accountName)                                        # Load the listbox
-            c.send("pyGetNextPos", position + 2)                               # calls getNextPtr(acctPosition) in C program
+            c.send("pyGetNextPos", calcPosition(position))                               # calls getNextPtr(acctPosition) in C program
             try:
                 response = c.receive()
                 response_list = response[1]
@@ -562,6 +605,7 @@ def clickedInsert():
     txt_acct.delete(0, END)
     txt_user.delete(0, END)
     txt_pass.delete(0, END)
+    txt_old_pass.delete(0, END)
     txt_url.delete(0, END)
 
 def clickedLoadDB(event):
@@ -572,9 +616,7 @@ def clickedLoadDB(event):
     w = event.widget
     selection = int(w.curselection()[0])
     value = w.get(selection)
-    print('You selected item %d: "%s"' % (selection, value))
-
-    #btn_delete.config(state='normal')
+    updateDirections('You selected item %d: "%s"' % (selection, value))
     clickedLoad()                                                              # calls getRecord()
 
 #def clickedOutOfListBox(event):
@@ -597,7 +639,7 @@ def clickedDelete():
         #lb.delete(ANCHOR)                                                      # delete the account from the listbox
         lb.delete(selection)
         global position
-        c.send("pyDeleteAccount",position + 2)
+        c.send("pyDeleteAccount",calcPosition(position))
         response = c.receive()
         print(response)
         response_list = response[1]
@@ -620,66 +662,78 @@ def getRecord():
     global vFinancial
     global vMail
     global vCustom
-    c.send("pyReadAccountName", position + 2)
+    c.send("pyReadAccountName", calcPosition(position))
     try:
         response = c.receive()
         print(response)
         accountName_list = response[1]
         accountName = accountName_list[0]
     except UnicodeDecodeError:
-        updateDirections("pyReadAccountName returned empty string")
+        #updateDirections("pyReadAccountName returned empty string")
         accountName = ""
     txt_acct.delete(0,END)
     txt_acct.insert(0,accountName)
 
-    c.send("pyReadUserName", position + 2)
+    c.send("pyReadUserName", calcPosition(position))
     try:
         response = c.receive()
         print (response)
         userName_list = response[1]
         userName = userName_list[0]
     except UnicodeDecodeError:
-        updateDirections("pyReadUserName returned empty string")
+        #updateDirections("pyReadUserName returned empty string")
         userName = ""
     txt_user.delete(0,END)
     txt_user.insert(0,userName)
 
-    c.send("pyReadPassword", position + 2)
+    c.send("pyReadPassword", calcPosition(position))
     try:
         response = c.receive()
         print(response)
         password_list = response[1]
         password = password_list[0]
     except UnicodeDecodeError:
-        updateDirections("pyReadPassword returned empty string")
+        #updateDirections("pyReadPassword returned empty string")
         password = ""
     txt_pass.delete(0,END)
     txt_pass.insert(0,password)
 
-    c.send("pyReadStyle", position + 2)
+    c.send("pyReadOldPassword", calcPosition(position))
+    try:
+        response = c.receive()
+        print(response)
+        old_password_list = response[1]
+        old_password = old_password_list[0]
+    except UnicodeDecodeError:
+        #updateDirections("pyReadOldPassword returned empty string")
+        old_password = ""
+    txt_old_pass.delete(0,END)
+    txt_old_pass.insert(0,old_password)
+
+    c.send("pyReadStyle", calcPosition(position))
     try:
         response = c.receive()
         print(response)
         style_list = response[1]
         style = style_list[0]
     except UnicodeDecodeError:
-        updateDirections("pyReadStyle returned empty string")
+        #updateDirections("pyReadStyle returned empty string")
         style = ""
     cbStyle.set(style)
 
-    c.send("pyReadURL", position + 2)
+    c.send("pyReadURL", calcPosition(position))
     try:
         response = c.receive()                                                 # EOFError: Incomplete message (1~https://www.cvs.com/account/login/|) (when a field ends with /)
         print(response)
         url_list = response[1]
         url = url_list[0]
     except UnicodeDecodeError:
-        updateDirections("pyReadURL returned empty string")
+        #updateDirections("pyReadURL returned empty string")
         url = ""
     txt_url.delete(0,END)
     txt_url.insert(0,url)
 
-    c.send("pyReadGroup", position + 2)
+    c.send("pyReadGroup", calcPosition(position))
     try:
         response = c.receive()
         print(response)
@@ -724,10 +778,10 @@ def ImportFileChrome():
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
                     txt_url.delete(0, END)
-                    txt_acct.insert(0,row['name'])
-                    txt_user.insert(0,row['username'])
-                    txt_pass.insert(0,row['password'])
-                    txt_url.insert(0,row['url'])
+                    txt_acct.insert(0,stripBadChars(row['name']))
+                    txt_user.insert(0,stripBadChars(row['username']))
+                    txt_pass.insert(0,stripBadChars(row['password']))
+                    txt_url.insert(0,stripBadChars(row['url']))
                     window.update()
                     clickedAcct()                                              # sets position = FindAccountPos()
                     clickedUser()
@@ -763,12 +817,12 @@ def ImportFilePasswordPump():
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
                     txt_url.delete(0, END)
-                    txt_acct.insert(0,row['accountname'])
-                    if (txt_acct.get() != 'accountname'):
-                        txt_user.insert(0,row['username'])
-                        txt_pass.insert(0,row['password'])
-                        txt_url.insert(0,row['url'])
-                        #txt_style.insert(0,row['style'])
+                    txt_acct.insert(0,stripBadChars(row['accountname']))
+                    if (txt_acct.get() != 'accountname'):                      # to skip the header if there is one
+                        txt_user.insert(0,stripBadChars(row['username']))
+                        txt_pass.insert(0,stripBadChars(row['password']))
+                        txt_url.insert(0,stripBadChars(row['url']))
+                        txt_style.insert(0,stripBadChars(row['style']))
                         group = int(row['group'])
                         SetGroupCheckBoxes()
                         window.update()
@@ -805,10 +859,10 @@ def ImportFileKeePass():
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
                     txt_url.delete(0, END)
-                    txt_acct.insert(0,row['Account'])
-                    txt_user.insert(0,row['Login Name'])
-                    txt_pass.insert(0,row['Password'])
-                    txt_url.insert(0,row['Web Site'])
+                    txt_acct.insert(0,stripBadChars(row['Account']))
+                    txt_user.insert(0,stripBadChars(row['Login Name']))
+                    txt_pass.insert(0,stripBadChars(row['Password']))
+                    txt_url.insert(0,stripBadChars(row['Web Site']))
                     window.update()
                     clickedAcct()                                              # sets position = FindAccountPos()
                     clickedUser()
@@ -845,11 +899,11 @@ def ExportFile():
                 head = response_list[0]
                 position = head
                 while position < 255:  # '<' not supported between instances of 'str' and 'int'
-                    c.send("pyReadAccountName", position + 2)
+                    c.send("pyReadAccountName", calcPosition(position))
                     try:
                         response = c.receive()
                         accountName_list = response[1]
-                        accountName = accountName_list[0]
+                        accountName = stripBadChars(accountName_list[0])
                     except UnicodeDecodeError as e:
                         updateDirections("UnicodeDecodeError in pyReadAccountName; " + str(e))
                         accountName = "UnicodeDecodeError"
@@ -860,11 +914,11 @@ def ExportFile():
                         updateDirections("Exception in pyReadAccountName; " + str(e))
                         accountName = "Exception"
 
-                    c.send("pyReadUserName", position + 2)
+                    c.send("pyReadUserName", calcPosition(position))
                     try:
                         response = c.receive()
                         userName_list = response[1]
-                        userName = userName_list[0]
+                        userName = stripBadChars(userName_list[0])
                     except UnicodeDecodeError as e:
                         updateDirections("UnicodeDecodeError in pyReadUserName; " + str(e))
                         userName = "UnicodeDecodeError"
@@ -875,11 +929,11 @@ def ExportFile():
                         updateDirections("Exception in pyReadUserName; " + str(e))
                         userName = "Exception"
 
-                    c.send("pyReadPassword", position + 2)
+                    c.send("pyReadPassword", calcPosition(position))
                     try:
                         response = c.receive()
                         password_list = response[1]
-                        password = password_list[0]
+                        password = stripBadChars(password_list[0])
                     except UnicodeDecodeError as e:
                         updateDirections("UnicodeDecodeError in pyReadPassword; " + str(e))
                         password = "UnicodeDecodeError"
@@ -890,54 +944,54 @@ def ExportFile():
                         updateDirections("Exception in pyReadPassword; " + str(e))
                         password = "Exception"
 
-                    c.send("pyReadURL", position + 2)
+                    c.send("pyReadURL", calcPosition(position))
                     try:
                         response = c.receive()
                         url_list = response[1]
-                        url = url_list[0]
+                        url = stripBadChars(url_list[0])
                     except UnicodeDecodeError as e:
                         updateDirections("UnicodeDecodeError in pyReadURL; " + str(e))
-                        password = "UnicodeDecodeError"
+                        url = "UnicodeDecodeError"
                     except ValueError as ve:
                         updateDirections("ValueError in pyReadURL; " + str(ve))
-                        password = "ValueError"
+                        url = "ValueError"
                     except Exception as e:
                         updateDirections("Exception in pyReadURL; " + str(e))
-                        password = "Exception"
+                        url = "Exception"
 
-                    c.send("pyReadStyle", position + 2)
+                    c.send("pyReadStyle", calcPosition(position))
                     try:
                         response = c.receive()
                         style_list = response[1]
-                        style = style_list[0]
+                        style = stripBadChars(style_list[0])
                     except UnicodeDecodeError as e:
                         updateDirections("UnicodeDecodeError in pyReadStyle; " + str(e))
-                        password = "UnicodeDecodeError"
+                        style = 0
                     except ValueError as ve:
                         updateDirections("ValueError in pyReadStyle; " + str(ve))
-                        password = "ValueError"
+                        style = 0
                     except Exception as e:
                         updateDirections("Exception in pyReadStyle; " + str(e))
-                        password = "Exception"
+                        style = 0
 
-                    c.send("pyReadGroup", position + 2)
+                    c.send("pyReadGroup", calcPosition(position))
                     try:
                         response = c.receive()
                         group_list = response[1]
                         group = group_list[0]
                     except UnicodeDecodeError as e:
                         updateDirections("UnicodeDecodeError in pyReadGroup; " + str(e))
-                        password = "UnicodeDecodeError"
+                        group = 0
                     except ValueError as ve:
                         updateDirections("ValueError in pyReadGroup; " + str(ve))
-                        password = "ValueError"
+                        group = 0
                     except Exception as e:
                         updateDirections("Exception in pyReadGroup; " + str(e))
-                        password = "Exception"
+                        group = 0
 
                     pp_writer.writerow([accountName, userName, password, url, style, group])
 
-                    c.send("pyGetNextPos", position + 2)  # calls getNextPtr(acctPosition) in C program
+                    c.send("pyGetNextPos", calcPosition(position))  # calls getNextPtr(acctPosition) in C program
                     try:
                         response = c.receive()
                         response_list = response[1]
@@ -1030,12 +1084,28 @@ def OnCustom():
     updateGroup()
 
 def generatePassword():
+    currentOldPass = txt_old_pass.get()
+    if (len(currentOldPass) == 0):
+        previousPass = txt_pass.get()
+        txt_old_pass.delete(0, END)
+        txt_old_pass.insert(END, previousPass)
+        txt_old_pass.focus()
     characters = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%*()?-_=+:;{}[]"
     password = "".join(choice(characters) for x in range(31))
     txt_pass.delete(0, END)
     txt_pass.insert(END, password)
-    txt_pass.focus()
+    txt_pass.focus()                                                           # to save the old password
+    txt_old_pass.focus()                                                       # to save the password
 
+def flipPassword():
+    global showPassword
+    if (showPassword):
+        showPassword = False
+        txt_pass.config(show="*")
+    else:
+        showPassword = True
+        txt_pass.config(show="")
+    window.update()
 
 def SetGroupCheckBoxes():
     global vFavorites
@@ -1087,14 +1157,20 @@ txt_user = Entry(window, width=40)
 txt_user.grid(column=2, row=3)
 
 txt_pass = Entry(window, width=40)
+txt_pass = Entry(window, width=40)
 txt_pass.grid(column=2, row=4)
 
+txt_old_pass = Entry(window, width=40)
+txt_old_pass.grid(column=2, row=5)
+
 txt_url = Entry(window, width=40)
-txt_url.grid(column=2, row=5)
+txt_url.grid(column=2, row=6)
 
 txt_acct.config(state='normal')
 txt_user.config(state='normal')
 txt_pass.config(state='normal')
+txt_pass.config(show="*")
+txt_old_pass.config(state='normal')
 txt_url.config(state='normal')
 
 menu = Menu(window)
@@ -1111,18 +1187,21 @@ menu.add_cascade(label = 'File', menu = file)
 
 styles = ["0 - Tab","1 - Return"]
 cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
-cbStyle.grid(column=2, row=6)
+cbStyle.grid(column=2, row=7)
 cbStyle.bind('<<ComboboxSelected>>', on_style_select)
 
 btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
-btn_previous.grid(column=1, row=17)
+btn_previous.grid(column=1, row=18)
+btn_previous.config(state='disabled')
 
 btn_insert = Button(window, text="Insert", command=clickedInsert)
-btn_insert.grid(column=1, row=18)
+btn_insert.grid(column=1, row=19)
+btn_insert.config(state='disabled')
 
 #btn_delete = Button(window, text="Delete", state=DISABLED, command=clickedDelete)
 btn_delete = Button(window, text="Delete", command=clickedDelete)
-btn_delete.grid(column=1, row=19)
+btn_delete.grid(column=1, row=20)
+btn_delete.config(state='disabled')
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=4, row=0)
@@ -1131,18 +1210,22 @@ lb.bind("<<ListboxSelect>>", clickedLoadDB)
 #lb.bind('<FocusOut>', clickedOutOfListBox)
 
 #btn_save = Button(window, text="Save", command=clickedSave)
-#btn_save.grid(column=4, row=18)
+#btn_save.grid(column=4, row=19)
 
 btn_generate = Button(window, text="Generate", command=generatePassword)
 btn_generate.grid(column=4, row=4)
+btn_generate.config(state='disabled')
+
+btn_flip_pw = Button(window, text="Password", command=flipPassword)
+btn_flip_pw.grid(column=1, row=4)
+btn_flip_pw.config(state='disabled')
 
 btn_next = Button(window, text="Next>>", command=clickedNext)
-btn_next.grid(column=4, row=17)
+btn_next.grid(column=4, row=18)
+btn_next.config(state='disabled')
 
 btn_close = Button(window, text=" Exit ", command=clickedClose)
-btn_close.grid(column=4, row=19)
-
-#btn_save.config(state='normal')
+btn_close.grid(column=4, row=20)
 btn_close.config(state='normal')
 
 vFavorites = IntVar()
@@ -1156,44 +1239,44 @@ vCustom = IntVar()
 
 textboxFavorites = Checkbutton(window, text="Favorites", variable=vFavorites, command=OnFavorites, onvalue=1, offvalue=0)
 textboxFavorites.var = vFavorites
-textboxFavorites.grid(column=1,row=11)
+textboxFavorites.grid(column=1,row=12)
 
 textboxWork = Checkbutton(window, text="Work      ", variable=vWork, command=OnWork, onvalue=1, offvalue=0)
 textboxWork.var = vWork
-textboxWork.grid(column=1,row=12)
+textboxWork.grid(column=1,row=13)
 
 textboxPersonal = Checkbutton(window, text="Personal ", variable=vPersonal, command=OnPersonal, onvalue=1, offvalue=0)
 textboxPersonal.var = vPersonal
-textboxPersonal.grid(column=1,row=13)
+textboxPersonal.grid(column=1,row=14)
 
 textboxHome = Checkbutton(window, text="Home     ", variable=vHome, command=OnHome, onvalue=1, offvalue=0)
 textboxHome.var = vHome
-textboxHome.grid(column=1,row=14)
+textboxHome.grid(column=1,row=15)
 
 textboxSchool = Checkbutton(window, text="School   ", variable=vSchool, command=OnSchool, onvalue=1, offvalue=0)
 textboxSchool.var = vSchool
-textboxSchool.grid(column=2,row=11)
+textboxSchool.grid(column=2,row=12)
 
 textboxFinancial = Checkbutton(window, text="Financial", variable=vFinancial, command=OnFinancial, onvalue=1, offvalue=0)
 textboxFinancial.var = vFinancial
-textboxFinancial.grid(column=2,row=12)
+textboxFinancial.grid(column=2,row=13)
 
 textboxMail = Checkbutton(window, text="Mail       ", variable=vMail, command=OnMail, onvalue=1, offvalue=0)
 textboxMail.var = vMail
-textboxMail.grid(column=2,row=13)
+textboxMail.grid(column=2,row=14)
 
 textboxCustom = Checkbutton(window, text="Custom", variable=vCustom, command=OnCustom, onvalue=1, offvalue=0)
 textboxCustom.var = vCustom
-textboxCustom.grid(column=2,row=14)
+textboxCustom.grid(column=2,row=15)
 
 lb.bind("<Down>", OnEntryDown)
 lb.bind("<Up>", OnEntryUp)
 
 lbl_help = Label(window, text="Instructions", anchor=W, justify=CENTER, width=11)
-lbl_help.grid(column=2, row=15)
+lbl_help.grid(column=2, row=16)
 
 txt_dir = Text(window, height=5, width=30, relief=FLAT, background="light grey")
-txt_dir.grid(column=2, row=16)
+txt_dir.grid(column=2, row=17)
 txt_dir.config(state=NORMAL)
 txt_dir.delete('1.0', END)
 directions = """Select Edit with Computer on
@@ -1220,5 +1303,6 @@ selection = 0
 state = "None"
 arduinoAttached = 0
 group = 0
+showPassword = False
 
 window.mainloop()
