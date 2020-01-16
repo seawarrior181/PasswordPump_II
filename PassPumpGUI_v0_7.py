@@ -128,11 +128,11 @@ lbl_url.grid(column=1, row=6)
 lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
 lbl_style.grid(column=1, row=7)
 
-translation_table = dict.fromkeys(map(ord, '!@#$'), None)
+translation_table = dict.fromkeys(map(ord, '|~,"'), '#')
 
 def stripBadChars(unicode_line):
     unicode_line = unicode_line.translate(translation_table)
-    return(unicode_line)
+    return(unicode_line.strip("/"))
 
 def calcPosition(aPosition):
     return(aPosition + 2)
