@@ -1,1 +1,1 @@
-c:\python3\python c:\temp\software\PassPumpGUI_v0_7.py
+c:\python3\python c:\username\Desktop\PassPumpGUI_v0_7.py
