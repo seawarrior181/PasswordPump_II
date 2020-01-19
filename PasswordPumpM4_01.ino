@@ -64,31 +64,27 @@
     - = outstanding             
     x = fixed but needs testing 
     * = fixed                   
-  - Old password is getting populated with junk
-  - A forward slash (escape character) at the end of a field causes the PC UI
-    to throw an exception.
-  - When there is a tilde (~) in a field this causes the PC UI to throw an 
-    exception.
+  - It is possible to enter a duplicate account via the PasswordPump device or 
+    via a combination of the PasswordPump and the PasswordPumpGUI.
+  - If you add an account via PasswordPumpGUI and never visit the URL field,
+    garbage is shown for the URL via the PasswordPump UI.
+  - When deleting duplicate accounts (duplicate account names) corruption is 
+    introduced.
+  - Old password is getting populated with junk in unknown circumstances
   - Navigation back to previous menu needs work (EVENT_LONG_CLICK).
+  - Nail down the menu / UI layout.  Invert the top line.
   - Fix defect in FindAccountPos; ERR: 033 when importing existing account
     (intermittent) 
-  - When a user name isn't specified in a keepass export file, the password 
+  - When a user name isn't specified in a KeePass export file, the password 
     isn't populated at all (it's blank).
-  - It's possible to enter a duplicate account name when entering credentials
-    via the rotary encoder.
   - Embedded quote in a CSV import file are not getting saved to the filed e.g.
     password.
   - When you import credentials with <CR><LF> in the account name bad things
     happen.
-  - Nail down the menu / UI layout.  Invert the top line.
-  - See if you can change the font of the UI and add a fourth line.
-  - Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
-  - Get better USB cables.
   - Added account 'Add Account' and then deleted, corrupted linked list
   - Added account to the end of the linked list, corrupted linked list
   - When entering an account name 29 chars long via keyboard, nothing gets 
     entered.
-  - FixCorruption leaves the user hung without any accounts to find
   - After deleting account change the location of the menu
   - In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
@@ -96,6 +92,9 @@
   - If there are commas or double quotes in the text of a field we're trying to
     import, import breaks.
   - Some character loss when exporting to PPEXPORT.CSV and then re-importing.
+  - Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
+  - See if you can change the font of the UI and add a fourth line.
+  - FixCorruption leaves the user hung without any accounts to find
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x Should probably remove Keyboard ON/OFF from saved properties and always 
     default to Keyboard OFF; or make sure it is always OFF when backing up 
@@ -106,9 +105,13 @@
   x The linked list is occasionally becoming corrupt. Added the ability to 
     fix a corrupt linked list. Exact conditions of corruption unknown at this 
     point.
-  x we are only encrypting the first 16 characters of account name, user name 
-    and password.  The sha256 block size is 16.
   x single click after Reset brings you to alpha edit mode
+  * we are only encrypting the first 16 characters of account name, user name 
+    and password.  The sha256 block size is 16.
+  * A forward slash (escape character) at the end of a field causes the PC UI
+    to throw an exception.
+  * When there is a tilde (~) in a field this causes the PC UI to throw an 
+    exception.
   * We are only accommodating password length of 30 instead of 31 when 
     interacting with the PasswordPumpGUI.  Same problem with user names.
   * See if you can add one more char to the horizontal size of the SSD1306. (No)
@@ -204,17 +207,13 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
-  - Setting master password mode
   - Make the size of the generated password configurable.
   - Always reflect the account that's selected in the PC client on the device.
   - Somehow signal to the user when entering the master password for the first 
     time.
-  - Make the size of generated passwords configurable
+  - Implement more error codes
   - Make UN_PW_DELAY configurable
   - Dim the display when it's not in use.
-  - Build a Windows client (in python) for editing credentials; 
-    add/change/delete
-  - Implement error codes
   - Create a case.
   - Import KeePass .xml file
   - Import LastPass files
@@ -230,33 +229,35 @@
   - re-enter master password to authorize credentials reset
   - Consolidate code in the import files sections
   - A back space should be available during character input via rotary encoder.
-  - Automatic logout countdown
   ? Add a feature whereby the unit factory resets after two triple clicks, even
     if not yet authenticated. (commented out, caused problems)
   ? Add a feature whereby the unit logs out after two double clicks. (commented
     out, caused problems)
-  ? Increase the display width by 1 more (tried and this didn't work)
-  x Add website to the Python client
-  x Add an Import menu
-  x Change master password (use both 25LC256 chips for this)
-  x Backup to file should backup to a format that can be read in, and should 
-    include the groups.
   x Add a decoy password that executes a factory reset when the password plus
     the characters "FR" are supplied as the master password.
-  x Add salt for credentials, char UUID
-  x Add ability to save the old password, especially useful if a generated 
-    password is rejected when changing passwords
-  x Make saving of previous password manual
-  x add salt to the hashed master password.
-  x ensure we don't read more bytes than that which we can accommodate in the
-    buffer
-  x encrypt the user names (need to confirm by examining EEprom)
-  x encrypt the account names (need to confirm by examining EEprom)
-  x Configure how long until automatic logout
-  x Try updating write_eeprom_array() so that it's not writing byte for byte 
-    to improve write speed.
   x Enable decoy password feature, make it configurable
-  x Replace AES-128 with AES-256
+  * Automatic logout countdown
+  * Increase the display width by 1 more (tried and this didn't work)
+  * Add salt for credentials, char UUID
+  * Add ability to save the old password, especially useful if a generated 
+    password is rejected when changing passwords
+  * Make saving of previous password manual
+  * add salt to the hashed master password.
+  * ensure we don't read more bytes than that which we can accommodate in the
+    buffer
+  * encrypt the user names (need to confirm by examining EEprom)
+  * encrypt the account names (need to confirm by examining EEprom)
+  * Configure how long until automatic logout
+  * Try updating write_eeprom_array() so that it's not writing byte for byte 
+    to improve write speed.
+  * Replace AES-128 with AES-256
+  * Build a Windows client (in python) for editing credentials; 
+    add/change/delete
+  * Add website to the Python client
+  * Add an Import menu
+  * Change master password (use both 25LC256 chips for this)
+  * Backup to file should backup to a format that can be read in, and should 
+    include the groups.
   * Add a menu for selecting the number of failed logins before reset (will this
     make it easier to hack into the device?)
   * Add a setting to indicate how many failed login attempts before factory 
@@ -725,10 +726,10 @@
 #define getKeyboardFlag           read_eeprom_byte(GET_ADDR_KEYBOARD_FLAG)
 #define getRGBLEDInt              read_eeprom_byte(GET_ADDR_RGB_LED_INT)
 #define getLogoutTimeout          read_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT)
-#define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)     // The number of login attempts before we factory reset
+#define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)    // The number of login attempts before we factory reset
 #define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
 
-//#if defined(__SAMD51__) && defined(SERIAL_PORT_USBVIRTUAL)                      // Required for Serial on Zero based boards
+//#if defined(__SAMD51__) && defined(SERIAL_PORT_USBVIRTUAL)                    // Required for Serial on Zero based boards
 //  #define Serial SERIAL_PORT_USBVIRTUAL
 //#endif
 
@@ -1253,12 +1254,12 @@ boolean isGreen   = false;
 boolean isYellow  = false;
 boolean isBlue    = false;
 
-#define LEN_ALL_CHARS             88
+#define LEN_ALL_CHARS             87
 #define DEFAULT_ALPHA_EDIT_POS    33                                            // allChars is sort of unnecessary TODO: eliminate allChars?
 #define DEFAULT_STYLE_EDIT_POS    22
 
 const char allChars[LEN_ALL_CHARS] =                                            // used to edit text via rotary encoder (164 bytes)
-" ?><:';}{][+_)(*%$#!=-. 0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz«"; 
+" ?><:';}{][+_)(*%$#!=-. 0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"; 
 #define POS_Y_N_CONFIRM           14                                            // position of Y and N for the confirm menu item
 const char confirmChars[3] = "NY";                                              // used to select N(o) or Y(es) via rotary encoder to confirm a destructive action
 
@@ -3408,7 +3409,7 @@ void InitializeGlobals() {
 void ShowSplashScreen() {
     strcpy(line1DispBuff,"PasswordPump    ");
     strcpy(line2DispBuff, __DATE__);
-    strcpy(line3DispBuff,"(C)2019 Dan Murphy ");
+    strcpy(line3DispBuff,"©2020 Dan Murphy ");
     DisplayBuffer();
     delayNoBlock(ONE_SECOND * 3);                                               // Show the splash screen for 3 seconds
     BlankLine3();
@@ -3428,6 +3429,7 @@ void buttonReleasedHandler(Button2& btn) {
 
 //- Delete Account
 
+/*
 void deleteAccount(uint8_t position) {
   //DebugLN("deleteAccount()");
   DisplayToStatus("Erasing creds");
@@ -3473,6 +3475,52 @@ void deleteAccount(uint8_t position) {
   acctPosition = headPosition;
   DisplayToStatus("Credentials erased");
 }
+*/
+
+void deleteAccount(uint8_t position) {
+  //DebugLN("deleteAccount()");
+  DisplayToStatus("Erasing creds");
+
+  uint8_t prevPosition = getPrevPtr(position);                                  // get the previous account position from the linked list
+  uint8_t nextPosition = getNextPtr(position);                                  // get the next account position from the linked list
+
+  if(prevPosition != INITIAL_MEMORY_STATE_BYTE) {                               // if we're not already the head position
+    writeNextPtr(prevPosition, nextPosition);                                   // write the next account position into the next account pointer of the previous position
+  } else {
+    headPosition = nextPosition;                                                // we're deleting the head, make the next element the new head
+    writeListHeadPos();                                                         // write the head position to EEprom
+  }
+  if(nextPosition != INITIAL_MEMORY_STATE_BYTE) {                               // if we're not already the tail position
+    writePrevPtr(nextPosition, prevPosition);                                   // write the previous account position into the previous account pointer of the next position
+  } else {
+    tailPosition = prevPosition;                                                // we're deleting the dail, make the previous element the new tail
+  }
+
+  writeNextPtr(position, INITIAL_MEMORY_STATE_BYTE);                            // set the next pointer for this position to 255
+  writePrevPtr(position, INITIAL_MEMORY_STATE_BYTE);                            // set the previous pointer for this position to 255
+  //char accountName[ACCOUNT_SIZE];
+  //char username[USERNAME_SIZE];                                               
+  //char password[PASSWORD_SIZE];                                               
+  //char salt[SALT_SIZE];                                                       
+  //char website[WEBSITE_SIZE];                                                 
+  //char style[STYLE_SIZE];                                                     
+  //char oldPassword[PASSWORD_SIZE];                                            
+  for (uint8_t i = 0; i < ACCOUNT_SIZE;   i++) accountName[i] = INITIAL_MEMORY_STATE_CHAR;
+  for (uint8_t i = 0; i < USERNAME_SIZE;  i++) username[i]    = INITIAL_MEMORY_STATE_CHAR;
+  for (uint8_t i = 0; i < PASSWORD_SIZE;  i++) password[i]    = INITIAL_MEMORY_STATE_CHAR;
+  for (uint8_t i = 0; i < SALT_SIZE;      i++) salt[i]        = INITIAL_MEMORY_STATE_CHAR;
+  for (uint8_t i = 0; i < WEBSITE_SIZE;   i++) website[i]     = INITIAL_MEMORY_STATE_CHAR;
+  for (uint8_t i = 0; i < STYLE_SIZE;     i++) style[i]       = INITIAL_MEMORY_STATE_CHAR;
+  for (uint8_t i = 0; i < PASSWORD_SIZE;  i++) oldPassword[i] = INITIAL_MEMORY_STATE_CHAR;
+  eeprom_write_bytes(GET_ADDR_ACCT(position),      accountName,  ACCOUNT_SIZE);
+  eeprom_write_bytes(GET_ADDR_USER(position),      username,     USERNAME_SIZE);
+  eeprom_write_bytes(GET_ADDR_PASS(position),      password,     PASSWORD_SIZE);
+  eeprom_write_bytes(GET_ADDR_SALT(position),      salt,         SALT_SIZE);
+  eeprom_write_bytes(GET_ADDR_WEBSITE(position),   website,      WEBSITE_SIZE);
+  eeprom_write_bytes(GET_ADDR_STYLE(position),     style,        STYLE_SIZE);
+  eeprom_write_bytes(GET_ADDR_OLD_PASS(position),  oldPassword,  PASSWORD_SIZE);
+  writeGroup(position, NONE);
+}
 
 //- UUID & Salt Generation
 
@@ -3491,7 +3539,7 @@ void setUUID(char *uuid, uint8_t size, uint8_t appendNullTerm) {
           uuid[i] == '~'  ||                                                    // separator for cmdMessenger
           uuid[i] == '|'  ||                                                    // separator for cmdMessenger
           uuid[i] == '\\' ||                                                    // interpreted as escape character
-          uuid[i] == '^' ||                                                     // interpreted as escape character
+          uuid[i] == '^'  ||                                                    // interpreted as escape character
           uuid[i] == '/'    )                                                   // escape character
       uuid[i] = random(33,126);
   }
@@ -4108,7 +4156,8 @@ void readAcctFromEEProm(uint8_t pos, char *buf) {
   //DebugLN("readAcctFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_ACCT(pos), buf, ACCOUNT_SIZE);
-    if (buf[0] == INITIAL_MEMORY_STATE_CHAR) {                                  // 
+    if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||                                  
+        buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {
       buf[0] = NULL_TERM;                                                       // 8 bit twos complement of 255 or 0xFF
     } else {
       readSaltFromEEProm(pos, salt);
@@ -4132,7 +4181,8 @@ void readUserFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR) {
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
+      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect 
     buf[0] = NULL_TERM;
   } else {
     decrypt32(buf, buf);
@@ -4146,7 +4196,8 @@ void readSaltFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR) {
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
+      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect
     buf[0] = NULL_TERM;
   } 
 }
@@ -4158,7 +4209,8 @@ void readWebSiteFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR) {
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
+      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect
     buf[0] = NULL_TERM;
   } else {
     decrypt96(buf, buf);
@@ -4172,7 +4224,7 @@ void readStyleFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR) buf[0] = NULL_TERM;
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR || buf[0] == INITIAL_MEMORY_STATE_BYTE) buf[0] = NULL_TERM;
 }
 
 void readPassFromEEProm(uint8_t pos, char *buf) {                               // TODO: reduce readPassFromEEProm, readUserFromEEProm and readAcctFromEEProm to a single function.
@@ -4182,7 +4234,8 @@ void readPassFromEEProm(uint8_t pos, char *buf) {                               
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR) {
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
+      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect
     buf[0] = NULL_TERM;
   } else {
     decrypt32(buf, buf);
@@ -4196,7 +4249,8 @@ void readOldPassFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR) {
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
+      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect
     buf[0] = NULL_TERM;                                                         // 8 bit twos complement of 255 or 0xFF
   } else {
     decrypt32(buf, buf);
