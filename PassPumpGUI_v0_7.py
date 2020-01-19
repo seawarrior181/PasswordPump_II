@@ -822,7 +822,7 @@ def ImportFilePasswordPump():
                         txt_user.insert(0,stripBadChars(row['username']))
                         txt_pass.insert(0,stripBadChars(row['password']))
                         txt_url.insert(0,stripBadChars(row['url']))
-                        txt_style.insert(0,stripBadChars(row['style']))
+                        #txt_style.insert(0,stripBadChars(row['style']))
                         group = int(row['group'])
                         SetGroupCheckBoxes()
                         window.update()
