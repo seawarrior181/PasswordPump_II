@@ -91,7 +91,7 @@ from tendo import singleton
 import string
 from random import *
 
-me = singleton.SingleInstance() # will sys.exit(-1) if other instance is running
+me = singleton.SingleInstance()                                                # will sys.exit(-1) if other instance is running
 
 global c
 window = Tk()
@@ -241,7 +241,9 @@ def clickedOpen():
     btn_delete.config(state='normal')
     btn_generate.config(state='normal')
     btn_flip_pw.config(state='normal')
-    updateDirections("Opened port")
+    file.configure(state="normal")
+    #backup.configure(state="normal")
+    #updateDirections("Opened port")
 
 def updateDirections(directions):
     txt_dir.delete('1.0', END)
@@ -1211,22 +1213,26 @@ txt_pass.config(show="*")
 txt_old_pass.config(state='normal')
 txt_url.config(state='normal')
 
-menu = Menu(window)
-window.config(menu=menu)
-file = Menu(menu)
-file.add_command(label = 'Import from Chrome', command = ImportFileChrome)
-file.add_command(label = 'Import from KeePass', command = ImportFileKeePass)
-file.add_command(label = 'Import from PasswordPump', command = ImportFilePasswordPump)
+menubar = Menu(window)
+window.config(menu=menubar)
+file = Menu(menubar)
+export = Menu(menubar)
+file.add_cascade(label = 'Import', menu=export)
+export.add_command(label = 'Import from Chrome', command = ImportFileChrome)
+export.add_command(label = 'Import from KeePass', command = ImportFileKeePass)
+export.add_command(label = 'Import from PasswordPump', command = ImportFilePasswordPump)
 file.add_command(label = 'Export to PasswordPump', command = ExportFile)
 file.add_command(label = 'Insert', command = clickedInsert)
 file.add_command(label = 'Delete', command = clickedDelete)
 file.add_command(label = 'Exit', command = clickedClose)
-menu.add_cascade(label = 'File', menu = file)
+menubar.add_cascade(label = 'File', menu = file)
 
-backup = Menu(menu)
+backup = Menu(menubar)
 backup.add_command(label = 'Backup EEprom', command = BackupEEprom)
 backup.add_command(label = 'Restore EEprom', command = RestoreEEprom)
-menu.add_cascade(label = 'Backup/Restore', menu = backup)
+menubar.add_cascade(label = 'Backup/Restore', menu = backup)
+#file.configure(state="disabled")
+#backup.configure(state="disabled")
 
 styles = ["0 - Tab","1 - Return"]
 cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
