@@ -176,6 +176,8 @@ def clickedOpen():
                 ["kError",""],
                 ["pyDeleteAccount","b"],
                 ["pyExit",""],
+                ["pyBackup",""],
+                ["pyRestore",""],
                 ["pyGetAccountCount",""]]
     global c                                                                   # Initialize the messenger
     c = PyCmdMessenger.CmdMessenger(arduino, commands)
@@ -574,7 +576,7 @@ def OnEntryDown(event):
         selection += 1
         lb.select_set(selection)                                               # Adds one or more items to the selection.
         lb.see(selection)                                                      # Makes sure the given list index is visible.
-        #lb.activate(selection)                                                 # Activates the given index (it will be marked with an underline).
+        #lb.activate(selection)                                                # Activates the given index (it will be marked with an underline).
         clickedLoad()                                                          # calls getRecord()
 
 def OnEntryUpNoEvent():
@@ -587,7 +589,7 @@ def OnEntryUp(event):
         selection -= 1
         lb.select_set(selection)                                               # Adds one or more items to the selection.
         lb.see(selection)                                                      # Makes sure the given list index is visible.
-        #lb.activate(selection)                                                 # Activates the given index (it will be marked with an underline).
+        #lb.activate(selection)                                                # Activates the given index (it will be marked with an underline).
         clickedLoad()                                                          # calls getRecord()
 
 def clickedInsert():
@@ -636,7 +638,7 @@ def clickedLoad():
 def clickedDelete():
     if tkinter.messagebox.askyesno("Delete", "Delete this record?"):
         global selection
-        #lb.delete(ANCHOR)                                                      # delete the account from the listbox
+        #lb.delete(ANCHOR)                                                     # delete the account from the listbox
         lb.delete(selection)
         global position
         c.send("pyDeleteAccount",calcPosition(position))
@@ -760,6 +762,42 @@ def on_select(event=None):
 def on_style_select(event=None):
     clickedStyle()
 
+def BackupEEprom():
+    if tkinter.messagebox.askyesno("Backup", "Backup the primary EEprom?"):
+        updateDirections("Backing up EEprom")
+        global selection
+        global position
+        c.send("pyBackup")
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        position = response_list[0]                                            # returns head position
+        getRecord()
+        lb.select_clear(selection)                                             # Removes one or more items from the selection.
+        selection = 0
+        lb.select_set(selection)
+        lb.see(selection)
+        lb.activate(selection)
+        updateDirections("Finished backing up EEprom.")
+
+def RestoreEEprom():
+    if tkinter.messagebox.askyesno("Restore", "Restore backup to primary EEprom?"):
+        updateDirections("Restoring EEprom")
+        global selection
+        global position
+        c.send("pyRestore")
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        position = response_list[0]                                            # returns head position
+        getRecord()
+        lb.select_clear(selection)                                             # Removes one or more items from the selection.
+        selection = 0
+        lb.select_set(selection)
+        lb.see(selection)
+        lb.activate(selection)
+        updateDirections("Finished restoring EEprom.")
+
 def ImportFileChrome():
     name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
                            filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
@@ -826,7 +864,7 @@ def ImportFilePasswordPump():
                         group = int(row['group'])
                         SetGroupCheckBoxes()
                         window.update()
-                        clickedAcct()                                              # sets position = FindAccountPos()
+                        clickedAcct()                                          # sets position = FindAccountPos()
                         clickedUser()
                         clickedPass()
                         clickedStyle()
@@ -1179,11 +1217,16 @@ file = Menu(menu)
 file.add_command(label = 'Import from Chrome', command = ImportFileChrome)
 file.add_command(label = 'Import from KeePass', command = ImportFileKeePass)
 file.add_command(label = 'Import from PasswordPump', command = ImportFilePasswordPump)
-#file.add_command(label = 'Export to Chrome', command = ExportFile)
-#file.add_command(label = 'Export to KeePass', command = ExportFile)
 file.add_command(label = 'Export to PasswordPump', command = ExportFile)
+file.add_command(label = 'Insert', command = clickedInsert)
+file.add_command(label = 'Delete', command = clickedDelete)
 file.add_command(label = 'Exit', command = clickedClose)
 menu.add_cascade(label = 'File', menu = file)
+
+backup = Menu(menu)
+backup.add_command(label = 'Backup EEprom', command = BackupEEprom)
+backup.add_command(label = 'Restore EEprom', command = RestoreEEprom)
+menu.add_cascade(label = 'Backup/Restore', menu = backup)
 
 styles = ["0 - Tab","1 - Return"]
 cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
