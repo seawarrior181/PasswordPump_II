@@ -1340,6 +1340,8 @@ enum                                                                            
   kError                ,                                                       // Command to message that an error has occurred
   pyDeleteAccount       ,
   pyExit                ,
+  pyBackup              ,
+  pyRestore             ,
   pyGetAccountCount
 };
 
@@ -2941,6 +2943,7 @@ void ProcessEvent() {                                                           
 
   } else if (event == EVENT_RESTORE) {
     ConfirmChoice(STATE_CONFIRM_RESTORE);
+
   } else if (event == EVENT_RESET) {
     ConfirmChoice(STATE_CONFIRM_RESET);
 
@@ -3409,7 +3412,7 @@ void InitializeGlobals() {
 void ShowSplashScreen() {
     strcpy(line1DispBuff,"PasswordPump    ");
     strcpy(line2DispBuff, __DATE__);
-    strcpy(line3DispBuff,"©2020 Dan Murphy ");
+    strcpy(line3DispBuff,"(c)2020 Dan Murphy ");
     DisplayBuffer();
     delayNoBlock(ONE_SECOND * 3);                                               // Show the splash screen for 3 seconds
     BlankLine3();
@@ -3519,7 +3522,10 @@ void deleteAccount(uint8_t position) {
   eeprom_write_bytes(GET_ADDR_WEBSITE(position),   website,      WEBSITE_SIZE);
   eeprom_write_bytes(GET_ADDR_STYLE(position),     style,        STYLE_SIZE);
   eeprom_write_bytes(GET_ADDR_OLD_PASS(position),  oldPassword,  PASSWORD_SIZE);
-  writeGroup(position, NONE);
+  writeGroup(position, INITIAL_MEMORY_STATE_BYTE);                              
+  acctCount--;
+  acctPosition = headPosition;
+  DisplayToStatus("Credentials erased");
 }
 
 //- UUID & Salt Generation
@@ -5853,6 +5859,8 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyGetNextFreePos      , OnGetNextFreePos);
   cmdMessenger.attach(pyDeleteAccount       , OnDeleteAccount);
   cmdMessenger.attach(pyExit                , OnExit);
+  cmdMessenger.attach(pyBackup              , OnBackup);
+  cmdMessenger.attach(pyRestore             , OnRestore);
   cmdMessenger.attach(pyGetAccountCount     , OnGetAccountCount);
 }
 
@@ -6164,6 +6172,18 @@ void OnDeleteAccount(){
 
 void OnGetAccountCount(){
   cmdMessenger.sendBinCmd(kAcknowledge, acctCount);                             // sending a single byte  ????????manipulate acctPosition here?
+}
+
+void OnBackup(){
+  CopyEEPromToBackup();
+  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  setPurple();
+}
+
+void OnRestore(){
+  RestoreEEPromBackup();
+  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  setPurple();
 }
 
 void OnExit() {
