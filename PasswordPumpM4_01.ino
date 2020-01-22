@@ -998,7 +998,7 @@ char * mainMenu[] =               {              "Master Password",             
                                                  "Edit with Computer",          // edit credentials with the python UI
                                                  "Add Account",
                                                  "Logout",                      // locks the user out until master password is re-entered
-                                                 "Backup/Restore/Imprt",        // Backup, Restore a backup or Import a file
+                                                 "Backup/Restore",              // Backup, Restore a backup 
 //                                               "Fix Corruption",              // fix any corruption in the linked list
                                                  "Settings",                    // navigate to the settings menu
                                                  "Factory Reset"              };// factory reset; erases all credentials from memory
@@ -1182,13 +1182,13 @@ const char * const groupMenu[] = {               "Favorites",
 #define ALL_GROUPS                FAVORITES|WORK|PERSONAL|HOME|SCHOOL|FINANCIAL|MAIL|CUSTOM
 
 #define FILE_MENU_NUMBER          10
-#define FILE_MENU_ELEMENTS        6
+#define FILE_MENU_ELEMENTS        2
 const char * const fileMenu[] = {                "Backup EEprom",               // duplicate the external EEprom
                                                  "Restore EEprm Backup",        // copies the content of the secondary EEprom back to the primary, overwriting.
-                                                 "Backup to .CSV File",         // sends all credential out through the keyboard for capture in an editor
-                                                 "Import PasswordPump",         // import from the PasswordPump CSV file
-                                                 "Import Chrome",               // import from the Chrome passwords export file
-                                                 "Import KeePass"               // import KeePass csv file
+                                                 //"Backup to .CSV File",       // sends all credential out through the keyboard for capture in an editor
+                                                 //"Import PasswordPump",       // import from the PasswordPump CSV file
+                                                 //"Import Chrome",             // import from the Chrome passwords export file
+                                                 //"Import KeePass"             // import KeePass csv file
                                                  ""                           };
 #define FILE_BACKUP_EEPROM        0
 #define FILE_RESTORE_BACKUP       1
@@ -2527,21 +2527,21 @@ void ProcessEvent() {                                                           
         case FILE_BACKUP_EEPROM:                                                // Backup EEprom
           event = EVENT_BACKUP;
           break;
-        case FILE_BACKUP_ALL:                                                   // Send all creds out through the keyboard for capture in a text editor
-          event = EVENT_BACKUP_TO_FILE;
-          break;
+        //case FILE_BACKUP_ALL:                                                 // Send all creds out through the keyboard for capture in a text editor
+        //  event = EVENT_BACKUP_TO_FILE;
+        //  break;
         case FILE_RESTORE_BACKUP:                                               // Restore the backup EEprom to the primary
           event = EVENT_RESTORE;
           break;
-        case FILE_IMPORT_PP_CSV:                                                // Import the PPEXPORT.csv file into EEProm
-          event = EVENT_IMPORT_PP_CSV;
-          break;
-        case FILE_IMPORT_CP_CSV:                                                // Import the CPEXPORT.csv file into EEProm
-          event = EVENT_IMPORT_CP_CSV;
-          break;
-        case FILE_IMPORT_KEEPASS_CSV:                                           // Import the KeePassExp.csv file into EEProm
-          event = EVENT_IMPORT_KEEPASS_CSV;
-          break;
+        //case FILE_IMPORT_PP_CSV:                                              // Import the PPEXPORT.csv file into EEProm
+        //  event = EVENT_IMPORT_PP_CSV;
+        //  break;
+        //case FILE_IMPORT_CP_CSV:                                              // Import the CPEXPORT.csv file into EEProm
+        //  event = EVENT_IMPORT_CP_CSV;
+        //  break;
+        //case FILE_IMPORT_KEEPASS_CSV:                                         // Import the KeePassExp.csv file into EEProm
+        //  event = EVENT_IMPORT_KEEPASS_CSV;
+        //  break;
         default:
           DisplayToError("ERR: 038");                                           // invalid position in file menu
           event = EVENT_NONE;
