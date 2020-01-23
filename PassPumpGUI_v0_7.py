@@ -46,6 +46,9 @@
 #   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
+# - Factory reset
+# - Settings (Keyboard, Show Password, Decoy Password, RGB LED Intensity,
+#   Timeout Minutes, Login Attempts, Change Master Password)
 # * Respect the show password setting
 # * Add old password to PasswordPump format
 # * Save to old password
@@ -823,10 +826,15 @@ def ImportFileChrome():
                     txt_pass.insert(0,stripBadChars(row['password']))
                     txt_url.insert(0,stripBadChars(row['url']))
                     window.update()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedAcct()                                              # sets position = FindAccountPos()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedUser()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedPass()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedStyle()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedUrl_New()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
@@ -866,11 +874,17 @@ def ImportFilePasswordPump():
                         group = int(row['group'])
                         SetGroupCheckBoxes()
                         window.update()
+                        time.sleep(0.10)                                       # to eliminate intermittent failure
                         clickedAcct()                                          # sets position = FindAccountPos()
+                        time.sleep(0.10)                                       # to eliminate intermittent failure
                         clickedUser()
+                        time.sleep(0.10)                                       # to eliminate intermittent failure
                         clickedPass()
+                        time.sleep(0.10)                                       # to eliminate intermittent failure
                         clickedStyle()
+                        time.sleep(0.10)                                       # to eliminate intermittent failure
                         clickedUrl_New()
+                        time.sleep(0.10)                                       # to eliminate intermittent failure
                         updateGroup()
                         updateDirections("Record saved.")
                 updateDirections("All records saved.")
@@ -904,10 +918,15 @@ def ImportFileKeePass():
                     txt_pass.insert(0,stripBadChars(row['Password']))
                     txt_url.insert(0,stripBadChars(row['Web Site']))
                     window.update()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedAcct()                                              # sets position = FindAccountPos()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedUser()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedPass()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedStyle()
+                    time.sleep(0.10)                                           # to eliminate intermittent failure
                     clickedUrl_New()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
