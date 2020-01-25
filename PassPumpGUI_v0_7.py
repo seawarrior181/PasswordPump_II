@@ -18,6 +18,7 @@
 # * = fixed
 #
 # Defects:
+# - During import of PasswordPump format, the username is occasionally dropped
 # * Similarly, if any of the fields have an embedded | (pipe) character the
 #   fields in the PasswordPumpGUI can get out of synch; e.g. account name
 #   appears in the username field.
@@ -49,6 +50,7 @@
 # - Factory reset
 # - Settings (Keyboard, Show Password, Decoy Password, RGB LED Intensity,
 #   Timeout Minutes, Login Attempts, Change Master Password)
+# - Configurable Generate Password length
 # * Respect the show password setting
 # * Add old password to PasswordPump format
 # * Save to old password
@@ -131,7 +133,7 @@ lbl_url.grid(column=1, row=6)
 lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
 lbl_style.grid(column=1, row=7)
 
-translation_table = dict.fromkeys(map(ord, '|~,"'), '#')
+translation_table = dict.fromkeys(map(ord, '|~"'), '#')
 
 def stripBadChars(unicode_line):
     unicode_line = unicode_line.translate(translation_table)
@@ -826,15 +828,15 @@ def ImportFileChrome():
                     txt_pass.insert(0,stripBadChars(row['password']))
                     txt_url.insert(0,stripBadChars(row['url']))
                     window.update()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedAcct()                                              # sets position = FindAccountPos()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedUser()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedPass()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedStyle()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedUrl_New()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
@@ -874,17 +876,17 @@ def ImportFilePasswordPump():
                         group = int(row['group'])
                         SetGroupCheckBoxes()
                         window.update()
-                        time.sleep(0.10)                                       # to eliminate intermittent failure
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
                         clickedAcct()                                          # sets position = FindAccountPos()
-                        time.sleep(0.10)                                       # to eliminate intermittent failure
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
                         clickedUser()
-                        time.sleep(0.10)                                       # to eliminate intermittent failure
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
                         clickedPass()
-                        time.sleep(0.10)                                       # to eliminate intermittent failure
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
                         clickedStyle()
-                        time.sleep(0.10)                                       # to eliminate intermittent failure
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
                         clickedUrl_New()
-                        time.sleep(0.10)                                       # to eliminate intermittent failure
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
                         updateGroup()
                         updateDirections("Record saved.")
                 updateDirections("All records saved.")
@@ -918,15 +920,15 @@ def ImportFileKeePass():
                     txt_pass.insert(0,stripBadChars(row['Password']))
                     txt_url.insert(0,stripBadChars(row['Web Site']))
                     window.update()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedAcct()                                              # sets position = FindAccountPos()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedUser()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedPass()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedStyle()
-                    time.sleep(0.10)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                           # to eliminate intermittent failure
                     clickedUrl_New()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
