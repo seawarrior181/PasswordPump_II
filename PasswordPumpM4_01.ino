@@ -64,19 +64,17 @@
     - = outstanding             
     x = fixed but needs testing 
     * = fixed                   
+  - Certain user names are disappearing upon entry; e.g. Chase.com seawarrior181
+    I suspect it's got something to do with the first char of the encrypted 
+    password.
   - It is possible to enter a duplicate account via the PasswordPump device or 
     via a combination of the PasswordPump and the PasswordPumpGUI.
   - If you add an account via PasswordPumpGUI and never visit the URL field,
     garbage is shown for the URL via the PasswordPump UI.
   - When deleting duplicate accounts (duplicate account names) corruption is 
     introduced.
-  - Old password is getting populated with junk in unknown circumstances
   - Navigation back to previous menu needs work (EVENT_LONG_CLICK).
   - Nail down the menu / UI layout.  Invert the top line.
-  - Fix defect in FindAccountPos; ERR: 033 when importing existing account
-    (intermittent) 
-  - When a user name isn't specified in a KeePass export file, the password 
-    isn't populated at all (it's blank).
   - Embedded quote in a CSV import file are not getting saved to the filed e.g.
     password.
   - When you import credentials with <CR><LF> in the account name bad things
@@ -89,11 +87,7 @@
   - In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
-  - If there are commas or double quotes in the text of a field we're trying to
-    import, import breaks.
-  - Some character loss when exporting to PPEXPORT.CSV and then re-importing.
   - Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
-  - See if you can change the font of the UI and add a fourth line.
   - FixCorruption leaves the user hung without any accounts to find
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x Should probably remove Keyboard ON/OFF from saved properties and always 
@@ -106,6 +100,16 @@
     fix a corrupt linked list. Exact conditions of corruption unknown at this 
     point.
   x single click after Reset brings you to alpha edit mode
+  * Old password is getting populated with junk in unknown circumstances
+  * If there are commas or double quotes in the text of a field we're trying to
+    import, import breaks.
+  * When a user name isn't specified in a KeePass export file, the password 
+    isn't populated at all (it's blank).(no longer relevant)
+  * Some character loss when exporting to PPEXPORT.CSV and then re-importing.
+    (no longer relevant)
+  * Fix defect in FindAccountPos; ERR: 033 when importing existing account
+    (intermittent) (no longer relevant)
+  * See if you can change the font of the UI and add a fourth line. (can't)
   * we are only encrypting the first 16 characters of account name, user name 
     and password.  The sha256 block size is 16.
   * A forward slash (escape character) at the end of a field causes the PC UI
@@ -207,6 +211,7 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
+  - Make it work over bluetooth
   - Make the size of the generated password configurable.
   - Always reflect the account that's selected in the PC client on the device.
   - Somehow signal to the user when entering the master password for the first 
@@ -628,12 +633,9 @@
     Indicate Style                 STATE_EDIT_CREDS_MENU
     GeneratePasswrd                STATE_EDIT_CREDS_MENU
   Logout                           STATE_SHOW_MAIN_MENU
-  Backup/Restore/Imprt
+  Backup/Restore
     Backup EEprom [confirm]        STATE_SHOW_MAIN_MENU->STATE_CONFIRM_BACK_EEPROM
     Restore EEprm Backup [confirm] STATE_SHOW_MAIN_MENU->STATE_CONFIRM_RESTORE
-    Backup to .CSV File
-    Import PasswordPump
-    Import KeePass
   Settings
     Keyboard ON/OFF                STATE_SHOW_MAIN_MENU
     Show Passwrd ON/OFF            STATE_SHOW_MAIN_MENU
@@ -706,7 +708,8 @@
 #include <AES.h>                                                                // for encrypting credentials https://rweather.github.io/arduinolibs/index.html
 #include <SPI.h>                                                                // https://github.com/SpenceKonde/arduino-tiny-841/blob/master/avr/libraries/SPI/SPI.cpp
 #include <Wire.h>
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_SSD1306.h>                                                   // for SSD1306 monochrome 128x64 and 128x32 OLEDs https://github.com/adafruit/Adafruit_SSD1306 
+#include <Adafruit_GFX.h>
 #include "SdFat.h"                                                              // https://github.com/greiman/SdFat
 #include "Adafruit_SPIFlash.h"                                                  // https://github.com/adafruit/Adafruit_SPIFlash
 #include "CmdMessenger.h"
@@ -1574,6 +1577,7 @@ void setup() {                                                                  
   }
                                                                                 // Show initial display buffer contents on the screen --
                                                                                 // the library initializes this with an Adafruit splash screen.
+  ScrollPasswordPump();
   oled.display();
   //delayNoBlock(2000);                                                         // Pause for 2 seconds
   oled.clearDisplay();
@@ -2797,7 +2801,7 @@ void ProcessEvent() {                                                           
     elements = FILE_MENU_ELEMENTS;
     machineState = STATE_MENU_FILE;
     position = 0;
-    ShowMenu(position, currentMenu,"Backup/Restore/Imprt");
+    ShowMenu(position, currentMenu,"Backup/Restore");
     event = EVENT_NONE;
 //  } else if (event == EVENT_SHOW_FIND_BY_GROUP) {                             // show the find by group
 
@@ -2978,6 +2982,19 @@ void ProcessEvent() {                                                           
   } else {
     DisplayToError("ERR: 007");
   }
+}
+
+void ScrollPasswordPump(void) {
+  oled.clearDisplay();
+  oled.setTextSize(1);                                                          // Draw 2X-scale text
+  oled.setTextColor(WHITE);
+  oled.setCursor(10, 0);
+  oled.println(F("PasswordPump"));
+  oled.display();                                                               // Show initial text
+  delay(100);
+  oled.startscrollright(0x00, 0x0F);
+  delay(3000);
+  oled.stopscroll();
 }
 
 void setupStateEnterMasterPassword() {
@@ -4162,8 +4179,7 @@ void readAcctFromEEProm(uint8_t pos, char *buf) {
   //DebugLN("readAcctFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_ACCT(pos), buf, ACCOUNT_SIZE);
-    if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||                                  
-        buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {
+    if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {                                 
       buf[0] = NULL_TERM;                                                       // 8 bit twos complement of 255 or 0xFF
     } else {
       readSaltFromEEProm(pos, salt);
@@ -4187,8 +4203,7 @@ void readUserFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
-      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect 
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR ) {
     buf[0] = NULL_TERM;
   } else {
     decrypt32(buf, buf);
@@ -4202,8 +4217,7 @@ void readSaltFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
-      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {
     buf[0] = NULL_TERM;
   } 
 }
@@ -4215,8 +4229,7 @@ void readWebSiteFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
-      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {
     buf[0] = NULL_TERM;
   } else {
     decrypt96(buf, buf);
@@ -4230,7 +4243,7 @@ void readStyleFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR || buf[0] == INITIAL_MEMORY_STATE_BYTE) buf[0] = NULL_TERM;
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR) buf[0] = NULL_TERM;
 }
 
 void readPassFromEEProm(uint8_t pos, char *buf) {                               // TODO: reduce readPassFromEEProm, readUserFromEEProm and readAcctFromEEProm to a single function.
@@ -4240,8 +4253,7 @@ void readPassFromEEProm(uint8_t pos, char *buf) {                               
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
-      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {
     buf[0] = NULL_TERM;
   } else {
     decrypt32(buf, buf);
@@ -4255,8 +4267,7 @@ void readOldPassFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ||
-      buf[0] == INITIAL_MEMORY_STATE_BYTE    ) {                                // TODO: this is probably incorrect
+  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {
     buf[0] = NULL_TERM;                                                         // 8 bit twos complement of 255 or 0xFF
   } else {
     decrypt32(buf, buf);
