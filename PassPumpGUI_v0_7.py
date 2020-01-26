@@ -18,7 +18,7 @@
 # * = fixed
 #
 # Defects:
-# - During import of PasswordPump format, the username is occasionally dropped
+# * During import of PasswordPump format, the username is occasionally dropped
 # * Similarly, if any of the fields have an embedded | (pipe) character the
 #   fields in the PasswordPumpGUI can get out of synch; e.g. account name
 #   appears in the username field.
@@ -133,7 +133,7 @@ lbl_url.grid(column=1, row=6)
 lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
 lbl_style.grid(column=1, row=7)
 
-translation_table = dict.fromkeys(map(ord, '|~"'), '#')
+translation_table = dict.fromkeys(map(ord, ',|~"'), '#')
 
 def stripBadChars(unicode_line):
     unicode_line = unicode_line.translate(translation_table)
@@ -751,8 +751,8 @@ def getRecord():
     except UnicodeDecodeError as ude:
         updateDirections("UnicodeDecodeError during pyReadGroup in getRecord(); " + str(ude))
         group = 0
-    except Struct.error as e:
-        updateDirections("Struct.error encountered after pyReadGroup in getRecord(); Group: " + str(group) + " " + str(e))
+    except Exception as e:
+        updateDirections("Exception encountered after pyReadGroup in getRecord(); Group: " + str(group) + " " + str(e))
         group = 0
     SetGroupCheckBoxes()
 
@@ -857,20 +857,22 @@ def ImportFilePasswordPump():
     global group
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
-            fieldnames = ['accountname', 'username', 'password', 'url', 'style', 'group']
+            fieldnames = ['accountname', 'username', 'password', 'oldpassword', 'url', 'style', 'group']
             reader = csv.DictReader(csvfile, fieldnames=fieldnames)
             try:
                 for row in reader:
                     #print(row)
-                    #print(row['accountname'], row['username'], row['password'], row['url'], row['style'], row['group'])
+                    #print(row['accountname'], row['username'], row['password'], row['oldpassword'], row['url'], row['style'], row['group'])
                     txt_acct.delete(0, END)
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
+                    txt_old_pass.delete(0, END)
                     txt_url.delete(0, END)
                     txt_acct.insert(0,stripBadChars(row['accountname']))
                     if (txt_acct.get() != 'accountname'):                      # to skip the header if there is one
                         txt_user.insert(0,stripBadChars(row['username']))
                         txt_pass.insert(0,stripBadChars(row['password']))
+                        txt_pass.insert(0,stripBadChars(row['oldpassword']))
                         txt_url.insert(0,stripBadChars(row['url']))
                         #txt_style.insert(0,stripBadChars(row['style']))
                         group = int(row['group'])
@@ -882,6 +884,8 @@ def ImportFilePasswordPump():
                         clickedUser()
                         time.sleep(0.15)                                       # to eliminate intermittent failure
                         clickedPass()
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
+                        clickedOldPass()
                         time.sleep(0.15)                                       # to eliminate intermittent failure
                         clickedStyle()
                         time.sleep(0.15)                                       # to eliminate intermittent failure
@@ -949,7 +953,7 @@ def ExportFile():
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, mode='w') as pp_file:
             pp_writer = csv.writer(pp_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-            pp_writer.writerow(['accountname', 'username', 'password', 'url', 'style', 'group'])
+            pp_writer.writerow(['accountname', 'username', 'password', 'oldpassword', 'url', 'style', 'group'])
             global position
             global head
             c.send("pyReadHead")  # Get the list head
@@ -1005,6 +1009,21 @@ def ExportFile():
                         updateDirections("Exception in pyReadPassword; " + str(e))
                         password = "Exception"
 
+                    c.send("pyReadOldPassword", calcPosition(position))
+                    try:
+                        response = c.receive()
+                        oldpassword_list = response[1]
+                        oldpassword = stripBadChars(oldpassword_list[0])
+                    except UnicodeDecodeError as e:
+                        updateDirections("UnicodeDecodeError in pyReadOldPassword; " + str(e))
+                        oldpassword = "UnicodeDecodeError"
+                    except ValueError as ve:
+                        updateDirections("ValueError in pyReadOldPassword; " + str(ve))
+                        oldpassword = "ValueError"
+                    except Exception as e:
+                        updateDirections("Exception in pyReadOldPassword; " + str(e))
+                        oldpassword = "Exception"
+
                     c.send("pyReadURL", calcPosition(position))
                     try:
                         response = c.receive()
@@ -1050,7 +1069,7 @@ def ExportFile():
                         updateDirections("Exception in pyReadGroup; " + str(e))
                         group = 0
 
-                    pp_writer.writerow([accountName, userName, password, url, style, group])
+                    pp_writer.writerow([accountName, userName, password, oldpassword, url, style, group])
 
                     c.send("pyGetNextPos", calcPosition(position))  # calls getNextPtr(acctPosition) in C program
                     try:
