@@ -7,7 +7,7 @@
   Date:         2019/07/26
   Device:       Adafruit ItsyBitsy M4 Express‎
   MCU:          ATSAMD51J19 Cortex M4 processor
-  Language:     Arduino C
+  Language:     Arduino C++
   Memory:       512KB Flash and 192KB RAM
   EEprom:       2MB of SPI Flash (not used)
   Clock Speed:  120MHz
@@ -774,7 +774,7 @@
 
 #define ONE_SECOND                1000UL                                        // in microseconds
 
-#define INITIAL_MEMORY_STATE_CHAR -1                                            // 11111111 binary twos complement, -1 decimal, 0xFF hex.  When factory fresh all bytes in EEprom memory = 0xFF.
+#define INITIAL_MEMORY_STATE_CHAR -1                                            // 11111111 binary twos complement, -1 decimal, 0xFF hex.  When factory fresh all bytes in EEprom memory = 0xFF.  char is signed by default. byte is unsigned.
 #define INITIAL_MEMORY_STATE_BYTE 0xFF                                          // 11111111 binary twos complement, -1 decimal, 0xFF hex.  When factory fresh all bytes in EEprom memory = 0xFF. 255 unsigned decimal.
 #define NULL_TERM                 0x00                                          // The null terminator, NUL, ASCII 0, or '\0'                 
 
@@ -1422,10 +1422,10 @@ void sha256Hash(char *password);
 void encrypt32Bytes(char *outBuffer, char *inBuffer);
 void decrypt32(char *outBuffer, char *inBuffer);
 
-void writeAllToEEProm(char *accountName,                                        // TODO: remove this, it's not used
-                      char *username, 
-                      char *password, 
-                      uint8_t pos) ;
+//void writeAllToEEProm(char *accountName,                                      // TODO: remove this, it's not used
+//                      char *username, 
+//                      char *password, 
+//                      uint8_t pos) ;
 uint8_t countAccounts() ;
 uint8_t getNextFreeAcctPos(void) ;
 void readAcctFromEEProm(uint8_t pos, char *buf);                                // read the account from EEprom and decrypt it
@@ -2988,10 +2988,9 @@ void ScrollPasswordPump(void) {
   oled.clearDisplay();
   oled.setTextSize(1);                                                          // Draw 2X-scale text
   oled.setTextColor(WHITE);
-  oled.setCursor(10, 0);
+  oled.setCursor(0, LINE_2_POS);
   oled.println(F("PasswordPump"));
   oled.display();                                                               // Show initial text
-  delay(100);
   oled.startscrollright(0x00, 0x0F);
   delay(3000);
   oled.stopscroll();
@@ -3562,7 +3561,7 @@ void setUUID(char *uuid, uint8_t size, uint8_t appendNullTerm) {
           uuid[i] == '~'  ||                                                    // separator for cmdMessenger
           uuid[i] == '|'  ||                                                    // separator for cmdMessenger
           uuid[i] == '\\' ||                                                    // interpreted as escape character
-          uuid[i] == '^'  ||                                                    // interpreted as escape character
+          uuid[i] == '^'  ||                                                    // 
           uuid[i] == '/'    )                                                   // escape character
       uuid[i] = random(33,126);
   }
@@ -4163,15 +4162,15 @@ void decrypt96(char *outBuffer, char *inBuffer) {                               
 
 //- EEPROM functions
 
-void writeAllToEEProm(char *accountName,                                        // TODO: check to see if this is used.  If so add website.
-                      char *username, 
-                      char *password, 
-                      uint8_t pos)        {                                     // used by delete account and factory reset.
-  //DebugLN("writeAllToEEProm()");
-  eeprom_write_bytes(GET_ADDR_ACCT(pos), accountName, ACCOUNT_SIZE);
-  eeprom_write_bytes(GET_ADDR_USER(pos), username, USERNAME_SIZE);
-  eeprom_write_bytes(GET_ADDR_PASS(pos), password, PASSWORD_SIZE);
-}
+//void writeAllToEEProm(char *accountName,                                        // TODO: check to see if this is used.  If so add website.
+//                      char *username, 
+//                      char *password, 
+//                      uint8_t pos)        {                                     // used by delete account and factory reset.
+//  //DebugLN("writeAllToEEProm()");
+//  eeprom_write_bytes(GET_ADDR_ACCT(pos), accountName, ACCOUNT_SIZE);
+//  eeprom_write_bytes(GET_ADDR_USER(pos), username, USERNAME_SIZE);
+//  eeprom_write_bytes(GET_ADDR_PASS(pos), password, PASSWORD_SIZE);
+//}
 
 //- Read Attributes from EEprom
 
@@ -4179,8 +4178,8 @@ void readAcctFromEEProm(uint8_t pos, char *buf) {
   //DebugLN("readAcctFromEEProm()");
   if (pos > -1) {
     read_eeprom_array(GET_ADDR_ACCT(pos), buf, ACCOUNT_SIZE);
-    if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {                                 
-      buf[0] = NULL_TERM;                                                       // 8 bit twos complement of 255 or 0xFF
+    if (buf[0] == (char) INITIAL_MEMORY_STATE_CHAR  ) {                                 
+      buf[0] = NULL_TERM;                                                       // 8 bit twos complement of 255 or 0xFF is -1|INITIAL_MEMORY_STATE_CHAR
     } else {
       readSaltFromEEProm(pos, salt);
       uint8_t key[KEY_SIZE];
@@ -4203,8 +4202,9 @@ void readUserFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR ) {
-    buf[0] = NULL_TERM;
+  if (buf[0] == (char) INITIAL_MEMORY_STATE_CHAR ) {
+    //buf[0] = NULL_TERM;
+    for (uint8_t i = 0; i < USERNAME_SIZE; i++) buf[i] = NULL_TERM;
   } else {
     decrypt32(buf, buf);
   }
@@ -4217,8 +4217,9 @@ void readSaltFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {
-    buf[0] = NULL_TERM;
+  if (buf[0] == (char) INITIAL_MEMORY_STATE_CHAR  ) {
+    //buf[0] = NULL_TERM;
+    for (uint8_t i = 0; i < SALT_SIZE; i++) buf[i] = NULL_TERM;
   } 
 }
 
@@ -4229,8 +4230,9 @@ void readWebSiteFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {
-    buf[0] = NULL_TERM;
+  if (buf[0] == (char) INITIAL_MEMORY_STATE_CHAR  ) {
+    //buf[0] = NULL_TERM;
+    for (uint8_t i = 0; i < WEBSITE_SIZE; i++) buf[i] = NULL_TERM;
   } else {
     decrypt96(buf, buf);
   }
@@ -4243,7 +4245,7 @@ void readStyleFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR) buf[0] = NULL_TERM;
+  if (buf[0] == (char) INITIAL_MEMORY_STATE_CHAR) buf[0] = NULL_TERM;
 }
 
 void readPassFromEEProm(uint8_t pos, char *buf) {                               // TODO: reduce readPassFromEEProm, readUserFromEEProm and readAcctFromEEProm to a single function.
@@ -4253,8 +4255,9 @@ void readPassFromEEProm(uint8_t pos, char *buf) {                               
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {
-    buf[0] = NULL_TERM;
+  if (buf[0] == (char) INITIAL_MEMORY_STATE_CHAR  ) {
+    //buf[0] = NULL_TERM;
+    for (uint8_t i = 0; i < PASSWORD_SIZE; i++) buf[i] = NULL_TERM;
   } else {
     decrypt32(buf, buf);
   }
@@ -4267,8 +4270,9 @@ void readOldPassFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == INITIAL_MEMORY_STATE_CHAR  ) {
-    buf[0] = NULL_TERM;                                                         // 8 bit twos complement of 255 or 0xFF
+  if (buf[0] == (char) INITIAL_MEMORY_STATE_CHAR  ) {
+    //buf[0] = NULL_TERM;
+    for (uint8_t i = 0; i < PASSWORD_SIZE; i++) buf[i] = NULL_TERM;
   } else {
     decrypt32(buf, buf);
   }
