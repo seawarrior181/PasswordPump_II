@@ -1516,8 +1516,8 @@ uint8_t FindAccountPos(char *accountName);
 void BackupToPPCVSFile();                                                       // before executing the function the user must open a text editor and place input focus there.
 void RestoreFromPPCVSFile();
 void ImportChromeExportFile();
-void attachCommandCallbacks();                                                   // We must define a callback function in our Arduino program for each entry in the list below.
-void OnUnknownCommand();                                                         // Called when a received command has no attached function
+void attachCommandCallbacks();                                                  // We must define a callback function in our Arduino program for each entry in the list below.
+void OnUnknownCommand();                                                        // Called when a received command has no attached function
 void OnReadAccountName();
 void OnReadUserName();
 void OnReadPassword();
@@ -3333,7 +3333,7 @@ void SwitchRotatePosition(uint8_t pos) {
 void setKey(uint8_t pos) {
   uint8_t key[KEY_SIZE];                                                        // key size is 16
   readSaltFromEEProm(pos, salt);                                                // puts the salt in the first part of key
-  if(salt[0] == INITIAL_MEMORY_STATE_CHAR) {                                    // if the salt is missing, add it  TODO: revisit this
+  if(salt[0] == (char) INITIAL_MEMORY_STATE_CHAR) {                             // if the salt is missing, add it  TODO: revisit this
     setSalt(salt, SALT_SIZE);                                                   // calculate the salt and put it in key
     write_eeprom_array(GET_ADDR_SALT(pos), salt, SALT_SIZE);                    // write the new salt value to EEprom
   }
@@ -3677,8 +3677,8 @@ void sendUsernameAndPassword() {
   while (usernameChar[i++] != NULL_TERM) {
     Keyboard.write(usernameChar[i - 1]);                                        // seems to be a problem only with single character user names.
   }
-  if ((strcmp(style, "0") == 0              ) ||
-      (style[0] == INITIAL_MEMORY_STATE_CHAR)   ) {                             // this should make <CR> the default
+  if ((strcmp(style, "0") == 0              ) ||                                // 0 = Return (default) 1 = Tab
+      (style[0] == (char) INITIAL_MEMORY_STATE_CHAR)   ) {                      // this should make <CR> the default
     Keyboard.println("");                                                       // send <CR> through the keyboard
   } else {
     Keyboard.press(TAB_KEY);                                                    // if style isn't default or "0" then send <TAB>
@@ -5014,7 +5014,7 @@ void importKeePassCSV() {
                 SetSaltAndKey(pos);                                             // populate and save the salt, set the key with the salt and master password
                 char bufferAcct[ACCOUNT_SIZE];                                  // this is the destination of the encrypted account name
                 encrypt32Bytes(bufferAcct, field);                              // encrypt the account name
-                while (bufferAcct[0] == INITIAL_MEMORY_STATE_CHAR) {            // check to see if we have an invalid condition after encryption, if we do,
+                while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {     // check to see if we have an invalid condition after encryption, if we do,
                                                                                 // concatenate characters until the first char in the cipher isn't 255.
                   DisplayToError("ERR: 039");                                   // encrypted account name starts with 255, fixing...
                   delayNoBlock(ONE_SECOND * 2);
@@ -5187,7 +5187,7 @@ void RestoreFromPPCVSFile() {
                 SetSaltAndKey(pos);                                             // populate and save the salt, set the key with the salt and master password
                 char bufferAcct[ACCOUNT_SIZE];
                 encrypt32Bytes(bufferAcct, field);
-                while (bufferAcct[0] == INITIAL_MEMORY_STATE_CHAR) {            // check to see if we have an invalid condition after encryption, if we do,
+                while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {     // check to see if we have an invalid condition after encryption, if we do,
                                                                                 // concatenate characters until the first char in the cipher isn't 255.
                   DisplayToError("ERR: 039");                                   // encrypted account name starts with 255, fixing...
                   delayNoBlock(ONE_SECOND * 2);
@@ -5378,7 +5378,7 @@ void ImportChromeExportFile() {
                 SetSaltAndKey(pos);                                             // populate and save the salt, set the key with the salt and master password
                 char bufferAcct[ACCOUNT_SIZE];
                 encrypt32Bytes(bufferAcct, field);
-                while (bufferAcct[0] == INITIAL_MEMORY_STATE_CHAR) {            // check to see if we have an invalid condition after encryption, if we do,
+                while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {     // check to see if we have an invalid condition after encryption, if we do,
                                                                                 // concatenate characters until the first char in the cipher isn't 255.
                   DisplayToError("ERR: 039");                                   // encrypted account name starts with 255, fixing...
                   delayNoBlock(ONE_SECOND * 2);
@@ -5746,7 +5746,7 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
 
     encrypt32Bytes(bufferAcct, accountName);                                    // encrypt the account name
     boolean prefixIniMemState = false;                                          // indicates if the encrypted account name starts with 255; which is a problem when we are looking for new empty credential space
-    while (bufferAcct[0] == INITIAL_MEMORY_STATE_CHAR) {                        // check to see if we have an invalid condition after encryption, if we do,
+    while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {                 // check to see if we have an invalid condition after encryption, if we do,
       prefixIniMemState = true;                                                 // trim characters until the first char in the cipher isn't 255.
       len = strlen(accountName);
       if (len > 2) {
@@ -5820,7 +5820,7 @@ uint8_t FindAccountPos(char *passedAccountName) {                               
     char accountName[ACCOUNT_SIZE];
     readAcctFromEEProm(pos, accountName);                                       // read and decrypt the account name; when in readAcctFromEEProm, if account[0] = INITIAL_MEMORY_STATE_BYTE, account[0] = NULL_TERM
     if ((accountName[0] == NULL_TERM) ||
-        (accountName[0] == INITIAL_MEMORY_STATE_CHAR)) {
+        (accountName[0] == (char) INITIAL_MEMORY_STATE_CHAR)) {
       DisplayToError("ERR: 031");                                               // Empty credentials found in linked list; error but we'll use this spot
       delayNoBlock(ONE_SECOND * 2);
       return pos;                                                               // 
@@ -5973,7 +5973,7 @@ void OnUpdateAccountName(){                                                     
       SetSaltAndKey(acctPosition);                                              // populate and save the salt, set the key with the salt and master password
       char bufferAcct[ACCOUNT_SIZE];
       encrypt32Bytes(bufferAcct, accountName);
-      while (bufferAcct[0] == INITIAL_MEMORY_STATE_CHAR) {                      // check to see if we have an invalid condition after encryption, if we do,
+      while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {               // check to see if we have an invalid condition after encryption, if we do,
                                                                                 // concatenate characters until the first char in the cipher isn't 255.
         DisplayToError("ERR: 039");                                             // encrypted account name starts with 255, fixing...
         delayNoBlock(ONE_SECOND * 2);
