@@ -1276,7 +1276,7 @@ menubar.add_cascade(label = 'Backup/Restore', menu = backup)
 menubar.entryconfig('File', state='disabled')
 menubar.entryconfig('Backup/Restore', state='disabled')
 
-styles = ["0 - Tab","1 - Return"]
+styles = ["0 - Return","1 - Tab"]
 cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
 cbStyle.grid(column=2, row=7)
 cbStyle.bind('<<ComboboxSelected>>', on_style_select)
