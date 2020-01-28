@@ -351,7 +351,7 @@ def clickedPass():
     updateDirections(directions)
     window.update()
 
-def clickedOldPassParam(txt_pass_param):
+def clickedOldPassParam(txt_old_pass_param):
     clickedOldPass()
 
 def clickedOldPass():
@@ -872,7 +872,7 @@ def ImportFilePasswordPump():
                     if (txt_acct.get() != 'accountname'):                      # to skip the header if there is one
                         txt_user.insert(0,stripBadChars(row['username']))
                         txt_pass.insert(0,stripBadChars(row['password']))
-                        txt_pass.insert(0,stripBadChars(row['oldpassword']))
+                        txt_old_pass.insert(0,stripBadChars(row['oldpassword']))
                         txt_url.insert(0,stripBadChars(row['url']))
                         #txt_style.insert(0,stripBadChars(row['style']))
                         group = int(row['group'])
