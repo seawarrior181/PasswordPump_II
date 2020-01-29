@@ -1271,8 +1271,8 @@ char line2DispBuff[DISPLAY_BUFFER_SIZE];                                        
 char line3DispBuff[DISPLAY_BUFFER_SIZE];                                        // used to buffer output of line 3 for the led display
 
 #define LINE_1_POS                 0
-#define LINE_2_POS                10
-#define LINE_3_POS                20
+#define LINE_2_POS                12
+#define LINE_3_POS                24
 
 const char spaceFilled[] = "                    ";                              // 20 chars long 
 
