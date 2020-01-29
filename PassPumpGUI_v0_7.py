@@ -95,6 +95,7 @@ import time
 from tendo import singleton
 import string
 from random import *
+import platform
 
 me = singleton.SingleInstance()                                                # will sys.exit(-1) if other instance is running
 
@@ -120,9 +121,6 @@ lbl_acct.grid(column=1, row=2)
 
 lbl_user = Label(window, text="User Name", anchor=E, justify=RIGHT, width=10)
 lbl_user.grid(column=1, row=3)
-
-#lbl_pass = Label(window, text="Password", anchor=E, justify=RIGHT, width=10)
-#lbl_pass.grid(column=1, row=4)
 
 lbl_old_pass = Label(window, text="Old Password", anchor=E, justify=RIGHT, width=10)
 lbl_old_pass.grid(column=1, row=5)
@@ -187,15 +185,15 @@ def clickedOpen():
     global c                                                                   # Initialize the messenger
     c = PyCmdMessenger.CmdMessenger(arduino, commands)
 
-#    txt_acct.bind("<Return>",(lambda _: clickedAcctParam(txt_acct)))           # When the user clicks on return save the edited item
-#    txt_user.bind("<Return>",(lambda _: clickedUserParam(txt_user)))
-#    txt_pass.bind("<Return>",(lambda _: clickedPassParam(txt_pass)))
-#    txt_url.bind("<Return>",(lambda _: clickedUrlParam(txt_url)))
+    #txt_acct.bind("<Return>",(lambda _: clickedAcctParam(txt_acct)))          # When the user clicks on return save the edited item
+    #txt_user.bind("<Return>",(lambda _: clickedUserParam(txt_user)))
+    #txt_pass.bind("<Return>",(lambda _: clickedPassParam(txt_pass)))
+    #txt_url.bind("<Return>",(lambda _: clickedUrlParam(txt_url)))
 
-#    txt_acct.bind("<Tab>",(lambda _: clickedAcctParam(txt_acct)))              # When the user tabs off of the field save the edited item
-#    txt_user.bind("<Tab>",(lambda _: clickedUserParam(txt_user)))
-#    txt_pass.bind("<Tab>",(lambda _: clickedPassParam(txt_pass)))
-#    txt_url.bind("<Tab>",(lambda _: clickedUrlParam(txt_url)))
+    #txt_acct.bind("<Tab>",(lambda _: clickedAcctParam(txt_acct)))             # When the user tabs off of the field save the edited item
+    #txt_user.bind("<Tab>",(lambda _: clickedUserParam(txt_user)))
+    #txt_pass.bind("<Tab>",(lambda _: clickedPassParam(txt_pass)))
+    #txt_url.bind("<Tab>",(lambda _: clickedUrlParam(txt_url)))
 
     txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the clicks off of the field save the edited item
     txt_user.bind("<FocusOut>",(lambda _: clickedUserParam(txt_user)))
@@ -205,7 +203,7 @@ def clickedOpen():
 
     c.send("pyReadHead")
     try:
-        response = c.receive() # struct.error: unpack requires a buffer of 1 bytes
+        response = c.receive()
         print(response)
         response_list = response[1]
         global head
@@ -226,10 +224,6 @@ def clickedOpen():
     except TypeError as te:
         updateDirections("TypeError encountered in clickedOpen(); " + str(te))
         acctCount = 0
-    #directions = """Opened port"""
-    #txt_dir.delete('1.0', END)
-    #txt_dir.insert(END, directions)
-    #print (directions)
     if (acctCount > 0):
         loadListBox()
         selection = 0
@@ -255,20 +249,6 @@ def updateDirections(directions):
     txt_dir.insert(END, directions)
     print (directions)
     window.update()
-
-#def clickedSave():
-#    global position
-#    clickedAcct()
-#    clickedUser()
-#    clickedPass()
-#    clickedStyle()
-#    clickedUrl_New()
-#    updateGroup()
-#    global state
-#    if (state == "Inserting"):
-#        lb.delete(0,END)
-#        loadListBox()
-#    state = "None"
 
 def clickedAcctParam(txt_acct_param):
     clickedAcct()
@@ -564,7 +544,6 @@ def loadListBox():                                                             #
                 raise e
         position = head
         window.config(cursor="")
-        #txt_user.focus()
         window.update()
     except ValueError as ve:
         updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
@@ -583,7 +562,6 @@ def OnEntryDown(event):
         selection += 1
         lb.select_set(selection)                                               # Adds one or more items to the selection.
         lb.see(selection)                                                      # Makes sure the given list index is visible.
-        #lb.activate(selection)                                                # Activates the given index (it will be marked with an underline).
         clickedLoad()                                                          # calls getRecord()
 
 def OnEntryUpNoEvent():
@@ -596,21 +574,11 @@ def OnEntryUp(event):
         selection -= 1
         lb.select_set(selection)                                               # Adds one or more items to the selection.
         lb.see(selection)                                                      # Makes sure the given list index is visible.
-        #lb.activate(selection)                                                # Activates the given index (it will be marked with an underline).
         clickedLoad()                                                          # calls getRecord()
 
 def clickedInsert():
     global state
     state = "Inserting"
-#    global position
-    #time.sleep(1)
-#    c.send("pyGetNextFreePos")
-#    response = c.receive()
-#    print(response)
-#    response_list = response[1]
-#    position = response_list[0]
-#    print("pyGetNextFreePos")
-#    print(position)
     txt_acct.delete(0, END)
     txt_user.delete(0, END)
     txt_pass.delete(0, END)
@@ -618,19 +586,12 @@ def clickedInsert():
     txt_url.delete(0, END)
 
 def clickedLoadDB(event):
-    #btn_delete['state'] = 'normal'
-
-    # Note here that Tkinter passes an event object to onselect()
     global selection
-    w = event.widget
+    w = event.widget                                                           # Note here that Tkinter passes an event object to onselect()
     selection = int(w.curselection()[0])
     value = w.get(selection)
     updateDirections('You selected item %d: "%s"' % (selection, value))
     clickedLoad()                                                              # calls getRecord()
-
-#def clickedOutOfListBox(event):
-#    btn_delete.config(state='disabled')
-#    updateDirections("Clicked out of ListBox")
 
 def clickedLoad():
     global position
@@ -645,7 +606,6 @@ def clickedLoad():
 def clickedDelete():
     if tkinter.messagebox.askyesno("Delete", "Delete this record?"):
         global selection
-        #lb.delete(ANCHOR)                                                     # delete the account from the listbox
         lb.delete(selection)
         global position
         c.send("pyDeleteAccount",calcPosition(position))
@@ -678,7 +638,6 @@ def getRecord():
         accountName_list = response[1]
         accountName = accountName_list[0]
     except UnicodeDecodeError:
-        #updateDirections("pyReadAccountName returned empty string")
         accountName = ""
     txt_acct.delete(0,END)
     txt_acct.insert(0,accountName)
@@ -690,7 +649,6 @@ def getRecord():
         userName_list = response[1]
         userName = userName_list[0]
     except UnicodeDecodeError:
-        #updateDirections("pyReadUserName returned empty string")
         userName = ""
     txt_user.delete(0,END)
     txt_user.insert(0,userName)
@@ -702,7 +660,6 @@ def getRecord():
         password_list = response[1]
         password = password_list[0]
     except UnicodeDecodeError:
-        #updateDirections("pyReadPassword returned empty string")
         password = ""
     txt_pass.delete(0,END)
     txt_pass.insert(0,password)
@@ -714,7 +671,6 @@ def getRecord():
         old_password_list = response[1]
         old_password = old_password_list[0]
     except UnicodeDecodeError:
-        #updateDirections("pyReadOldPassword returned empty string")
         old_password = ""
     txt_old_pass.delete(0,END)
     txt_old_pass.insert(0,old_password)
@@ -726,18 +682,16 @@ def getRecord():
         style_list = response[1]
         style = style_list[0]
     except UnicodeDecodeError:
-        #updateDirections("pyReadStyle returned empty string")
         style = ""
     cbStyle.set(style)
 
     c.send("pyReadURL", calcPosition(position))
     try:
-        response = c.receive()                                                 # EOFError: Incomplete message (1~https://www.cvs.com/account/login/|) (when a field ends with /)
+        response = c.receive()
         print(response)
         url_list = response[1]
         url = url_list[0]
     except UnicodeDecodeError:
-        #updateDirections("pyReadURL returned empty string")
         url = ""
     txt_url.delete(0,END)
     txt_url.insert(0,url)
@@ -762,7 +716,6 @@ def serial_ports():
 def on_select(event=None):
     global port
     port_desc = cb.get()
-#   print (port_desc)
     updateDirections(port_desc)
     port = port_desc[:port_desc.find(":")]
 
@@ -806,10 +759,20 @@ def RestoreEEprom():
         updateDirections("Finished restoring EEprom.")
 
 def ImportFileChrome():
-    name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
-                           filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
-                           title = "Choose a file."
-                          )
+    if (platform.system() == "Windows"):
+        name = askopenfilename(initialdir="C:/",                               # TODO: make this work cross platform
+                               filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
+                               title = "Choose a file."
+                              )
+    elif (platform.system() == "Darwin"):                                      # Macintosh
+        name = askopenfilename(title = "Choose a file."
+                              )
+    elif (platform.system() == "Linux"):                                       # Linux
+        name = askopenfilename(title = "Choose a file."
+                              )
+    else:
+        name = askopenfilename(title = "Choose a file."
+                              )
     updateDirections(name)
     global position
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
@@ -817,8 +780,6 @@ def ImportFileChrome():
             reader = csv.DictReader(csvfile)
             try:
                 for row in reader:
-                    #print(row)
-                    #print(row['name'], row['url'], row['username'], row['password'])
                     txt_acct.delete(0, END)
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
@@ -840,18 +801,27 @@ def ImportFileChrome():
                     clickedUrl_New()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
-                #lb.delete(0, END)
                 loadListBox()
             except Exception as e:
                 updateDirections("Error encountered reading file in ImportFileChrome; "+ str(e))
     except Exception as ex:
-        updateDirections("Error encountered in ImportFileChrome; " + ex)
+        updateDirections("Error encountered in ImportFileChrome; " + str(ex))
 
 def ImportFilePasswordPump():
-    name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
-                           filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
-                           title = "Choose a file."
-                          )
+    if (platform.system() == "Windows"):
+        name = askopenfilename(initialdir="C:/",                               # TODO: make this work cross platform
+                               filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
+                               title = "Choose a file."
+                              )
+    elif (platform.system() == "Darwin"):                                      # Macintosh
+        name = askopenfilename(title = "Choose a file."
+                              )
+    elif (platform.system() == "Linux"):                                       # Linux
+        name = askopenfilename(title = "Choose a file."
+                              )
+    else:
+        name = askopenfilename(title = "Choose a file."
+                              )
     updateDirections (name)
     global position
     global group
@@ -861,8 +831,6 @@ def ImportFilePasswordPump():
             reader = csv.DictReader(csvfile, fieldnames=fieldnames)
             try:
                 for row in reader:
-                    #print(row)
-                    #print(row['accountname'], row['username'], row['password'], row['oldpassword'], row['url'], row['style'], row['group'])
                     txt_acct.delete(0, END)
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
@@ -874,7 +842,6 @@ def ImportFilePasswordPump():
                         txt_pass.insert(0,stripBadChars(row['password']))
                         txt_old_pass.insert(0,stripBadChars(row['oldpassword']))
                         txt_url.insert(0,stripBadChars(row['url']))
-                        #txt_style.insert(0,stripBadChars(row['style']))
                         group = int(row['group'])
                         SetGroupCheckBoxes()
                         window.update()
@@ -894,7 +861,6 @@ def ImportFilePasswordPump():
                         updateGroup()
                         updateDirections("Record saved.")
                 updateDirections("All records saved.")
-                #lb.delete(0, END)
                 loadListBox()
             except Exception as e:
                 updateDirections("Error encountered reading file in ImportFilePasswordPump; "+ str(e))
@@ -902,10 +868,20 @@ def ImportFilePasswordPump():
         updateDirections("Error encountered in ImportFilePasswordPump; " + ex)
 
 def ImportFileKeePass():
-    name = askopenfilename(initialdir="C:/",                                   # TODO: make this work cross platform
-                           filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
-                           title = "Choose a file."
-                          )
+    if (platform.system() == "Windows"):
+        name = askopenfilename(initialdir="C:/",                               # TODO: make this work cross platform
+                               filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
+                               title = "Choose a file."
+                              )
+    elif (platform.system() == "Darwin"):                                      # Macintosh
+        name = askopenfilename(title = "Choose a file."
+                              )
+    elif (platform.system() == "Linux"):
+        name = askopenfilename(title = "Choose a file."                        # Linux
+                              )
+    else:
+        name = askopenfilename(title = "Choose a file."
+                              )
     updateDirections(name)
     global position
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
@@ -913,8 +889,6 @@ def ImportFileKeePass():
             reader = csv.DictReader(csvfile)
             try:
                 for row in reader:
-                    #print(row)
-                    #print(row['Account'], row['Login Name'], row['Password'], row['Web Site'])
                     txt_acct.delete(0, END)
                     txt_user.delete(0, END)
                     txt_pass.delete(0, END)
@@ -936,7 +910,6 @@ def ImportFileKeePass():
                     clickedUrl_New()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
-                #lb.delete(0, END)
                 loadListBox()
             except Exception as e:
                 updateDirections("Error encountered processing file in ImportFileKeePass; "+ str(e))
@@ -944,11 +917,21 @@ def ImportFileKeePass():
         updateDirections("Error encountered in ImportFileKeePass; " + str(ex))
 
 def ExportFile():
-    name = asksaveasfilename(initialdir="C:/",                                 # TODO: make this work cross platform
-                             filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
-                             initialfile='PasswordPumpExport.csv',
-                             title = "Create a file."
-                            )
+    if (platform.system() == "Windows"):
+        name = asksaveasfilename(initialdir="C:/",  # TODO: make this work cross platform
+                                 filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
+                                 initialfile='PasswordPumpExport.csv',
+                                 title="Create a file."
+                                 )
+    elif (platform.system() == "Darwin"):                                      # Macintosh
+        name = asksaveasfilename(title="Create a file."
+                                 )
+    elif (platform.system() == "Linux"):                                       # Linux
+        name = asksaveasfilename(initialdir="C:/",
+                                 )
+    else:
+        name = asksaveasfilename(initialdir="C:/",
+                                 )
     updateDirections(name)
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, mode='w') as pp_file:
@@ -1384,7 +1367,6 @@ for n, (port, desc, hwid) in enumerate(sorted(comports()), 1):
 cb = Combobox(window, values=ports, justify=LEFT, width=37, exportselection=False)
 cb.grid(column=2, row=0)
 cb.bind('<<ComboboxSelected>>', on_select)
-#txt_user.focus_set()
 
 position = 0                                                                   # Global variables
 head = 0
