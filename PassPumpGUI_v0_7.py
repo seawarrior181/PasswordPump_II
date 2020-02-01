@@ -18,6 +18,9 @@
 # * = fixed
 #
 # Defects:
+# - If an account name contains a comma, and you visit the field, after
+#   exiting the GUI and reloading all of the accounts, the comma has changed
+#   into a hashtag and all of the remaining fields are blank.
 # * During import of PasswordPump format, the username is occasionally dropped
 # * Similarly, if any of the fields have an embedded | (pipe) character the
 #   fields in the PasswordPumpGUI can get out of synch; e.g. account name
@@ -47,6 +50,7 @@
 #   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
+# - Rename account
 # - Factory reset
 # - Settings (Keyboard, Show Password, Decoy Password, RGB LED Intensity,
 #   Timeout Minutes, Login Attempts, Change Master Password)
@@ -265,12 +269,14 @@ def clickedAcct():
         print(response)
         response_list = response[1]
         last_position = position
-        position = response_list[0]
-        local_position = position
+        position = response_list[0]                                            # this position may or may not be populated
         if position == 255:
             position = last_position                                           # TODO: not sure if this is necessary...
-        txt_acct.config(state='normal')
-        if (state == "Inserting"):
+        local_position = position
+        #txt_acct.config(state='normal')
+
+#      if (state == "Inserting"):
+        if (state != "Importing"):
             lb.delete(0, END)
             loadListBox()                                                      # as a side effect position is changed
             selection = 0
@@ -279,17 +285,20 @@ def clickedAcct():
                     selection += 1
                 else:
                     break
-            position = local_position                                          # because loadListBox changes position
-            getRecord()
             lb.select_set(selection)
             lb.see(selection)
             lb.activate(selection)
-        state = "None"
+            position = local_position                                          # because loadListBox changes position
+            getRecord()
+#      end if
+
+#       state = "None"
         updateDirections("Updated account name.")
     except ValueError as e:
         updateDirections("Value error encountered in clickedAcct; " + str(e))
     except Exception as ex:
         updateDirections("Exception encountered in clickedAcct; " + str(ex))
+    #txt_acct.config(state='disabled')
 
 def clickedUserParam(txt_user_param):
     clickedUser()
@@ -579,6 +588,7 @@ def OnEntryUp(event):
 def clickedInsert():
     global state
     state = "Inserting"
+    txt_acct.config(state='normal')
     txt_acct.delete(0, END)
     txt_user.delete(0, END)
     txt_pass.delete(0, END)
@@ -717,7 +727,7 @@ def on_select(event=None):
     global port
     port_desc = cb.get()
     updateDirections(port_desc)
-    port = port_desc[:port_desc.find(":")]
+    port = port_desc[:port_desc.find(":")]                                     # TODO: make this work on all operating systems
 
 def on_style_select(event=None):
     clickedStyle()
@@ -750,7 +760,8 @@ def RestoreEEprom():
         print(response)
         response_list = response[1]
         position = response_list[0]                                            # returns head position
-        getRecord()
+        loadListBox()                                                          # postion is set to head as a side effect
+        getRecord()                                                            # get the head record
         lb.select_clear(selection)                                             # Removes one or more items from the selection.
         selection = 0
         lb.select_set(selection)
@@ -759,6 +770,8 @@ def RestoreEEprom():
         updateDirections("Finished restoring EEprom.")
 
 def ImportFileChrome():
+    global state
+    state = "Imorting"
     if (platform.system() == "Windows"):
         name = askopenfilename(initialdir="C:/",                               # TODO: make this work cross platform
                                filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
@@ -806,8 +819,11 @@ def ImportFileChrome():
                 updateDirections("Error encountered reading file in ImportFileChrome; "+ str(e))
     except Exception as ex:
         updateDirections("Error encountered in ImportFileChrome; " + str(ex))
+    state = "None"
 
 def ImportFilePasswordPump():
+    global state
+    state = "Importing"
     if (platform.system() == "Windows"):
         name = askopenfilename(initialdir="C:/",                               # TODO: make this work cross platform
                                filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
@@ -866,8 +882,11 @@ def ImportFilePasswordPump():
                 updateDirections("Error encountered reading file in ImportFilePasswordPump; "+ str(e))
     except Exception as ex:
         updateDirections("Error encountered in ImportFilePasswordPump; " + ex)
+    state = "None"
 
 def ImportFileKeePass():
+    global state
+    state = "Importing"
     if (platform.system() == "Windows"):
         name = askopenfilename(initialdir="C:/",                               # TODO: make this work cross platform
                                filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
@@ -915,6 +934,7 @@ def ImportFileKeePass():
                 updateDirections("Error encountered processing file in ImportFileKeePass; "+ str(e))
     except Exception as ex:
         updateDirections("Error encountered in ImportFileKeePass; " + str(ex))
+    state = "None"
 
 def ExportFile():
     if (platform.system() == "Windows"):
