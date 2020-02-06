@@ -64,17 +64,13 @@
     - = outstanding             
     x = fixed but needs testing 
     * = fixed                   
-  - Certain user names are disappearing upon entry; e.g. Chase.com seawarrior181
-    I suspect it's got something to do with the first char of the encrypted 
-    password.
   - It is possible to enter a duplicate account via the PasswordPump device or 
     via a combination of the PasswordPump and the PasswordPumpGUI.
-  - If you add an account via PasswordPumpGUI and never visit the URL field,
-    garbage is shown for the URL via the PasswordPump UI.
   - When deleting duplicate accounts (duplicate account names) corruption is 
     introduced.
   - Navigation back to previous menu needs work (EVENT_LONG_CLICK).
   - Nail down the menu / UI layout.  Invert the top line.
+  - After deleting account change the location of the menu
   - Embedded quote in a CSV import file are not getting saved to the filed e.g.
     password.
   - When you import credentials with <CR><LF> in the account name bad things
@@ -83,12 +79,10 @@
   - Added account to the end of the linked list, corrupted linked list
   - When entering an account name 29 chars long via keyboard, nothing gets 
     entered.
-  - After deleting account change the location of the menu
   - In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
   - Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
-  - FixCorruption leaves the user hung without any accounts to find
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x Should probably remove Keyboard ON/OFF from saved properties and always 
     default to Keyboard OFF; or make sure it is always OFF when backing up 
@@ -100,6 +94,10 @@
     fix a corrupt linked list. Exact conditions of corruption unknown at this 
     point.
   x single click after Reset brings you to alpha edit mode
+  * If you add an account via PasswordPumpGUI and never visit the URL field,
+    garbage is shown for the URL via the PasswordPump UI.
+  * When doing a master password change one of the accounts always ends up 
+    corrupt.
   * Old password is getting populated with junk in unknown circumstances
   * If there are commas or double quotes in the text of a field we're trying to
     import, import breaks.
@@ -213,22 +211,19 @@
     * - implemented and tested
   - Make it work over bluetooth
   - Make the size of the generated password configurable.
-  - Always reflect the account that's selected in the PC client on the device.
   - Somehow signal to the user when entering the master password for the first 
     time.
   - Implement more error codes
   - Make UN_PW_DELAY configurable
-  - Dim the display when it's not in use.
   - Create a case.
-  - Import KeePass .xml file
-  - Import LastPass files
   - Learn how to set the lock bits
   - Add the ability to fix a corrupt linked list.
   - Add the ability to pump a single tab or a single carriage return from the 
     menu.
   - Make the menus scroll around when the end is reached
   - Scroll the display when necessary
-  - Add a search capability that scrolls through the alphabet
+  - Import KeePass .xml file
+  - Import LastPass files
   - Export to KeePass CSV format
   - Export to LastPass format
   - re-enter master password to authorize credentials reset
@@ -241,6 +236,8 @@
   x Add a decoy password that executes a factory reset when the password plus
     the characters "FR" are supplied as the master password.
   x Enable decoy password feature, make it configurable
+  * Dim the display when it's not in use.
+  * Always reflect the account that's selected in the PC client on the device.
   * Automatic logout countdown
   * Increase the display width by 1 more (tried and this didn't work)
   * Add salt for credentials, char UUID
@@ -1231,7 +1228,7 @@ static char *advquoted(char *);
 static int split(void);
                                                                                 // END CSV Processing
 
-int lastModeA = LOW;                                                            // Rotary encoder state
+int lastModeA = LOW;                                                            // Rotary encoder states
 int lastModeB = LOW;
 int curModeA = LOW;
 int curModeB = LOW;
@@ -1249,13 +1246,15 @@ char salt[SALT_SIZE];                                                           
 char style[STYLE_SIZE];                                                         // holds the style of the current account (<TAB> or <CR> between send user name and password)
 uint8_t groups;                                                                 // to which of 8 groups does the set of credentials belongs
 
-boolean updateExistingAccount = false;
+boolean updateExistingAccount = false;                                          // indicates if we are updating an existing account
 
-boolean isPurple  = false;
-boolean isRed     = false;
-boolean isGreen   = false;
-boolean isYellow  = false;
-boolean isBlue    = false;
+boolean isPurple  = false;                                                      // indicates if the RGB LED is purple
+boolean isRed     = false;                                                      // indicates if the RGB LED is red
+boolean isGreen   = false;                                                      // indicates if the RGB LED is green
+boolean isYellow  = false;                                                      // indicates if the RGB LED is yellow
+boolean isBlue    = false;                                                      // indicates if the RGB LED is blue
+
+boolean oledDim   = false;                                                      // indicates if the oled display is dimmed
 
 #define LEN_ALL_CHARS             87
 #define DEFAULT_ALPHA_EDIT_POS    33                                            // allChars is sort of unnecessary TODO: eliminate allChars?
@@ -1577,6 +1576,7 @@ void setup() {                                                                  
   }
                                                                                 // Show initial display buffer contents on the screen --
                                                                                 // the library initializes this with an Adafruit splash screen.
+  DimDisplay(false);
   ScrollPasswordPump();
   oled.display();
   //delayNoBlock(2000);                                                         // Pause for 2 seconds
@@ -1659,10 +1659,8 @@ void loop() {                                                                   
 
 void pollEncoder() {
   change = 0;
-  curModeA = digitalRead(ROTARY_PIN1);
-  curModeB = digitalRead(ROTARY_PIN2);
-  // compare the four possible states to figure out what has happened
-  //   then encrement/decrement the current encoder's position
+  curModeA = digitalRead(ROTARY_PIN1);                                          // compare the four possible states to figure out what has happened
+  curModeB = digitalRead(ROTARY_PIN2);                                          // then increment/decrement the current encoder's position
   if (curModeA != lastModeA) {
     if (curModeA == LOW) {
       if (curModeB == LOW) {
@@ -1693,14 +1691,10 @@ void pollEncoder() {
       }
     }
   }
-  // set the current pin modes (HIGH/LOW) to be the last know pin modes
-  //   for the next loop to compare to
-  lastModeA = curModeA;
-  lastModeB = curModeB;
-  // if this encoder's position changed, flag the change variable so we
-  //   know about it later
-  if (encPos < encPosLast) {
-    if (encPos%4 == 0) {
+  lastModeA = curModeA;                                                         // set the current pin modes (HIGH/LOW) to be the last know pin modes
+  lastModeB = curModeB;                                                         // for the next loop to compare to
+  if (encPos < encPosLast) {                                                    // if this encoder's position changed, flag the change variable so we
+    if (encPos%4 == 0) {                                                        // know about it later
       change = 1;
       event = EVENT_ROTATE_CW;
     }
@@ -1712,10 +1706,7 @@ void pollEncoder() {
   }
   
   if (change == 1) {
-    // if an encoder has changed, do something with that information
-    // here, I am just going to print all the encoder's positions
-    //   if any of them change
-    encPosLast = encPos;
+    encPosLast = encPos;                                                        // if an encoder has changed set encPosLast
   }
 }
 
@@ -1728,11 +1719,11 @@ void ProcessEvent() {                                                           
     EnableInterrupts();
     milliseconds = millis();
     if (++iterationCount == MAX_ITERATION_COUNT) {                              // we don't want to call millis() every single time through the loop
-      DebugLN("Alive!");
+      //DebugLN("Alive!");
       iterationCount = 0;                                                       // necessary?  won't we just wrap around?
       if (logoutTimeout && authenticated) {                                     // if logoutTimeout != 0, i.e. there is a logout timeout set.
         long logoutTime = lastActivityTime + (logoutTimeout * 60000);
-        if (milliseconds < logoutTime) {      // check to see if the device has been idle for logoutTimeout milliseconds
+        if (milliseconds < logoutTime) {                                        // check to see if the device has been idle for logoutTimeout milliseconds
         // Need to find a way to get the display to clear every time we display a new number...
         // if (authenticated) {                                                 // if authenticated display the time remaining until logout in seconds on display line 3, right justified
             // long timeLeft = (lastActivityTime + logoutTimeout)- milliseconds;// calculate time remaining until logout 
@@ -1999,6 +1990,7 @@ void ProcessEvent() {                                                           
     event = EVENT_NONE;
 
   } else if (event == EVENT_SINGLE_CLICK) {                                     // EVENT_SINGLE_CLICK
+    if (oledDim) DimDisplay(false);
     if (STATE_SHOW_MAIN_MENU == machineState) {
       switch(position) {
         case ENTER_MASTER_PASSWORD:                                             // Enter master password
@@ -2970,6 +2962,7 @@ void ProcessEvent() {                                                           
   } else if (event == EVENT_LOGOUT) {
     if(authenticated) {
       setBlue();
+      DimDisplay(true);                                                         // dim the display
       DisplayToStatus("Logged out");
       InitializeGlobals();                                                      // prevent peeking in memory after a logout
       event = EVENT_SHOW_MAIN_MENU;
@@ -2981,6 +2974,16 @@ void ProcessEvent() {                                                           
   
   } else {
     DisplayToError("ERR: 007");
+  }
+}
+
+void DimDisplay(boolean dim) {
+  if (dim) {
+    oled.dim(true);
+    oledDim = true;
+  } else {
+    oled.dim(false);
+    oledDim = false;
   }
 }
 
@@ -4803,24 +4806,6 @@ void RestoreEEPromBackup() {                                                    
 
 //- Linked List Routines  
 
-/*
-  uint8_t countAccounts(uint8_t pos) {                                            // count all of the account names from EEprom.
-  //DebugLN("countAccounts()");
-  acctCount = -1;                                                               // so when there are 2 accounts we're returning 1 here, defect.
-  while(pos != INITIAL_MEMORY_STATE_BYTE) {
-    uint8_t nextPos;
-    acctCount++;
-    nextPos = getNextPtr(pos);
-    if (nextPos == pos) {
-      //DebugLN("Corruption in countAccounts()");
-      return(acctCount);
-    }
-    pos = nextPos;
-  }
-  return(acctCount);
-}
-*/
-
 uint8_t countAccounts() {                                                       // count all of the account names from EEprom.
   //DebugLN("countAccounts()");
   if (headPosition == INITIAL_MEMORY_STATE_BYTE) {
@@ -5689,6 +5674,7 @@ void delayNoBlock(unsigned long delayTime) {
 // - Change the master password
 
 void ChangeMasterPassword(char *passedNewPassword) {                            // change masterPassword to passedNewPassword
+  DisplayToStatus("Backing up");
   CopyEEPromToBackup();                                                         // Copy everything from primary to secondary EEprom
   DisplayToStatus("Changing master pass");
 
@@ -5698,7 +5684,6 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
   
   uint8_t len = strlen(localNewPassword);
   while (len < MASTER_PASSWORD_SIZE) localNewPassword[len++] = NULL_TERM;       // right pad the new password w/ null terminators
-  //Debug("localNewPassword: ");DebugLN(localNewPassword);
 
   setRed();
   for (uint8_t pos = 0; pos < CREDS_ACCOMIDATED; pos++) {                       // TODO: ? Might want to go through the linked list instead.
@@ -5750,7 +5735,7 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
       prefixIniMemState = true;                                                 // trim characters until the first char in the cipher isn't 255.
       len = strlen(accountName);
       if (len > 2) {
-        accountName[len - 2] = NULL_TERM;                                       // Chop a character off the end of the account name
+        accountName[len - 1] = NULL_TERM;                                       // Chop a character off the end of the account name
         encrypt32Bytes(bufferAcct, accountName);                                // encrypt again and hope for the best
         prefixIniMemState = false;                                              // assume the problem is fixed...
       } else {
@@ -5812,7 +5797,7 @@ uint8_t FindAccountPos(char *passedAccountName) {                               
   uint8_t pos = headPosition;
   uint16_t i = 0;                                                               // to be safe, count the iterations and show an error if they exceed credentials accommodated.
   updateExistingAccount = false;                                                // assume we're not updating an existing account
-  if (strlen(passedAccountName) > (ACCOUNT_SIZE - 1)) {
+  if (strlen(passedAccountName) > (ACCOUNT_SIZE - 1)) {                         
     passedAccountName[ACCOUNT_SIZE - 1] = NULL_TERM;
   }
   while ((pos != INITIAL_MEMORY_STATE_BYTE) &&
@@ -5827,8 +5812,8 @@ uint8_t FindAccountPos(char *passedAccountName) {                               
     }
     //                                      Z            A                      positive, stop and return getNextFreeAcctPos
     //                                      A            Z                      negative, continue to the next account in the linked list
-    signed int compareResult = strncmp(accountName, passedAccountName, ACCOUNT_SIZE); // negative the first character that does not match has a lower value in ptr1 than in ptr2
-                                                                                      // positive the first character that does not match has a greater value in ptr1 than in ptr2
+    signed int compareResult = strncmp(accountName,passedAccountName,ACCOUNT_SIZE);// negative the first character that does not match has a lower value in ptr1 than in ptr2
+                                                                                // positive the first character that does not match has a greater value in ptr1 than in ptr2
     if (0 == compareResult) {                                                   // if the two strings match 
       updateExistingAccount = true;                                             // we're updating an existing account, set the global boolean
       return(pos);                                                              // you found the account, return pos
@@ -5880,11 +5865,13 @@ void attachCommandCallbacks()                                                   
 }
 
 void OnUnknownCommand()                                                         // Called when a received command has no attached function
-{
+{ setGreen();
   cmdMessenger.sendCmd(kError,"Command without attached callback");
+  setPurple();
 }
 
 void OnReadAccountName() {
+  setGreen();
   char accountName[ACCOUNT_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();                            // 
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
@@ -5900,63 +5887,78 @@ void OnReadAccountName() {
   } else {
     cmdMessenger.sendCmd(kStrAcknowledge, "Unknown");                           // I've never seen this happen
   }
+  DisplayToStatus(accountName);
+  setPurple();
 }
 
 void OnReadUserName(){
+  setGreen();
   char username[USERNAME_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   readUserFromEEProm(acctPosition, username);                                   // read and decrypt the user
   cmdMessenger.sendCmd(kStrAcknowledge, username);
+  setPurple();
 }
 
 void OnReadPassword(){
+  setGreen();
   char password[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   readPassFromEEProm(acctPosition, password);                                   // read and decrypt the password
   cmdMessenger.sendCmd(kStrAcknowledge, password);
+  setPurple();
 }
 
 void OnReadOldPassword(){
+  setGreen();
   char oldPassword[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   readOldPassFromEEProm(acctPosition, oldPassword);                             // read and decrypt the password
   cmdMessenger.sendCmd(kStrAcknowledge, oldPassword);
+  setPurple();
 }
 
 void OnReadURL(){
+  setGreen();
   char url[WEBSITE_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   readWebSiteFromEEProm(acctPosition, url);                                     // read and decrypt the url
   cmdMessenger.sendCmd(kStrAcknowledge, url);
+  setPurple();
 }
 
 void OnReadStyle(){
+  setGreen();
   char style[STYLE_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   readStyleFromEEProm(acctPosition, style);
   cmdMessenger.sendCmd(kStrAcknowledge, style);
+  setPurple();
 }
 
 void OnReadGroup(){
+  setGreen();
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   //uint8_t group = readGroupFromEEProm(acctPosition);                          // for reasons I don't understand this will not compile
   uint8_t group = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));
   cmdMessenger.sendBinCmd(kAcknowledge, group);
+  setPurple();
 }
 
 void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
+  setGreen();
   char accountName[ACCOUNT_SIZE];
   //cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE - 1);
   cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE);
@@ -6005,9 +6007,11 @@ void OnUpdateAccountName(){                                                     
                                                                                 // account, set the pointers or increment the account count. Don't
                                                                                 // update the account name, once it is created it can't be changed.
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnUpdateUserName(){
+  setGreen();
   char username[USERNAME_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
@@ -6022,9 +6026,11 @@ void OnUpdateUserName(){
   encrypt32Bytes(bufferUser, username);                                         // encrypt the user name
   eeprom_write_bytes(GET_ADDR_USER(acctPosition), bufferUser, USERNAME_SIZE);
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnUpdatePassword(){
+  setGreen();
   char password[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
@@ -6039,9 +6045,11 @@ void OnUpdatePassword(){
   encrypt32Bytes(bufferPass, password);                                         // encrypt the password
   eeprom_write_bytes(GET_ADDR_PASS(acctPosition), bufferPass, PASSWORD_SIZE);
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnUpdateURL(){
+  setGreen();
   char urlArray[WEBSITE_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
@@ -6064,21 +6072,27 @@ void OnUpdateURL(){
   encrypt96Bytes(bufferWebsite, urlArray);                                      // encrypt the 96 byte long website
   eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition),bufferWebsite,WEBSITE_SIZE);// write the website to eeprom
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnUpdateURL_1(){
+  setGreen();
   cmdMessenger.copyStringArg(website, 33);                                      // was 32 when we were losing the 32nd character
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnUpdateURL_2(){
+  setGreen();
   char website_2[33];
   cmdMessenger.copyStringArg(website_2, 33);
   strcat(website, website_2);
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnUpdateURL_3(){
+  setGreen();
   char website_3[33];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
@@ -6101,9 +6115,11 @@ void OnUpdateURL_3(){
   encrypt96Bytes(bufferWebsite, website);                                       // encrypt the 96 byte long website
   eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition),bufferWebsite,WEBSITE_SIZE);// write the website to eeprom
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnUpdateStyle(){
+  setGreen();
   char *style;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
@@ -6114,9 +6130,11 @@ void OnUpdateStyle(){
   style[STYLE_SIZE - 1] = NULL_TERM;
   eeprom_write_bytes(GET_ADDR_STYLE(acctPosition), style, STYLE_SIZE);
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnUpdateGroup(){
+  setGreen();
   uint8_t groups;
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
@@ -6126,9 +6144,11 @@ void OnUpdateGroup(){
   groups -= 2;
   write_eeprom_byte(GET_ADDR_GROUP(acctPosition), groups);                      // should we call writeGroup() here instead?
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnUpdateOldPassword(){
+  setGreen();
   char oldPassword[PASSWORD_SIZE];
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
@@ -6142,51 +6162,68 @@ void OnUpdateOldPassword(){
   encrypt32Bytes(bufferOldPass, oldPassword);                                   // encrypt the old password
   eeprom_write_bytes(GET_ADDR_OLD_PASS(acctPosition), bufferOldPass, PASSWORD_SIZE);
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  setPurple();
 }
 
 void OnGetNextPos(){
+  setGreen();
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   cmdMessenger.sendBinCmd(kAcknowledge, getNextPtr(acctPosition));
+  setPurple();
 }
 
 void OnGetPrevPos(){
+  setGreen();
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   cmdMessenger.sendBinCmd(kAcknowledge, getPrevPtr(acctPosition));
+  setPurple();
 }
 
 void OnGetAcctPos(){
+  setGreen();
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // ????????manipulate acctPosition here?
+  setPurple();
 }
 
 void OnReadHead(){
+  setGreen();
   acctPosition = getListHeadPosition();
   cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // sending a single byte 
+  setPurple();
 }
 
 void OnReadTail(){
+  setGreen();
   cmdMessenger.sendBinCmd(kAcknowledge, findTailPosition(headPosition));
+  setPurple();
 }
 
 void OnGetNextFreePos(){
+  setGreen();
   uint8_t nextFree = getNextFreeAcctPos();
   acctPosition = nextFree;
   cmdMessenger.sendBinCmd(kAcknowledge, nextFree);                              // ????????manipulate acctPosition here?
+  setPurple();
 }
 
 void OnDeleteAccount(){
+  setGreen();
   acctPosition = cmdMessenger.readBinArg<uint8_t>();
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   deleteAccount(acctPosition);
   cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  setPurple();
 }
 
 void OnGetAccountCount(){
+  setGreen();
   cmdMessenger.sendBinCmd(kAcknowledge, acctCount);                             // sending a single byte  ????????manipulate acctPosition here?
+  setPurple();
 }
 
 void OnBackup(){
