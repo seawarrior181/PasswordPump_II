@@ -1,0 +1,5 @@
+This version of the PCB hasn't yet been tested.  The most important change is that U1:7 and U2:7 are now connected to 3V3 on the ItsyBitsy.
+I have tested connecting U1:7 and U2:7 to 3V3 by soldering a wire between them, so I'm confident the change is correct.
+
+Note also that the board in the DIPTrace PCB design is actually an ATMega32U4, not an ItsyBitsy M4, so the pad names are wrong.
+This does not affect the design of the PCB as the footprints are the same.
