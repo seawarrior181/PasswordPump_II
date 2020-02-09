@@ -1344,7 +1344,10 @@ enum                                                                            
   pyExit                ,
   pyBackup              ,
   pyRestore             ,
-  pyGetAccountCount
+  pyGetAccountCount     ,
+  pyDecoyPassword       ,
+  pyShowPasswords       ,
+  pyChangeMasterPass    
 };
 
 //- Global Volatile variables.
@@ -5862,6 +5865,9 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyBackup              , OnBackup);
   cmdMessenger.attach(pyRestore             , OnRestore);
   cmdMessenger.attach(pyGetAccountCount     , OnGetAccountCount);
+  cmdMessenger.attach(pyDecoyPassword       , OnDecoyPassword);
+  cmdMessenger.attach(pyShowPasswords       , OnShowPasswords);
+  cmdMessenger.attach(pyChangeMasterPass    , OnChangeMasterPass);
 }
 
 void OnUnknownCommand()                                                         // Called when a received command has no attached function
@@ -5877,6 +5883,7 @@ void OnReadAccountName() {
   if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
   acctPosition -= 2;
   readAcctFromEEProm(acctPosition, accountName);                                // read and decrypt the account name
+  DisplayToStatus(accountName);
   if (strlen(accountName) > 0) {
     if (accountName[0] == ' ') {
       accountName[0] = '_';
@@ -5887,7 +5894,6 @@ void OnReadAccountName() {
   } else {
     cmdMessenger.sendCmd(kStrAcknowledge, "Unknown");                           // I've never seen this happen
   }
-  DisplayToStatus(accountName);
   setPurple();
 }
 
@@ -6232,13 +6238,43 @@ void OnBackup(){
   setPurple();
 }
 
-void OnRestore(){
+void OnRestore(){                                                               // This is called when we restore the data from EEprom secondary to EEprom primary from PasswordPumpGUI.py
   RestoreEEPromBackup();
   cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
   setPurple();
 }
 
-void OnExit() {
+void OnChangeMasterPass(){                                                      // This is called when we change the master password from PasswordPumpGUI.py
+  char newMasterPassword[MASTER_PASSWORD_SIZE];
+  cmdMessenger.copyStringArg(newMasterPassword, MASTER_PASSWORD_SIZE);          // uses strlcpy, which will not write more than bytes expressed in the second parameter
+  if (strlen(newMasterPassword) > 0) {
+    ChangeMasterPassword(newMasterPassword);
+  }
+  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  setPurple();
+}
+
+void OnDecoyPassword(){                                                         // This is called when we change the decoy password setting in PasswordPumpGUI.py
+  setGreen();
+  decoyPassword = cmdMessenger.readBinArg<uint8_t>();
+  if (decoyPassword == 49) decoyPassword = 0;                                   // defect in pyCmdMessenger is causing a 0 to be turned into 49, no idea why
+  writeDecoyPWFlag();
+  delayNoBlock(ONE_SECOND);
+  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  setPurple();
+}
+
+void OnShowPasswords() {                                                        // This is called when we change the 'show passwords' setting in PasswordPumpGUI.py
+  setGreen();
+  showPasswordsFlag = cmdMessenger.readBinArg<uint8_t>();
+  if (showPasswordsFlag == 49) showPasswordsFlag = 0;                           // defect in pyCmdMessenger is causing a 0 to be turned into 49, no idea why
+  writeShowPasswordsFlag();
+  delayNoBlock(ONE_SECOND);
+  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  setPurple();
+}
+  
+void OnExit() {                                                                 // This is called when we exit from PasswordPumpGUI.py
   cmdMessenger.sendBinCmd(kAcknowledge, acctCount);                             // sending a single byte
   Serial.end();
   DisableInterrupts();
