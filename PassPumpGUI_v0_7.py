@@ -88,6 +88,7 @@ from tkinter.ttk import *
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
 
+import tkinter.simpledialog
 import tkinter.messagebox
 import PyCmdMessenger
 import serial
@@ -147,8 +148,10 @@ def calcPosition(aPosition):
 def clickedOpen():
     global arduino
     global arduinoAttached
+    window.config(cursor="watch")
+    updateDirections("Connecting to PasswordPump.")
     try:                                                                       #
-        arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=5.0, settle_time=2.0, enable_dtr=False,
+        arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=20.0, settle_time=2.0, enable_dtr=False,
                                               int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
         arduinoAttached = 1
     except serial.serialutil.SerialException:
@@ -185,7 +188,11 @@ def clickedOpen():
                 ["pyExit",""],
                 ["pyBackup",""],
                 ["pyRestore",""],
-                ["pyGetAccountCount",""]]
+                ["pyGetAccountCount", ""],
+                ["pyDecoyPassword", "b"],
+                ["pyShowPasswords", "b"],
+                ["pyChangeMasterPass", "s"]]
+
     global c                                                                   # Initialize the messenger
     c = PyCmdMessenger.CmdMessenger(arduino, commands)
 
@@ -246,6 +253,8 @@ def clickedOpen():
     btn_flip_pw.config(state='normal')
     menubar.entryconfig('File', state='normal')
     menubar.entryconfig('Backup/Restore', state='normal')
+    menubar.entryconfig('Settings', state='normal')
+    window.config(cursor="")
     updateDirections("Opened port")
 
 def updateDirections(directions):
@@ -630,6 +639,58 @@ def clickedDelete():
         lb.activate(selection)
         updateDirections("Record deleted.")
 
+def clickedChangeMasterPass():
+    newMasterPass = tkinter.simpledialog.askstring("Change Master Password", "New Master Password")
+    if newMasterPass is not None:
+        window.config(cursor="watch")
+        window.update();
+        c.send("pyChangeMasterPass", newMasterPass)
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        position = response_list[0]                                            # returns head position
+        getRecord()
+        selection = 0
+        lb.select_set(selection)
+        lb.see(selection)
+        lb.activate(selection)
+        window.config(cursor="")
+        updateDirections("Master password changed.")
+
+def clickedShowPassword():
+    yes = tkinter.messagebox.askyesno("Show Password", "Do you want to see the password on the PasswordPump?")
+    if yes:
+        c.send("pyShowPasswords", 1)
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        unusedHead = response_list[0]                                          # returns head position
+        updateDirections("Turned on password viewing on the PasswordPump.")
+    else:
+        c.send("pyShowPasswords", 0)
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        unusedHead = response_list[0]                                          # returns head position
+        updateDirections("Turned off password viewing on the PasswordPump.")
+
+def clickedDecoyPassword():
+    yes = tkinter.messagebox.askyesno("Decoy Password", "Do you want to enable the decoy password feature?")
+    if yes:
+        c.send("pyDecoyPassword", 1)
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        unusedHead = response_list[0]                                          # returns head position
+        updateDirections("Enabled the decoy password feature on the PasswordPump")
+    else:
+        c.send("pyDecoyPassword", 0)
+        response = c.receive()
+        print(response)
+        response_list = response[1]
+        unusedHead = response_list[0]                                          # returns head position
+        updateDirections("Disabled the decoy password feature on the PasswordPump")
+
 def getRecord():
     global position
     global group
@@ -734,6 +795,7 @@ def on_style_select(event=None):
 
 def BackupEEprom():
     if tkinter.messagebox.askyesno("Backup", "Backup the primary EEprom?"):
+        window.config(cursor="watch")
         updateDirections("Backing up EEprom")
         global selection
         global position
@@ -748,10 +810,12 @@ def BackupEEprom():
         lb.select_set(selection)
         lb.see(selection)
         lb.activate(selection)
+        window.config(cursor="")
         updateDirections("Finished backing up EEprom.")
 
 def RestoreEEprom():
     if tkinter.messagebox.askyesno("Restore", "Restore backup to primary EEprom?"):
+        window.config(cursor="watch")
         updateDirections("Restoring EEprom")
         global selection
         global position
@@ -767,6 +831,7 @@ def RestoreEEprom():
         lb.select_set(selection)
         lb.see(selection)
         lb.activate(selection)
+        window.config(cursor="")
         updateDirections("Finished restoring EEprom.")
 
 def ImportFileChrome():
@@ -786,6 +851,7 @@ def ImportFileChrome():
     else:
         name = askopenfilename(title = "Choose a file."
                               )
+    window.config(cursor="watch")
     updateDirections(name)
     global position
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
@@ -819,6 +885,8 @@ def ImportFileChrome():
                 updateDirections("Error encountered reading file in ImportFileChrome; "+ str(e))
     except Exception as ex:
         updateDirections("Error encountered in ImportFileChrome; " + str(ex))
+    window.config(cursor="")
+    window.update()
     state = "None"
 
 def ImportFilePasswordPump():
@@ -838,6 +906,7 @@ def ImportFilePasswordPump():
     else:
         name = askopenfilename(title = "Choose a file."
                               )
+    window.config(cursor="watch")
     updateDirections (name)
     global position
     global group
@@ -882,6 +951,8 @@ def ImportFilePasswordPump():
                 updateDirections("Error encountered reading file in ImportFilePasswordPump; "+ str(e))
     except Exception as ex:
         updateDirections("Error encountered in ImportFilePasswordPump; " + ex)
+    window.config(cursor="")
+    window.update()
     state = "None"
 
 def ImportFileKeePass():
@@ -901,6 +972,7 @@ def ImportFileKeePass():
     else:
         name = askopenfilename(title = "Choose a file."
                               )
+    window.config(cursor="watch")
     updateDirections(name)
     global position
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
@@ -934,6 +1006,8 @@ def ImportFileKeePass():
                 updateDirections("Error encountered processing file in ImportFileKeePass; "+ str(e))
     except Exception as ex:
         updateDirections("Error encountered in ImportFileKeePass; " + str(ex))
+    window.config(cursor="")
+    window.update()
     state = "None"
 
 def ExportFile():
@@ -952,6 +1026,7 @@ def ExportFile():
     else:
         name = asksaveasfilename(initialdir="C:/",
                                  )
+    window.config(cursor="watch")
     updateDirections(name)
     try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, mode='w') as pp_file:
@@ -1093,6 +1168,8 @@ def ExportFile():
                 head = 0
     except:
         updateDirections("No file exists")
+    window.config(cursor="")
+    window.update()
 
 def OnFavorites():
     global group
@@ -1276,8 +1353,16 @@ backup = Menu(menubar)
 backup.add_command(label = 'Backup EEprom', command = BackupEEprom)
 backup.add_command(label = 'Restore EEprom', command = RestoreEEprom)
 menubar.add_cascade(label = 'Backup/Restore', menu = backup)
+
+settings = Menu(menubar)
+settings.add_command(label = 'Change Master Password', command = clickedChangeMasterPass)
+settings.add_command(label = 'Show Password on Device', command = clickedShowPassword)
+settings.add_command(label = 'Decoy Password', command = clickedDecoyPassword)
+menubar.add_cascade(label = 'Settings', menu = settings)
+
 menubar.entryconfig('File', state='disabled')
 menubar.entryconfig('Backup/Restore', state='disabled')
+menubar.entryconfig('Settings', state='disabled')
 
 styles = ["0 - Return","1 - Tab"]
 cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
