@@ -1752,6 +1752,7 @@ void ProcessEvent() {                                                           
           }
           return;                                                               // not time to logout yet and event == EVENT_NONE, so just return.
         } else {
+          sendLockAndLogout();                                                  // Send LEFT GUI - l to computer          
           event = EVENT_LOGOUT;                                                 // otherwise we've been idle for more than logoutTimeout, logout.
           //DebugLN("Logging Out!");
         }
@@ -2088,8 +2089,9 @@ void ProcessEvent() {                                                           
           }
           switchToEditMenu();
           break;
-        case LOGOUT:                                                            // Logout  DEFECT: why is this being skipped over
-          event = EVENT_LOGOUT;
+        case LOGOUT:                                                            // Logout  
+          sendLockAndLogout();                                                  // Send Windows-l to computer
+          event = EVENT_LOGOUT;                                                 // Trigger logout from PasswordPump
           break;
         case FILE_MENU_SEL:
           event = EVENT_SHOW_FILE_MENU;                                         // backup / restore / import files menu
@@ -3663,6 +3665,15 @@ void sendPassword() {                                                           
 void sendRTN() {
   Keyboard.begin();
   Keyboard.println("");                                                         // send a carriage return through the keyboard
+  Keyboard.end();
+}
+
+void sendLockAndLogout() {                                                      
+  //DebugLN("sendLockAndLogout()");
+  Keyboard.begin();
+  Keyboard.press(KEY_LEFT_GUI);
+  Keyboard.press('l'); 
+  Keyboard.releaseAll();                                                        // Hold down the Windows key
   Keyboard.end();
 }
 
