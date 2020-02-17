@@ -4,6 +4,7 @@ The PasswordPump is a USB device that helps you manage credentials and supply cr
 
 (c) 2020 Daniel Murphy
 
+
 Change Log
 
 2020-02-15  Added a feature whereby when you select logout from the main menu on the PasswordPump, you're logged out of the PasswordPump and the computer screen is also locked.
