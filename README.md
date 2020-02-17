@@ -7,6 +7,6 @@ The PasswordPump is a USB device that helps you manage credentials and supply cr
 
 Change Log
 
-2020-02-17 v2.0.0  Versioned all of the programs and documention, set them to v2.0.0.  There were only minor cosmetic changes to the software related to the new version number.  
+2020-02-17 v2.0.0  Versioned all of the programs and documention, set them to v2.0.0.  There were minor cosmetic changes to the software related to the new version number.  PasswordPumpGUI was modified to size the main window based on the operating system.
 
 2020-02-15 no rev  Added a feature whereby when you select logout from the main menu on the PasswordPump, you're logged out of the PasswordPump and the computer screen is also locked.  Changes the behavior of the splash screen; no more scrolling PasswordPump and a faster startup.
