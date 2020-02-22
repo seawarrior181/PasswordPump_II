@@ -39,7 +39,7 @@
   - Data entry via rotary encoder or keyboard and serial monitor, or via client
     Python program running in Windows.
   - Accounts added in alphabetical order
-  - Store up to 255 sets of credentials
+  - Store up to 253 sets of credentials
   - Backup all accounts to a second encrypted external EEprom
   - Logout / de-authenticate via menu
   - Factory reset via menu (when authenticated)
@@ -209,6 +209,7 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
+  - Allow users to name the categories.
   - Make it work over bluetooth
   - Make the size of the generated password configurable.
   - Somehow signal to the user when entering the master password for the first 
@@ -830,7 +831,7 @@
 #define EEPROM_BYTES_PER_PAGE     EEPROM_BPP_25LC512                            // 
 #define CREDS_ACCOM_25LC512       0x00FF                                        // 255 (((0xFFFF + 1)/256)) - 1)  | (((MAX_AVAIL_ADDR_25LC512 + 1)/CREDS_TOT_SIZE)) - 1 for settings)
 #define CREDS_ACCOM_25LC256       0x007F                                        // 127 (((0x7FFF + 1)/256)) - 1)  | (((MAX_AVAIL_ADDR_25LC256 + 1)/CREDS_TOT_SIZE)) - 1 for settings)
-#define CREDS_ACCOMIDATED         CREDS_ACCOM_25LC512                           //  
+#define CREDS_ACCOMIDATED         (CREDS_ACCOM_25LC512 - 0x04)                  // -3 sets of creds for PyCmdMessenger defects 
 #define DISPLAY_BUFFER_SIZE       21                                            // 0x0015, 21; room for 20 chars and the null terminator
 
 #define WEBSITE_SIZE              0x0060                                        // 96 bytes
@@ -875,7 +876,7 @@
 #define DECOY_PW_SIZE             0x0010                                        // 1 byte
 //------------------------------------------------------------------------------
 #define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (53 total, rounding up to 256)
-//==============================================================================// 32768 - 256 = 32512/256 = 127 CREDS_ACCOMIDATED
+//==============================================================================// 65536 - 256 = 32512/256 = 255 CREDS_ACCOMIDATED
 
 #define GET_ADDR_SETTINGS         (MAX_AVAIL_ADDR - SETTINGS_TOTAL_SIZE)        // use the last page for storing the settings.
 #define GET_ADDR_RESET_FLAG       (GET_ADDR_SETTINGS)                           // address of the reset flag; when not set to 0x01 indicates that memory hasn't been initialized; 32,767
@@ -3009,7 +3010,7 @@ void ScrollPasswordPump(void) {
   oled.setTextSize(1);                                                          // Draw 2X-scale text
   oled.setTextColor(WHITE);
   oled.setCursor(0, LINE_2_POS);
-  oled.println(F("PasswordPump  v2.0.0"));
+  oled.println(F("PasswordPump  v2.0.1"));
   oled.display();                                                               // Show initial text
   oled.startscrollright(0x00, 0x0F);
   delay(3000);
@@ -3447,7 +3448,7 @@ void InitializeGlobals() {
 }
 
 void ShowSplashScreen() {
-    strcpy(line1DispBuff,"PasswordPump  v2.0.0");
+    strcpy(line1DispBuff,"PasswordPump  v2.0.1");
     strcpy(line2DispBuff, __DATE__);
     strcpy(line3DispBuff,"(c)2020 Dan Murphy ");
     DisplayBuffer();
@@ -4863,8 +4864,9 @@ uint8_t countAccounts() {                                                       
 uint8_t getNextFreeAcctPos() {                                                  // return the position of the next EEprom location for account name marked empty.
   //DebugLN("getNextFreeAcctPos()");
   for(uint8_t acctPos = 0; acctPos < (CREDS_ACCOMIDATED - 1); acctPos++) {      // Subtract 1 from CREDS_ACCOMIDATED because CREDS_ACCOMIDATED = INITIAL_MEMORY_STATE_BYTE
-      if (read_eeprom_byte(GET_ADDR_ACCT(acctPos)) == 
-          INITIAL_MEMORY_STATE_BYTE                     ) {
+      if ((read_eeprom_byte(GET_ADDR_ACCT(acctPos)) == 
+           INITIAL_MEMORY_STATE_BYTE                   ) &&
+          (acctPos != 124                              )) {
         return acctPos;
       }
   }
@@ -5894,6 +5896,34 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyChangeMasterPass    , OnChangeMasterPass);
 }
 
+uint8_t calcAcctPositionReceive(uint8_t accountPosition) {
+  
+//  char accountPositionStr[5];
+//  itoa(accountPosition, accountPositionStr, 10);
+//  DisplayToDebug(accountPositionStr);
+  
+  if (accountPosition == 1) {
+    accountPosition = 89;                                                       // necessary because of a defect in PyCmdMessenger
+  } else if (accountPosition == 2) {
+    accountPosition = 121;
+  } else {
+    if (accountPosition < 255) {
+      accountPosition -= 3;
+    }
+  }
+  return accountPosition;
+}
+
+uint8_t calcAcctPositionSend(uint8_t accountPosition) {                         // work around another defect in PyCmdMessenger
+  if (accountPosition < 252) accountPosition += 3;
+  if (accountPosition == 124) {
+    accountPosition = 2;
+  } else if (accountPosition == 92) {
+    accountPosition = 1;
+  }
+  return accountPosition;                                                       // accountPosition will never = 124, or |, the command separator
+}
+
 void OnUnknownCommand()                                                         // Called when a received command has no attached function
 { setGreen();
   cmdMessenger.sendCmd(kError,"Command without attached callback");
@@ -5903,9 +5933,7 @@ void OnUnknownCommand()                                                         
 void OnReadAccountName() {
   setGreen();
   char accountName[ACCOUNT_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();                            // 
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());   // 
   readAcctFromEEProm(acctPosition, accountName);                                // read and decrypt the account name
   DisplayToStatus(accountName);
   if (strlen(accountName) > 0) {
@@ -5924,9 +5952,7 @@ void OnReadAccountName() {
 void OnReadUserName(){
   setGreen();
   char username[USERNAME_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   readUserFromEEProm(acctPosition, username);                                   // read and decrypt the user
   cmdMessenger.sendCmd(kStrAcknowledge, username);
   setPurple();
@@ -5935,9 +5961,7 @@ void OnReadUserName(){
 void OnReadPassword(){
   setGreen();
   char password[PASSWORD_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   readPassFromEEProm(acctPosition, password);                                   // read and decrypt the password
   cmdMessenger.sendCmd(kStrAcknowledge, password);
   setPurple();
@@ -5946,9 +5970,7 @@ void OnReadPassword(){
 void OnReadOldPassword(){
   setGreen();
   char oldPassword[PASSWORD_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   readOldPassFromEEProm(acctPosition, oldPassword);                             // read and decrypt the password
   cmdMessenger.sendCmd(kStrAcknowledge, oldPassword);
   setPurple();
@@ -5957,9 +5979,7 @@ void OnReadOldPassword(){
 void OnReadURL(){
   setGreen();
   char url[WEBSITE_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   readWebSiteFromEEProm(acctPosition, url);                                     // read and decrypt the url
   cmdMessenger.sendCmd(kStrAcknowledge, url);
   setPurple();
@@ -5968,9 +5988,7 @@ void OnReadURL(){
 void OnReadStyle(){
   setGreen();
   char style[STYLE_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   readStyleFromEEProm(acctPosition, style);
   cmdMessenger.sendCmd(kStrAcknowledge, style);
   setPurple();
@@ -5978,10 +5996,7 @@ void OnReadStyle(){
 
 void OnReadGroup(){
   setGreen();
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
-  //uint8_t group = readGroupFromEEProm(acctPosition);                          // for reasons I don't understand this will not compile
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   uint8_t group = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));
   cmdMessenger.sendBinCmd(kAcknowledge, group);
   setPurple();
@@ -5990,7 +6005,6 @@ void OnReadGroup(){
 void OnUpdateAccountName(){                                                     // TODO: Should we prevent updating account name except on insert?
   setGreen();
   char accountName[ACCOUNT_SIZE];
-  //cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE - 1);
   cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE);
   if (strlen(accountName) > 0) {
     if (accountName[0] == '_') {
@@ -6036,17 +6050,14 @@ void OnUpdateAccountName(){                                                     
   }                                                                             // if we're updating an existing account no need to write out the 
                                                                                 // account, set the pointers or increment the account count. Don't
                                                                                 // update the account name, once it is created it can't be changed.
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
 void OnUpdateUserName(){
   setGreen();
   char username[USERNAME_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
-  //cmdMessenger.copyStringArg(username, USERNAME_SIZE - 1);
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   cmdMessenger.copyStringArg(username, USERNAME_SIZE);
   uint8_t len = strlen(username);
   while (len < USERNAME_SIZE) username[len++] = NULL_TERM;
@@ -6055,17 +6066,14 @@ void OnUpdateUserName(){
   ReadSaltAndSetKey(acctPosition);
   encrypt32Bytes(bufferUser, username);                                         // encrypt the user name
   eeprom_write_bytes(GET_ADDR_USER(acctPosition), bufferUser, USERNAME_SIZE);
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
 void OnUpdatePassword(){
   setGreen();
   char password[PASSWORD_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
-  //cmdMessenger.copyStringArg(password, PASSWORD_SIZE - 1);                    // uses strlcpy, which will not write more than bytes expressed in the second parameter
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   cmdMessenger.copyStringArg(password, PASSWORD_SIZE);                          // uses strlcpy, which will not write more than bytes expressed in the second parameter
   uint8_t len = strlen(password);
   while (len < PASSWORD_SIZE) password[len++] = NULL_TERM;
@@ -6074,17 +6082,14 @@ void OnUpdatePassword(){
   ReadSaltAndSetKey(acctPosition);
   encrypt32Bytes(bufferPass, password);                                         // encrypt the password
   eeprom_write_bytes(GET_ADDR_PASS(acctPosition), bufferPass, PASSWORD_SIZE);
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
 void OnUpdateURL(){
   setGreen();
   char urlArray[WEBSITE_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
-  //cmdMessenger.copyStringArg(urlArray, WEBSITE_SIZE - 1);
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   cmdMessenger.copyStringArg(urlArray, WEBSITE_SIZE);
   size_t len = strlen(urlArray);
   if (len > (WEBSITE_SIZE - 1)) {
@@ -6101,14 +6106,14 @@ void OnUpdateURL(){
   ReadSaltAndSetKey(acctPosition);
   encrypt96Bytes(bufferWebsite, urlArray);                                      // encrypt the 96 byte long website
   eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition),bufferWebsite,WEBSITE_SIZE);// write the website to eeprom
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
 void OnUpdateURL_1(){
   setGreen();
   cmdMessenger.copyStringArg(website, 33);                                      // was 32 when we were losing the 32nd character
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
@@ -6117,16 +6122,14 @@ void OnUpdateURL_2(){
   char website_2[33];
   cmdMessenger.copyStringArg(website_2, 33);
   strcat(website, website_2);
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
 void OnUpdateURL_3(){
   setGreen();
   char website_3[33];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   cmdMessenger.copyStringArg(website_3, 33);
   strcat(website, website_3);
   size_t lenWebsite = strlen(website);
@@ -6144,45 +6147,39 @@ void OnUpdateURL_3(){
   ReadSaltAndSetKey(acctPosition);
   encrypt96Bytes(bufferWebsite, website);                                       // encrypt the 96 byte long website
   eeprom_write_bytes(GET_ADDR_WEBSITE(acctPosition),bufferWebsite,WEBSITE_SIZE);// write the website to eeprom
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
 void OnUpdateStyle(){
   setGreen();
   char *style;
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   style = cmdMessenger.readStringArg();
   uint8_t i = strlen(style);
   while (i < STYLE_SIZE) style[i++] = NULL_TERM;
   style[STYLE_SIZE - 1] = NULL_TERM;
   eeprom_write_bytes(GET_ADDR_STYLE(acctPosition), style, STYLE_SIZE);
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
 void OnUpdateGroup(){
   setGreen();
   uint8_t groups;
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   groups = cmdMessenger.readBinArg<uint8_t>();
   if (groups == 1) groups = 92;
-  groups -= 2;
+  groups -= 3;
   write_eeprom_byte(GET_ADDR_GROUP(acctPosition), groups);                      // should we call writeGroup() here instead?
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
 void OnUpdateOldPassword(){
   setGreen();
   char oldPassword[PASSWORD_SIZE];
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   cmdMessenger.copyStringArg(oldPassword, PASSWORD_SIZE);                       // uses strlcpy, which will not write more than bytes expressed in the second parameter
   uint8_t len = strlen(oldPassword);
   while (len < PASSWORD_SIZE) oldPassword[len++] = NULL_TERM;
@@ -6191,44 +6188,40 @@ void OnUpdateOldPassword(){
   ReadSaltAndSetKey(acctPosition);
   encrypt32Bytes(bufferOldPass, oldPassword);                                   // encrypt the old password
   eeprom_write_bytes(GET_ADDR_OLD_PASS(acctPosition), bufferOldPass, PASSWORD_SIZE);
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // send back the account position
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
 
 void OnGetNextPos(){
   setGreen();
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
-  cmdMessenger.sendBinCmd(kAcknowledge, getNextPtr(acctPosition));
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(getNextPtr(acctPosition)));
   setPurple();
 }
 
 void OnGetPrevPos(){
   setGreen();
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
-  cmdMessenger.sendBinCmd(kAcknowledge, getPrevPtr(acctPosition));
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(getPrevPtr(acctPosition)));
   setPurple();
 }
 
 void OnGetAcctPos(){
   setGreen();
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // ????????manipulate acctPosition here?
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // ????????manipulate acctPosition here?
   setPurple();
 }
 
 void OnReadHead(){
   setGreen();
   acctPosition = getListHeadPosition();
-  cmdMessenger.sendBinCmd(kAcknowledge, acctPosition);                          // sending a single byte 
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // sending a single byte 
   setPurple();
 }
 
 void OnReadTail(){
   setGreen();
-  cmdMessenger.sendBinCmd(kAcknowledge, findTailPosition(headPosition));
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(findTailPosition(headPosition)));
   setPurple();
 }
 
@@ -6236,35 +6229,33 @@ void OnGetNextFreePos(){
   setGreen();
   uint8_t nextFree = getNextFreeAcctPos();
   acctPosition = nextFree;
-  cmdMessenger.sendBinCmd(kAcknowledge, nextFree);                              // ????????manipulate acctPosition here?
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(nextFree));        // ????????manipulate acctPosition here?
   setPurple();
 }
 
 void OnDeleteAccount(){
   setGreen();
-  acctPosition = cmdMessenger.readBinArg<uint8_t>();
-  if (acctPosition == 1) acctPosition = 92;                                     // necessary because of a defect in PyCmdMessenger
-  acctPosition -= 2;
+  acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   deleteAccount(acctPosition);
-  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
   setPurple();
 }
 
 void OnGetAccountCount(){
   setGreen();
-  cmdMessenger.sendBinCmd(kAcknowledge, acctCount);                             // sending a single byte  ????????manipulate acctPosition here?
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctCount));       // sending a single byte  ????????manipulate acctPosition here?
   setPurple();
 }
 
 void OnBackup(){
   CopyEEPromToBackup();
-  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
   setPurple();
 }
 
 void OnRestore(){                                                               // This is called when we restore the data from EEprom secondary to EEprom primary from PasswordPumpGUI.py
   RestoreEEPromBackup();
-  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
   setPurple();
 }
 
@@ -6274,32 +6265,32 @@ void OnChangeMasterPass(){                                                      
   if (strlen(newMasterPassword) > 0) {
     ChangeMasterPassword(newMasterPassword);
   }
-  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
   setPurple();
 }
 
 void OnDecoyPassword(){                                                         // This is called when we change the decoy password setting in PasswordPumpGUI.py
   setGreen();
-  decoyPassword = cmdMessenger.readBinArg<uint8_t>();
+  decoyPassword = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   if (decoyPassword == 49) decoyPassword = 0;                                   // defect in pyCmdMessenger is causing a 0 to be turned into 49, no idea why
   writeDecoyPWFlag();
   delayNoBlock(ONE_SECOND);
-  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
   setPurple();
 }
 
 void OnShowPasswords() {                                                        // This is called when we change the 'show passwords' setting in PasswordPumpGUI.py
   setGreen();
-  showPasswordsFlag = cmdMessenger.readBinArg<uint8_t>();
+  showPasswordsFlag = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   if (showPasswordsFlag == 49) showPasswordsFlag = 0;                           // defect in pyCmdMessenger is causing a 0 to be turned into 49, no idea why
   writeShowPasswordsFlag();
   delayNoBlock(ONE_SECOND);
-  cmdMessenger.sendBinCmd(kAcknowledge, headPosition);
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
   setPurple();
 }
   
 void OnExit() {                                                                 // This is called when we exit from PasswordPumpGUI.py
-  cmdMessenger.sendBinCmd(kAcknowledge, acctCount);                             // sending a single byte
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctCount));       // sending a single byte
   Serial.end();
   DisableInterrupts();
   setGreen();

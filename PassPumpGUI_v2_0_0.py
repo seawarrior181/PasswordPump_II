@@ -106,7 +106,7 @@ me = singleton.SingleInstance()                                                #
 
 global c
 window = Tk()
-window.title("PasswordPump Edit Credentials v2.0.0")
+window.title("PasswordPump Edit Credentials v2.0.1")
 
 if (platform.system() == "Windows"):
     window.geometry('400x530')
@@ -150,8 +150,24 @@ def stripBadChars(unicode_line):
     unicode_line = unicode_line.translate(translation_table)
     return(unicode_line.strip("/"))
 
-def calcPosition(aPosition):
-    return(aPosition + 2)
+def calcAcctPositionSend(aPosition):
+    if (aPosition < 252):
+        aPosition += 3
+    if (aPosition == 124):
+        aPosition = 2
+    elif (aPosition == 92):
+        aPosition = 1
+    return(aPosition)
+
+def calcAcctPositionReceive(aPosition):
+    if (aPosition == 2):
+        aPosition = 121
+    elif (aPosition == 1):
+        aPosition = 89
+    else:
+        if (aPosition < 255):
+            aPosition -= 3
+    return(aPosition)
 
 def clickedOpen():
     global arduino
@@ -226,7 +242,7 @@ def clickedOpen():
         print(response)
         response_list = response[1]
         global head
-        head = response_list[0]
+        head = calcAcctPositionReceive(response_list[0])
     except Exception as e:
         updateDirections("Exception encountered reading return value from pyReadHead; " + str(e))
         head = 0
@@ -239,7 +255,7 @@ def clickedOpen():
     global selection
     try:
         response_list = response[1]
-        acctCount = response_list[0]
+        acctCount = calcAcctPositionReceive(response_list[0])
     except TypeError as te:
         updateDirections("TypeError encountered in clickedOpen(); " + str(te))
         acctCount = 0
@@ -286,7 +302,7 @@ def clickedAcct():
         print(response)
         response_list = response[1]
         last_position = position
-        position = response_list[0]                                            # this position may or may not be populated
+        position = calcAcctPositionReceive(response_list[0])                   # this position may or may not be populated)
         if position == 255:
             position = last_position                                           # TODO: not sure if this is necessary...
         local_position = position
@@ -325,13 +341,13 @@ def clickedUser():
     aResUser = stripBadChars(txt_user.get())
     resUser = aResUser[0:32]
     if (len(resUser) > 0):
-        c.send("pyUpdateUserName", calcPosition(position), resUser)
+        c.send("pyUpdateUserName", calcAcctPositionSend(position), resUser)
     else:
-        c.send("pyUpdateUserName", calcPosition(position), "")
+        c.send("pyUpdateUserName", calcAcctPositionSend(position), "")
     response = c.receive()
     print(response)
     response_list = response[1]
-    position = response_list[0]
+    position = calcAcctPositionReceive(response_list[0])
     txt_user.config(state='normal')
     directions = """Updated user name."""
     updateDirections(directions)
@@ -345,13 +361,13 @@ def clickedPass():
     aResPass = stripBadChars(txt_pass.get())
     resPass = aResPass[0:32]
     if (len(resPass) > 0):
-        c.send("pyUpdatePassword", calcPosition(position), resPass)
+        c.send("pyUpdatePassword", calcAcctPositionSend(position), resPass)
     else:
-        c.send("pyUpdatePassword", calcPosition(position), "")
+        c.send("pyUpdatePassword", calcAcctPositionSend(position), "")
     response = c.receive()
     print(response)
     response_list = response[1]
-    position = response_list[0]
+    position = calcAcctPositionReceive(response_list[0])
     txt_pass.config(state='normal')
     directions = """Updated password."""
     updateDirections(directions)
@@ -365,13 +381,13 @@ def clickedOldPass():
     aResOldPass = stripBadChars(txt_old_pass.get())
     resOldPass = aResOldPass[0:32]
     if (len(resOldPass) > 0):
-        c.send("pyUpdateOldPassword", calcPosition(position), resOldPass)
+        c.send("pyUpdateOldPassword", calcAcctPositionSend(position), resOldPass)
     else:
-        c.send("pyUpdateOldPassword", calcPosition(position), "")
+        c.send("pyUpdateOldPassword", calcAcctPositionSend(position), "")
     response = c.receive()
     print(response)
     response_list = response[1]
-    position = response_list[0]
+    position = calcAcctPositionReceive(response_list[0])
     txt_old_pass.config(state='normal')
     directions = """Updated old password."""
     updateDirections(directions)
@@ -382,11 +398,11 @@ def clickedStyle():
     resStyle = cbStyle.current()
     if ((resStyle != 0) and (resStyle != 1)):                                  # style must be 0 or 1
         resStyle = 0;                                                          # default is 0
-    c.send("pyUpdateStyle", calcPosition(position), resStyle)
+    c.send("pyUpdateStyle", calcAcctPositionSend(position), resStyle)
     response = c.receive()
     print(response)
     response_list = response[1]
-    position = response_list[0]
+    position = calcAcctPositionReceive(response_list[0])
     directions = """Updated style."""
     updateDirections(directions)
     window.update()
@@ -394,11 +410,11 @@ def clickedStyle():
 def updateGroup():
     global position
     global group
-    c.send("pyUpdateGroup", calcPosition(position), group + 2)
+    c.send("pyUpdateGroup", calcAcctPositionSend(position), group + 3)
     response = c.receive()
     print(response)
     response_list = response[1]
-    position = response_list[0]
+    position = calcAcctPositionReceive(response_list[0])
     directions = """Updated groups."""
     updateDirections(directions)
     window.update()
@@ -412,13 +428,13 @@ def clickedUrl():
     resURL = aURL[0:32]                                                        # max length of a URL is 96 chars
     txt_url.config(state='normal')
     if (len(resURL) > 0):                                                      # if the URL doesn't exist don't send it
-        c.send("pyUpdateURL", calcPosition(position), resURL)
+        c.send("pyUpdateURL", calcAcctPositionSend(position), resURL)
     else:
-        c.send("pyUpdateURL", calcPosition(position), "")
+        c.send("pyUpdateURL", calcAcctPositionSend(position), "")
     response = c.receive()
     print(response)
     response_list = response[1]
-    position = response_list[0]
+    position = calcAcctPositionReceive(response_list[0])
     txt_url.config(state='normal')
     directions = """Updated URL."""
     updateDirections(directions)
@@ -434,39 +450,39 @@ def clickedUrl_New():                                                          #
         response = c.receive()
         print(response)
         response_list = response[1]
-        position = response_list[0]
+        position = calcAcctPositionReceive(response_list[0])
         resURL_2 = aURL[32:64]                                                 # max length of a URL is 96 chars
         if (len(resURL_2) > 0):                                                # if the URL doesn't exist don't send it
             c.send("pyUpdateURL_2", resURL_2)
             response = c.receive()
             print(response)
             response_list = response[1]
-            position = response_list[0]
+            position = calcAcctPositionReceive(response_list[0])
             resURL_3 = aURL[64:96]                                             # max length of a URL is 96 chars
             if (len(resURL_3) > 0):                                            # if the URL doesn't exist don't send it
-                c.send("pyUpdateURL_3", calcPosition(position), resURL_3)
+                c.send("pyUpdateURL_3", calcAcctPositionSend(position), resURL_3)
                 response = c.receive()
                 print(response)
                 response_list = response[1]
-                position = response_list[0]
+                position = calcAcctPositionReceive(response_list[0])
             else:
-                c.send("pyUpdateURL_3", calcPosition(position), "")
+                c.send("pyUpdateURL_3", calcAcctPositionSend(position), "")
                 response = c.receive()
                 print(response)
                 response_list = response[1]
-                position = response_list[0]
+                position = calcAcctPositionReceive(response_list[0])
         else:
-            c.send("pyUpdateURL", calcPosition(position), aURL)
+            c.send("pyUpdateURL", calcAcctPositionSend(position), aURL)
             response = c.receive()
             print(response)
             response_list = response[1]
-            position = response_list[0]
+            position = calcAcctPositionReceive(response_list[0])
     else:
-        c.send("pyUpdateURL", calcPosition(position), "")
+        c.send("pyUpdateURL", calcAcctPositionSend(position), "")
         response = c.receive()
         print(response)
         response_list = response[1]
-        position = response_list[0]
+        position = calcAcctPositionReceive(response_list[0])
     txt_url.config(state='normal')
     directions = """Updated URL."""
     updateDirections(directions)
@@ -480,7 +496,7 @@ def clickedClose():
             response = c.receive()
             print(response)
             response_list = response[1]
-            acctCount = response_list[0]                                       # not used
+            acctCount = calcAcctPositionReceive(response_list[0])              # not used
         except Exception as e:
             updateDirections("There was an error closing the application; " + str(e))
     sys.exit(1)
@@ -490,12 +506,12 @@ def clickedPrevious():
     global selection
     #if (selection > 0):
     #    selection -= 1
-    c.send("pyGetPrevPos", calcPosition(position))
+    c.send("pyGetPrevPos", calcAcctPositionSend(position))
     response = c.receive()
     print(response)
     response_list = response[1]
     last_position = position
-    position = response_list[0]
+    position = calcAcctPositionReceive(response_list[0])
     if position == 255:
         position = last_position
         updateDirections("Reached the beginning of the list.")
@@ -509,12 +525,12 @@ def clickedPrevious():
 def clickedNext():
     global position
     global selection
-    c.send("pyGetNextPos", calcPosition(position))
+    c.send("pyGetNextPos", calcAcctPositionSend(position))
     response = c.receive()
     print(response)
     response_list = response[1]
     last_position = position
-    position = response_list[0]                                                # used when we call OnEntryDownNoEvent->OnEntryDown->clickedLoad->getRecord
+    position = calcAcctPositionReceive(response_list[0])                       # used when we call OnEntryDownNoEvent->OnEntryDown->clickedLoad->getRecord
     if position == 255:
         position = last_position
         updateDirections("Reached the end of the list")
@@ -536,12 +552,12 @@ def loadListBox():                                                             #
         response = c.receive()
         print(response)
         response_list = response[1]
-        head = response_list[0]
+        head = calcAcctPositionReceive(response_list[0])
         position = head
         global accountDict
         accountDict = ({})                                                     # Load the dictionary
         while position < 255:                                                  # '<' not supported between instances of 'str' and 'int'
-            c.send("pyReadAccountName", calcPosition(position))
+            c.send("pyReadAccountName", calcAcctPositionSend(position))
             try:
                 response = c.receive()
                 accountName_list = response[1]
@@ -557,11 +573,11 @@ def loadListBox():                                                             #
                 accountName = "Exception"
             accountDict[accountName] = position
             lb.insert(END, accountName)                                        # Load the listbox
-            c.send("pyGetNextPos", calcPosition(position))                               # calls getNextPtr(acctPosition) in C program
+            c.send("pyGetNextPos", calcAcctPositionSend(position))             # calls getNextPtr(acctPosition) in C program
             try:
                 response = c.receive()
                 response_list = response[1]
-                position = response_list[0]
+                position = calcAcctPositionReceive(response_list[0])
             except ValueError as ve:
                 updateDirections("Error in pyGetNextPos; " + str(ve))
                 raise ve
@@ -635,11 +651,11 @@ def clickedDelete():
         global selection
         lb.delete(selection)
         global position
-        c.send("pyDeleteAccount",calcPosition(position))
+        c.send("pyDeleteAccount",calcAcctPositionSend(position))
         response = c.receive()
         print(response)
         response_list = response[1]
-        position = response_list[0]                                            # returns head position
+        position = calcAcctPositionReceive(response_list[0])                   # returns head position
         getRecord()
         selection = 0
         lb.select_set(selection)
@@ -656,7 +672,7 @@ def clickedChangeMasterPass():
         response = c.receive()
         print(response)
         response_list = response[1]
-        position = response_list[0]                                            # returns head position
+        position = calcAcctPositionReceive(response_list[0])                   # returns head position
         getRecord()
         selection = 0
         lb.select_set(selection)
@@ -672,14 +688,14 @@ def clickedShowPassword():
         response = c.receive()
         print(response)
         response_list = response[1]
-        unusedHead = response_list[0]                                          # returns head position
+        unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
         updateDirections("Turned on password viewing on the PasswordPump.")
     else:
         c.send("pyShowPasswords", 0)
         response = c.receive()
         print(response)
         response_list = response[1]
-        unusedHead = response_list[0]                                          # returns head position
+        unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
         updateDirections("Turned off password viewing on the PasswordPump.")
 
 def clickedDecoyPassword():
@@ -689,14 +705,14 @@ def clickedDecoyPassword():
         response = c.receive()
         print(response)
         response_list = response[1]
-        unusedHead = response_list[0]                                          # returns head position
+        unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
         updateDirections("Enabled the decoy password feature on the PasswordPump")
     else:
         c.send("pyDecoyPassword", 0)
         response = c.receive()
         print(response)
         response_list = response[1]
-        unusedHead = response_list[0]                                          # returns head position
+        unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
         updateDirections("Disabled the decoy password feature on the PasswordPump")
 
 def getRecord():
@@ -710,7 +726,7 @@ def getRecord():
     global vFinancial
     global vMail
     global vCustom
-    c.send("pyReadAccountName", calcPosition(position))
+    c.send("pyReadAccountName", calcAcctPositionSend(position))
     try:
         response = c.receive()
         print(response)
@@ -721,7 +737,7 @@ def getRecord():
     txt_acct.delete(0,END)
     txt_acct.insert(0,accountName)
 
-    c.send("pyReadUserName", calcPosition(position))
+    c.send("pyReadUserName", calcAcctPositionSend(position))
     try:
         response = c.receive()
         print (response)
@@ -732,7 +748,7 @@ def getRecord():
     txt_user.delete(0,END)
     txt_user.insert(0,userName)
 
-    c.send("pyReadPassword", calcPosition(position))
+    c.send("pyReadPassword", calcAcctPositionSend(position))
     try:
         response = c.receive()
         print(response)
@@ -743,7 +759,7 @@ def getRecord():
     txt_pass.delete(0,END)
     txt_pass.insert(0,password)
 
-    c.send("pyReadOldPassword", calcPosition(position))
+    c.send("pyReadOldPassword", calcAcctPositionSend(position))
     try:
         response = c.receive()
         print(response)
@@ -754,7 +770,7 @@ def getRecord():
     txt_old_pass.delete(0,END)
     txt_old_pass.insert(0,old_password)
 
-    c.send("pyReadStyle", calcPosition(position))
+    c.send("pyReadStyle", calcAcctPositionSend(position))
     try:
         response = c.receive()
         print(response)
@@ -764,7 +780,7 @@ def getRecord():
         style = ""
     cbStyle.set(style)
 
-    c.send("pyReadURL", calcPosition(position))
+    c.send("pyReadURL", calcAcctPositionSend(position))
     try:
         response = c.receive()
         print(response)
@@ -775,7 +791,7 @@ def getRecord():
     txt_url.delete(0,END)
     txt_url.insert(0,url)
 
-    c.send("pyReadGroup", calcPosition(position))
+    c.send("pyReadGroup", calcAcctPositionSend(position))
     try:
         response = c.receive()
         print(response)
@@ -811,7 +827,7 @@ def BackupEEprom():
         response = c.receive()
         print(response)
         response_list = response[1]
-        position = response_list[0]                                            # returns head position
+        position = calcAcctPositionReceive(response_list[0])                   # returns head position
         getRecord()
         lb.select_clear(selection)                                             # Removes one or more items from the selection.
         selection = 0
@@ -831,7 +847,7 @@ def RestoreEEprom():
         response = c.receive()
         print(response)
         response_list = response[1]
-        position = response_list[0]                                            # returns head position
+        position = calcAcctPositionReceive(response_list[0])                   # returns head position
         loadListBox()                                                          # postion is set to head as a side effect
         getRecord()                                                            # get the head record
         lb.select_clear(selection)                                             # Removes one or more items from the selection.
@@ -1047,10 +1063,10 @@ def ExportFile():
                 response = c.receive()
                 print(response)
                 response_list = response[1]
-                head = response_list[0]
+                head = calcAcctPositionReceive(response_list[0])
                 position = head
                 while position < 255:  # '<' not supported between instances of 'str' and 'int'
-                    c.send("pyReadAccountName", calcPosition(position))
+                    c.send("pyReadAccountName", calcAcctPositionSend(position))
                     try:
                         response = c.receive()
                         accountName_list = response[1]
@@ -1065,7 +1081,7 @@ def ExportFile():
                         updateDirections("Exception in pyReadAccountName; " + str(e))
                         accountName = "Exception"
 
-                    c.send("pyReadUserName", calcPosition(position))
+                    c.send("pyReadUserName", calcAcctPositionSend(position))
                     try:
                         response = c.receive()
                         userName_list = response[1]
@@ -1080,7 +1096,7 @@ def ExportFile():
                         updateDirections("Exception in pyReadUserName; " + str(e))
                         userName = "Exception"
 
-                    c.send("pyReadPassword", calcPosition(position))
+                    c.send("pyReadPassword", calcAcctPositionSend(position))
                     try:
                         response = c.receive()
                         password_list = response[1]
@@ -1095,7 +1111,7 @@ def ExportFile():
                         updateDirections("Exception in pyReadPassword; " + str(e))
                         password = "Exception"
 
-                    c.send("pyReadOldPassword", calcPosition(position))
+                    c.send("pyReadOldPassword", calcAcctPositionSend(position))
                     try:
                         response = c.receive()
                         oldpassword_list = response[1]
@@ -1110,7 +1126,7 @@ def ExportFile():
                         updateDirections("Exception in pyReadOldPassword; " + str(e))
                         oldpassword = "Exception"
 
-                    c.send("pyReadURL", calcPosition(position))
+                    c.send("pyReadURL", calcAcctPositionSend(position))
                     try:
                         response = c.receive()
                         url_list = response[1]
@@ -1125,7 +1141,7 @@ def ExportFile():
                         updateDirections("Exception in pyReadURL; " + str(e))
                         url = "Exception"
 
-                    c.send("pyReadStyle", calcPosition(position))
+                    c.send("pyReadStyle", calcAcctPositionSend(position))
                     try:
                         response = c.receive()
                         style_list = response[1]
@@ -1140,7 +1156,7 @@ def ExportFile():
                         updateDirections("Exception in pyReadStyle; " + str(e))
                         style = 0
 
-                    c.send("pyReadGroup", calcPosition(position))
+                    c.send("pyReadGroup", calcAcctPositionSend(position))
                     try:
                         response = c.receive()
                         group_list = response[1]
@@ -1157,11 +1173,11 @@ def ExportFile():
 
                     pp_writer.writerow([accountName, userName, password, oldpassword, url, style, group])
 
-                    c.send("pyGetNextPos", calcPosition(position))  # calls getNextPtr(acctPosition) in C program
+                    c.send("pyGetNextPos", calcAcctPositionSend(position))  # calls getNextPtr(acctPosition) in C program
                     try:
                         response = c.receive()
                         response_list = response[1]
-                        position = response_list[0]
+                        position = calcAcctPositionReceive(response_list[0])
                     except ValueError as ve:
                         updateDirections("Error in pyGetNextPos; " + str(ve))
                         raise ve
