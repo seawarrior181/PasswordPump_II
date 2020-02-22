@@ -151,22 +151,26 @@ def stripBadChars(unicode_line):
     return(unicode_line.strip("/"))
 
 def calcAcctPositionSend(aPosition):
-    if (aPosition < 252):
-        aPosition += 3
-    if (aPosition == 124):
-        aPosition = 2
-    elif (aPosition == 92):
+    if (aPosition < 251):
+        aPosition += 4
+    if (aPosition == 92):
         aPosition = 1
+    elif (aPosition == 124):
+        aPosition = 2
+    elif (aPosition == 126):
+        aPosition = 3
     return(aPosition)
 
 def calcAcctPositionReceive(aPosition):
-    if (aPosition == 2):
-        aPosition = 121
-    elif (aPosition == 1):
-        aPosition = 89
+    if (aPosition == 1):
+        aPosition = 88
+    elif (aPosition == 2):
+        aPosition = 120
+    elif (aPosition == 3):
+        aPosition = 122
     else:
         if (aPosition < 255):
-            aPosition -= 3
+            aPosition -= 4
     return(aPosition)
 
 def clickedOpen():
