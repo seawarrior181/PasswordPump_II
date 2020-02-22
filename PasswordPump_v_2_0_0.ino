@@ -831,7 +831,7 @@
 #define EEPROM_BYTES_PER_PAGE     EEPROM_BPP_25LC512                            // 
 #define CREDS_ACCOM_25LC512       0x00FF                                        // 255 (((0xFFFF + 1)/256)) - 1)  | (((MAX_AVAIL_ADDR_25LC512 + 1)/CREDS_TOT_SIZE)) - 1 for settings)
 #define CREDS_ACCOM_25LC256       0x007F                                        // 127 (((0x7FFF + 1)/256)) - 1)  | (((MAX_AVAIL_ADDR_25LC256 + 1)/CREDS_TOT_SIZE)) - 1 for settings)
-#define CREDS_ACCOMIDATED         (CREDS_ACCOM_25LC512 - 0x04)                  // -3 sets of creds for PyCmdMessenger defects 
+#define CREDS_ACCOMIDATED         (CREDS_ACCOM_25LC512 - 0x05)                  // -5 sets of creds for PyCmdMessenger defects 
 #define DISPLAY_BUFFER_SIZE       21                                            // 0x0015, 21; room for 20 chars and the null terminator
 
 #define WEBSITE_SIZE              0x0060                                        // 96 bytes
@@ -5903,23 +5903,27 @@ uint8_t calcAcctPositionReceive(uint8_t accountPosition) {
 //  DisplayToDebug(accountPositionStr);
   
   if (accountPosition == 1) {
-    accountPosition = 89;                                                       // necessary because of a defect in PyCmdMessenger
+    accountPosition = 88;                                                       // necessary because of a defect in PyCmdMessenger
   } else if (accountPosition == 2) {
-    accountPosition = 121;
+    accountPosition = 120;
+  } else if (accountPosition == 3) {
+    accountPosition = 122;
   } else {
     if (accountPosition < 255) {
-      accountPosition -= 3;
+      accountPosition -= 4;
     }
   }
   return accountPosition;
 }
 
 uint8_t calcAcctPositionSend(uint8_t accountPosition) {                         // work around another defect in PyCmdMessenger
-  if (accountPosition < 252) accountPosition += 3;
-  if (accountPosition == 124) {
-    accountPosition = 2;
-  } else if (accountPosition == 92) {
+  if (accountPosition < 251) accountPosition += 4;
+  if (accountPosition == 92) {
     accountPosition = 1;
+  } else if (accountPosition == 124) {
+    accountPosition = 2;
+  } else if (accountPosition == 126) {
+    accountPosition = 3;
   }
   return accountPosition;                                                       // accountPosition will never = 124, or |, the command separator
 }
