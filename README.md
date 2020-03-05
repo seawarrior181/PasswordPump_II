@@ -5,7 +5,7 @@ The PasswordPump is a USB device that helps you manage credentials and supply cr
 (c) 2020 Daniel Murphy
 
 
-Change Log
+#Change Log
 
 2020-02-24 v2.0.2 Eliminated the need for the PyCmdMessenger edits.  You still need to install PyCmdMessenger, you just don't need to make any edits to it.
 
