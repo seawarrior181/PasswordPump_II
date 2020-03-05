@@ -7,7 +7,7 @@ The PasswordPump is a USB device that helps you manage credentials and supply cr
 
 # Change Log
 
-Unreleased v2.0.3 Added the @ back to the list of characters available for input via rotary encoder.  Fixed an error whereby you could scroll past the z when entering characters via rotary encoder.
+Unreleased v2.0.3 Added the @ back to the list of characters available for input via rotary encoder.  Fixed an error whereby you could scroll past the z when entering characters via rotary encoder.  Changed automatic logout from the device so that it does not automatically lock your computer.
 
 2020-02-24 v2.0.2 Eliminated the need for the PyCmdMessenger edits.  You still need to install PyCmdMessenger, you just don't need to make any edits to it.
 
