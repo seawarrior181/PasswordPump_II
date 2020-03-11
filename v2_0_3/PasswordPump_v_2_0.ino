@@ -70,7 +70,7 @@
   - When deleting duplicate accounts (duplicate account names) corruption is 
     introduced.
   - Navigation back to previous menu needs work (EVENT_LONG_CLICK).
-  - Nail down the menu / UI layout.  Invert the top line.
+  - Nail down the menu / UI layout.  
   - After deleting account change the location of the menu
   - Embedded quote in a CSV import file are not getting saved to the filed e.g.
     password.
@@ -95,6 +95,8 @@
     fix a corrupt linked list. Exact conditions of corruption unknown at this 
     point.
   x single click after Reset brings you to alpha edit mode
+  * When long clicking after search by group you don't return to the right 
+    group you always return to favorites.
   * The automatic logout of the PasswordPump after inactivity is also locking
     the computer.  It should just logout of the PasswordPump.
   * User can scroll past z when entering text.
@@ -2054,6 +2056,7 @@ void ProcessEvent() {                                                           
         case FIND_BY_GROUP:
           if(acctCount>0) {                                                     // if acctCount is not > 0 then there are not accounts to find
             addFlag = false;
+            position = 0;
             switchFindByGroup();
           } else {
             event = EVENT_NONE;
@@ -2405,27 +2408,33 @@ void ProcessEvent() {                                                           
       switch(position) {
          case SEND_USER_AND_PASSWORD:                                                                
             sendUsernameAndPassword();                                          // Send the user name and password
+            DisplayToMenu(accountName);
             DisplayToStatus("Sent user/pass");
             break; 
          case SEND_PASSWORD:                                                    
             sendPassword();                                                     // Send the password
             sendRTN();                                                          // Send the carriage return
+            DisplayToMenu(accountName);
             DisplayToStatus("Sent password");
             break;
          case SEND_USERNAME:                                                    
             sendUsername();                                                     // Send the user name
+            DisplayToMenu(accountName);
             DisplayToStatus("Sent username");
             break;
          case SEND_PASSWORD_NO_RET:
             sendPassword();                                                     // Send the password
+            DisplayToMenu(accountName);
             DisplayToStatus("Sent password");
             break;
          case SEND_WEBSITE:                                                    
             sendWebSite();                                                      // Send the website url
+            DisplayToMenu(accountName);
             DisplayToStatus("Sent URL");
             break;
          case SEND_ACCOUNT:                                                     // Send the account name
             sendAccount();
+            DisplayToMenu(accountName);
             DisplayToStatus("Sent acct name");
             break;
          case EDIT_ACCOUNT:                                                     // Show the enter account menu
@@ -2436,6 +2445,7 @@ void ProcessEvent() {                                                           
             break;
          case SEND_OLD_PASSWORD:                                                // Send the account name
             sendOldPassword();
+            DisplayToMenu(accountName);
             DisplayToStatus("Sent old pass");
             break;
          default:
@@ -3197,7 +3207,7 @@ void switchFindByGroup() {
   memcpy(currentMenu, groupMenu, arraySize);
   elements = GROUP_MENU_ELEMENTS;
   machineState = STATE_MENU_GROUPS;
-  position = 0;
+  //position = 0;
   ShowMenu(position, currentMenu,"   Find by Group    ");
   event = EVENT_NONE;
 }  
