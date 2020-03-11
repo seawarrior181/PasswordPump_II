@@ -95,6 +95,8 @@
     fix a corrupt linked list. Exact conditions of corruption unknown at this 
     point.
   x single click after Reset brings you to alpha edit mode
+  * When returning from setting anthing in the settings menu you're not returned
+    to the menu item from where you came.
   * When long clicking after search by group you don't return to the right 
     group you always return to favorites.
   * The automatic logout of the PasswordPump after inactivity is also locking
@@ -691,6 +693,7 @@
   039 - Encrypted account name starts with 255, fixing...
   040 - Invalid position when returning to a find by group menu
   041 - Corrupt link list encountered while counting accounts
+  042 - Invalid position when returning to settings menu
 
   The Program 
   ==============================================================================
@@ -2760,7 +2763,32 @@ void ProcessEvent() {                                                           
                (STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState)    ){
-      position = 0;                                                             // return to the top of the settings menu
+      switch (machineState) {
+        case STATE_KEY_ON_OFF_MENU:
+          position = 0;
+          break;
+        case STATE_SHOW_PW_ON_OFF_MENU:
+          position = 1;
+          break;
+        case STATE_DECOY_ON_OFF_MENU:
+          position = 2;
+          break;
+        case STATE_MENU_RGB_INTENSITY:
+          position = 3;
+          break;
+        case STATE_MENU_LOGOUT_TIMEOUT:
+          position = 4;
+          break;
+        case STATE_MENU_LOGIN_ATTEM:
+          position = 5;
+          break;
+        default:
+          position = 0;
+          DisplayToError("ERR: 042");
+          delayNoBlock(ONE_SECOND * 2);
+          break;
+      }
+      //position = 0;                                                           // return to the top of the settings menu
       event = EVENT_SHOW_SETTINGS_MENU;
     } else if (STATE_MENU_FILE == machineState) {                               // EVENT_LONG_CLICK
       event = EVENT_SHOW_MAIN_MENU;                                             // if any other state show main menu (e.g just after EVENT_RESET)
