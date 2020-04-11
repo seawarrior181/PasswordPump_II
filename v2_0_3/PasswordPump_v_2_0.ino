@@ -1233,7 +1233,7 @@ static int  maxline  = 0;                                                       
 static char **field  = NULL;                                                    // field pointers
 static int  maxfield = 0;                                                       // size of field[]
 static int  nfield   = 0;                                                       // number of fields in field[]
-static char fieldsep[] = ","; /* field separator chars */
+static char fieldsep[] = ","; 													// field separator chars
 static char *advquoted(char *);
 static int split(void);
                                                                                 // END CSV Processing
@@ -1318,6 +1318,7 @@ uint32_t iterationCount = 0;                                                    
 uint8_t headPosition;                                                           // the head of the doubly linked list that keeps account names sorted
 uint8_t tailPosition;                                                           // the tail of the doubly linked list that keeps account names sorted
 uint8_t groupFilter = ALL_GROUPS;                                               // turn on all groups in the filter
+uint8_t fromFilter = FAVORITES;													// indicates the filter in effect for menu navigation
 
 char buf[MAX_LEN_CSV_LINE];                                                     // input line buffer, CSV file processing
 char *unquote(char *);
@@ -1521,7 +1522,7 @@ uint8_t readGroupFromEEprom(uint8_t pos);
 void delayNoBlock(unsigned long milliseconds);
 void writeGroup(uint8_t pos, uint8_t group);
 void SetSaltAndKey(uint8_t position);                                           // populate and save the salt, set the key with the salt and master password
-void switchToFindByGroupMenu();
+void switchToFindByGroupMenu(uint8_t menu, boolean setAcctPosition);
 void sendRTN();
 void ChangeMasterPassword(char *passedNewPassword);
 uint8_t FindAccountPos(char *accountName);
@@ -2080,7 +2081,7 @@ void ProcessEvent() {                                                           
                  (event != EVENT_LONG_CLICK             )   ) {
             encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
             cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
-//            if (counter%129792 == 0) {                                        //  259584 to slow down
+//            if (counter%129792 == 0) {                                        // 259584 to slow down
 //              if (isYellow) {
 //                setBlue();
 //              } else {
@@ -2291,7 +2292,7 @@ void ProcessEvent() {                                                           
       writeGroup(acctPosition, groups);
       event = EVENT_NONE;
     } else if (STATE_MENU_GROUPS == machineState) {                             // EVENT_SINGLE_CLICK
-      switchToFindByGroupMenu();
+      switchToFindByGroupMenu(position, true);
     } else if (STATE_EDIT_ACCOUNT == machineState) {                            // EVENT_SINGLE_CLICK
       enterAttributeChar(accountName, false);
     } else if (STATE_EDIT_USERNAME == machineState) {                           // EVENT_SINGLE_CLICK
@@ -2688,8 +2689,42 @@ void ProcessEvent() {                                                           
         BlankLine3();
       }
     } else if (STATE_SEND_CREDS_MENU == machineState){                          // EVENT_LONG_CLICK
-      switchToFindAcctMenu();
-      BlankLine3();                                                             // wipes out the name of the account 
+	  switch (groupFilter) {
+		case FAVORITES:
+		  switchToFindByGroupMenu(GROUP_FAVORITES, false);
+		  break;
+		case WORK:
+		  switchToFindByGroupMenu(GROUP_WORK, false);
+		  break;
+		case PERSONAL:
+		  switchToFindByGroupMenu(GROUP_PERSONAL, false);
+		  break;
+		case HOME:
+		  switchToFindByGroupMenu(GROUP_HOME, false);
+		  break;
+		case SCHOOL:
+		  switchToFindByGroupMenu(GROUP_SCHOOL, false);
+		  break;
+		case FINANCIAL:
+		  switchToFindByGroupMenu(GROUP_FINANCIAL, false);
+		  break;
+		case MAIL:
+		  switchToFindByGroupMenu(GROUP_MAIL, false);
+		  break;
+		case CUSTOM:
+		  switchToFindByGroupMenu(GROUP_CUSTOM, false);
+		  break;
+		case ALL_GROUPS:
+		  switchToFindAcctMenu();
+		  break;
+		default:
+		  position = 0;
+		  DisplayToError("ERR: 040");
+		  delayNoBlock(ONE_SECOND * 2);
+		  switchToFindAcctMenu();
+		  break;
+	  }
+	  BlankLine3();                                                         // wipes out the name of the account 
     } else if (STATE_FIND_ACCOUNT == machineState){                             // long click after selecting an account
       event = EVENT_SHOW_MAIN_MENU;
       BlankLine2();
@@ -3253,8 +3288,8 @@ void switchToFindByGroup() {
   event = EVENT_NONE;
 }  
 
-void switchToFindByGroupMenu() {
-  switch (position) {
+void switchToFindByGroupMenu(uint8_t menu, boolean setAcctPosition) {
+  switch (menu) {
     case GROUP_FAVORITES:
       groupFilter = FAVORITES;
       machineState = STATE_SEARCH_FAVORITES;
@@ -3301,7 +3336,7 @@ void switchToFindByGroupMenu() {
       break;
   }
   
-  acctPosition = headPosition;
+  if (setAcctPosition) acctPosition = headPosition;
   while ( (acctPosition != INITIAL_MEMORY_STATE_BYTE) &&
          !(readGroupFromEEprom(acctPosition) & groupFilter) ) {                 // 
     acctPosition = getNextPtr(acctPosition);
@@ -3341,13 +3376,10 @@ void switchToSendCredsMenu() {
 void switchToFindAcctMenu() {
   //DebugLN("switchToFindAcctMenu()");
   machineState = STATE_FIND_ACCOUNT;
-//position = headPosition; 
-//acctPosition = headPosition;
-  position = acctPosition;                                                      // substitute this line for the two above it (commented out) so we return to the right spot in Find Account
-  //DebugMetric("position: ",position);
+  position = acctPosition;                                                      // 
   ShowMenu(FIND_ACCOUNT, mainMenu, " Find All Accounts  ");
+  groupFilter = ALL_GROUPS; 													// this ensures that we'll return to the correct menu
   readAcctFromEEProm(position, accountName);
-  //DebugLN((char *) accountName);
   DisplayToItem((char *)accountName);
   event = EVENT_NONE;
 }
