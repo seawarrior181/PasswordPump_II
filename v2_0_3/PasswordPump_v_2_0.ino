@@ -566,6 +566,20 @@
   Sketch uses ? bytes (20%) of program storage space. Maximum is 507904 
   bytes. 
 
+  Fixing CmdMessenger
+  ===================
+  It's necessary to make an edit to the most recent version of PyCmdMessenger 
+  to make it compile.  On line 492 of CmdMessenger.cpp, change 
+
+		return '\0';
+
+  to
+  
+		char *str;
+		*str = '\0';
+		return str;
+
+  
   Burning The Firmware    TODO: update this after uploading the .elf file to 
   ====================    github.  Incorporate this into the instructions for 
                           uploading keepass and google password files.
@@ -581,25 +595,23 @@
   
   Menu Navigation                                                               // TODO: update the states here...
   ===============
-  Master Password                  STATE_ENTER_MASTER   ->STATE_SHOW_MAIN_MENU
+  Master Password                  
   Find Favorite
   Find All Accounts
-    [same as under Find All Account]
-  Find All Account                 STATE_SHOW_MAIN_MENU ->STATE_FIND_ACCOUNT
-    [scroll through accounts list] STATE_FIND_ACCOUNT   ->STATE_SEND_CREDS_MENU
-      Send Password <RET>          STATE_SEND_CREDS_MENU
-      Send User & Pass             STATE_SEND_CREDS_MENU
+    [scroll through accounts list] 
+      Send Password <RET>          
+      Send User & Pass             
       Send URL
-      Send User Name               STATE_SEND_CREDS_MENU
+      Send User Name               
       Send Pass (no <RET>)
-      Send Account                 STATE_SEND_CREDS_MENU
-      Edit Credentials             STATE_SEND_CREDS_MENU
-        Edit Account Name          STATE_EDIT_CREDS_MENU->STATE_EDIT_ACCOUNT
-        Edit User Name             STATE_EDIT_CREDS_MENU->STATE_EDIT_USERNAME
-        Edit Password              STATE_EDIT_CREDS_MENU->STATE_EDIT_PASSWORD
-        Edit URL                   STATE_EDIT_CREDS_MENU->STATE_EDIT_WEBSITE
-        Indicate Style             STATE_EDIT_CREDS_MENU->STATE_EDIT_STYLE
-        Assign Groups              STATE_EDIT_CREDS_MENU->STATE_EDIT_GROUPS
+      Send Account                 
+      Edit Credentials             
+        Edit Account Name         
+        Edit User Name            
+        Edit Password             
+        Edit URL                  
+        Indicate Style            
+        Assign Groups             
           Favorites
           Work
           Personal
@@ -608,47 +620,62 @@
           Financial
           Mail
           Custom
-        GeneratePassword           STATE_EDIT_CREDS_MENU->
+        GeneratePassword          
         Save to Old Password
-      Delete Credentials [confirm] STATE_SEND_CREDS_MENU->STATE_CONFIRM_DEL_ACCT
+      Delete Credentials [confirm]
       Send Old Password
   Find By Group
     Favorites
-      [same as under Find All Account]
+      [same as under Find All Accounts]
     Work
-      [same as under Find All Account]
+      [same as under Find All Accounts]
     Personal
-      [same as under Find All Account]
+      [same as under Find All Accounts]
     Home
-      [same as under Find All Account]
+      [same as under Find All Accounts]
     School
-      [same as under Find All Account]
+      [same as under Find All Accounts]
     Financial
-      [same as under Find All Account]
+      [same as under Find All Accounts]
     Mail
-      [same as under Find All Account]
+      [same as under Find All Accounts]
     Custom
-      [same as under Find All Account]
-  Add Account                      STATE_SHOW_MAIN_MENU
-    Account Name                   STATE_EDIT_CREDS_MENU
-    Edit User Name                 STATE_EDIT_CREDS_MENU
-    Edit Password                  STATE_EDIT_CREDS_MENU
-    Indicate Style                 STATE_EDIT_CREDS_MENU
-    GeneratePasswrd                STATE_EDIT_CREDS_MENU
-  Logout                           STATE_SHOW_MAIN_MENU
+      [same as under Find All Accounts]
+  Add Account                      
+    Account Name                   
+    Edit User Name                 
+    Edit Password                  
+    Indicate Style                 
+    GeneratePasswrd                
+  Logout & Lock                           
   Backup/Restore
-    Backup EEprom [confirm]        STATE_SHOW_MAIN_MENU->STATE_CONFIRM_BACK_EEPROM
-    Restore EEprm Backup [confirm] STATE_SHOW_MAIN_MENU->STATE_CONFIRM_RESTORE
+    Backup EEprom [confirm]       
+    Restore EEprm Backup [confirm]
   Settings
-    Keyboard ON/OFF                STATE_SHOW_MAIN_MENU
-    Show Passwrd ON/OFF            STATE_SHOW_MAIN_MENU
-    Decoy Password
+    Keyboard ON/OFF                
+    Show Password ON/OFF            
+    Decoy Password ON/OFF
     RGB LED Intensity
+      High
+      Medium
+      Low
+      Off
     Timeout Minutes
+      30
+      60
+      90
+      120
+      240
+      Never
+      1
     Login Attempts
-    Change Master Password
-  Factory Reset [confirm]          STATE_SHOW_MAIN_MENU->STATE_CONFIRM_RESET
-  
+      3
+      5
+      10
+      25
+    Change Master Psswrd
+  Factory Reset [confirm]   
+
   Error Codes  TODO: add more error codes
   ===========
   000 - SSD1306 allocation failed (only visible via serial)
@@ -694,6 +721,7 @@
   040 - Invalid position when returning to a find by group menu
   041 - Corrupt link list encountered while counting accounts
   042 - Invalid position when returning to settings menu
+	043 - Invalid group number when customizing groups
 
   The Program 
   ==============================================================================
@@ -735,6 +763,7 @@
 #define getLogoutTimeout          read_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT)
 #define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)    // The number of login attempts before we factory reset
 #define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
+#define getGroupStatus						read_eeprom_byte(GET_ADDR_CATEGORY_1)
 
 //#if defined(__SAMD51__) && defined(SERIAL_PORT_USBVIRTUAL)                    // Required for Serial on Zero based boards
 //  #define Serial SERIAL_PORT_USBVIRTUAL
@@ -836,10 +865,10 @@
 #define EEPROM_BPP_25LC512        0x0080                                        // 128. can't exceed 255 (real page size is 128 for 25LC512)
 #define EEPROM_BPP_25LC1024       0x0100                                        // 256
 #define EEPROM_BYTES_PER_PAGE     EEPROM_BPP_25LC512                            // 
-#define CREDS_ACCOM_25LC256       0x007F                                        // 127 (((0x7FFF + 1)/256)) - 1)  | (((MAX_AVAIL_ADDR_25LC256 + 1)/CREDS_TOT_SIZE)) - 1 for settings)
-#define CREDS_ACCOM_25LC512       0x00FF                                        // 255 (((0xFFFF + 1)/256)) - 1)  | (((MAX_AVAIL_ADDR_25LC512 + 1)/CREDS_TOT_SIZE)) - 1 for settings)
+#define CREDS_ACCOM_25LC256       0x007E                                        // 126 (((0x7FFF + 1)/256)) - 1)  | (((MAX_AVAIL_ADDR_25LC256 + 1)/CREDS_TOT_SIZE)) - 2 for settings)
+#define CREDS_ACCOM_25LC512       0x00FE                                        // 254 (((0xFFFF + 1)/256)) - 1)  | (((MAX_AVAIL_ADDR_25LC512 + 1)/CREDS_TOT_SIZE)) - 2 for settings)
 #define CREDS_ACCOM_25LC1024      0x01FF                                        // 511
-#define CREDS_ACCOMIDATED         (CREDS_ACCOM_25LC512 - 0x05)                  // -5 sets of creds for PyCmdMessenger defects 
+#define CREDS_ACCOMIDATED         (CREDS_ACCOM_25LC512 - 0x05)                  // -5 sets of creds for PyCmdMessenger defects = 249
 #define DISPLAY_BUFFER_SIZE       21                                            // 0x0015, 21; room for 20 chars and the null terminator
 
 #define WEBSITE_SIZE              0x0060                                        // 96 bytes
@@ -882,6 +911,7 @@
 #define LOGOUT_TIMEOUT_SIZE       0x0001                                        // 1 byte
 #define LOGIN_ATTEMPTS_NUM_SIZE   0x0001                                        // 1 byte
 #define DECOY_PW_SIZE             0x0010                                        // 1 byte
+#define CATEGORY_SIZE             0x000A																				// 10 bytes (there are 7 of these)
 //------------------------------------------------------------------------------
 #define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (53 total, rounding up to 256)
 //==============================================================================// 65536 - 256 = 32512/256 = 255 CREDS_ACCOMIDATED
@@ -896,8 +926,15 @@
 #define GET_ADDR_MASTER_HASH      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE) // store hashed master password
 #define GET_ADDR_RGB_LED_INT      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ) // store setting for RGB LED intensity
 #define GET_ADDR_LOGOUT_TIMEOUT   (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE) // store the setting for the automatic logout timeout
-#define GET_ADDR_LOGIN_ATTEM_NUM   (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE) // store the setting for the EEProm part number
+#define GET_ADDR_LOGIN_ATTEM_NUM  (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE) // store the setting for the EEProm part number
 #define GET_ADDR_DECOY_PW         (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE) // store the setting for the decoy password setting
+#define GET_ADDR_CATEGORY_1				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 1) // place the categories on the second to last page on EEprom
+#define GET_ADDR_CATEGORY_2				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 2)
+#define GET_ADDR_CATEGORY_3				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 3)
+#define GET_ADDR_CATEGORY_4				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 4)
+#define GET_ADDR_CATEGORY_5				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 5)
+#define GET_ADDR_CATEGORY_6				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 6)
+#define GET_ADDR_CATEGORY_7				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 7)
 
 //- Events
                                                                                 // Assumption here is that using #define instead of enum will save memory
@@ -928,6 +965,7 @@
 #define EVENT_IMPORT_CP_CSV       29
 #define EVENT_SEARCH_FAVORITES    30
 #define EVENT_SHOW_FAVORITES_MENU 31
+#define EVENT_SHOW_GROUP_DEF_MENU 32
 //#define EVENT_SEARCH_WORK         27
 //#define EVENT_SEARCH_PERSONAL     28
 //#define EVENT_SEARCH_HOME         29
@@ -942,7 +980,7 @@
 #define STATE_SHOW_MAIN_MENU      2                                             // showing the main menu                              
 #define STATE_FIND_ACCOUNT        3                                             // searching for an account                           
 #define STATE_EDIT_STYLE          4                                             // editing the style for sending user name and password
-#define STATE_EDIT_GROUPS         5                                             // assigning groups to credentials
+//#define STATE_EDIT_GROUPS       5                                             // assigning groups to credentials
 #define STATE_EDIT_USERNAME       6                                             // entering the user name  
 #define STATE_EDIT_PASSWORD       7                                             // entering the password                              
 #define STATE_EDIT_WEBSITE        8
@@ -951,7 +989,7 @@
 #define STATE_SEND_CREDS_MENU     11                                            // showing the menu that sends credentials via keyboard     
 #define STATE_CONFIRM_BACK_EEPROM 12                                            // confirming an action                               
 #define STATE_CONFIRM_RESTORE     13                                            // confirming restore from backup EEprom              
-//#define STATE_CONFIRM_FIX_CORRUPT 13                                          // confirming fix corruption function                 
+//#define STATE_CONFIRM_FIX_CORRUPT 14                                          // confirming fix corruption function                 
 #define STATE_CONFIRM_DEL_ACCT    15                                            // confirming account/credentials delete              
 #define STATE_CONFIRM_RESET       16                                            // confirming factory reset                           
 #define STATE_CONFIRM_IMP_KP_CSV  17                                            // confirming import KeePass csv file
@@ -978,6 +1016,14 @@
 #define STATE_MENU_FILE           38
 #define STATE_CONFIRM_IMP_CP_CSV  39
 #define STATE_FEED_SERIAL_DATA    40
+#define STATE_MENU_DEFINE_GROUPS	41
+#define STATE_EDIT_GROUP_1				42
+#define STATE_EDIT_GROUP_2				43
+#define STATE_EDIT_GROUP_3				44
+#define STATE_EDIT_GROUP_4				45
+#define STATE_EDIT_GROUP_5				46
+#define STATE_EDIT_GROUP_6				47
+#define STATE_EDIT_GROUP_7				48
 
 //- I2C Address
 
@@ -1073,7 +1119,7 @@ const char * const enterMenu[] =  {              "Edit Account Name",           
 #define SAVE_OLD_PASSWORD         7
 
 #define SETTINGS_MENU_NUMBER      3
-#define SETTINGS_MENU_ELEMENTS    7                                             // the number of selections in the menu for changing settings
+#define SETTINGS_MENU_ELEMENTS    8                                             // the number of selections in the menu for changing settings
 //char   settingsMenu[SETTINGS_MENU_ELEMENTS+1][DISPLAY_BUFFER_SIZE-1] =
 char *settingsMenu[] =
                                       {          "Keyboard",                    // flag that determines if the input by keyboard feature is on or off
@@ -1082,7 +1128,8 @@ char *settingsMenu[] =
                                                  "RGB LED Intensity",           // Setting the RGB LED's intensity High, Medium, Low, Off
                                                  "Timeout minutes",             // set the timeout for automatic logout in minutes
                                                  "Login Attempts",              // the number of login attempts allowed before a factory reset occurs
-                                                 "Change Master Psswrd",
+																								 "Rename Groups",								// allows the user to rename the group categories
+                                                 "Change Master Psswrd",				// Change the master password
                                                  ""                           };
 
 #define SETTINGS_SET_KEYBOARD     0                                             //
@@ -1091,7 +1138,8 @@ char *settingsMenu[] =
 #define SETTINGS_SET_RGB_INT      3
 #define SETTINGS_SET_TIMEOUT      4
 #define SETTINGS_SET_LOGIN_ATTEM  5
-#define SETTINGS_CHANGE_MASTER    6
+#define SETTINGS_GROUP_DEFINITION 6
+#define SETTINGS_CHANGE_MASTER    7
 
 #define LOGOUT_TIMEOUT_MENU_NUMBER    4
 #define LOGOUT_TIMEOUT_MENU_ELEMENTS  7
@@ -1161,15 +1209,16 @@ const char * const styleMenu[] = {               "<RETURN>",
 
 #define GROUP_MENU_NUMBER         9
 #define GROUP_MENU_ELEMENTS       8
-const char * const groupMenu[] = {               "Favorites",
-                                                 "Work",
-                                                 "Personal",
-                                                 "Home",
-                                                 "School",
-                                                 "Financial",
-                                                 "Mail",
-                                                 "Custom",
-                                                 ""                           };
+char   groupMenu[GROUP_MENU_ELEMENTS+1][DISPLAY_BUFFER_SIZE] = 
+  																					  {   "Favorites",
+                                                  "",
+                                                  "",
+                                                  "",
+                                                  "",
+                                                  "",
+                                                  "",
+                                                  "",
+                                                  ""                           };
 #define GROUP_FAVORITES           0
 #define GROUP_WORK                1
 #define GROUP_PERSONAL            2
@@ -1178,7 +1227,24 @@ const char * const groupMenu[] = {               "Favorites",
 #define GROUP_FINANCIAL           5
 #define GROUP_MAIL                6
 #define GROUP_CUSTOM              7
-                                                                                // The group designations
+
+#define GROUP_EDIT_MENU_NUMBER		11
+#define	GROUP_EDIT_MENU_ELEMENTS	7
+const char * const groupEditMenu[] = {						"Edit Group 1",
+																									"Edit Group 2",
+																									"Edit Group 3",
+																									"Edit Group 4",
+																									"Edit Group 5",
+																									"Edit Group 6",
+																									"Edit Group 7"							};
+#define EDIT_GROUP_1							0
+#define EDIT_GROUP_2							1
+#define EDIT_GROUP_3							2
+#define EDIT_GROUP_4							3
+#define EDIT_GROUP_5							4
+#define EDIT_GROUP_6							5
+#define EDIT_GROUP_7							6
+																																								// The group designations
 #define NONE                      0b00000000                                    // means this credential doesn't belong to any groups
 #define FAVORITES                 0b00000001                                    // credentials can belong to more than one group
 #define WORK                      0b00000010                                    // but they cannot belong to all groups
@@ -1233,7 +1299,7 @@ static int  maxline  = 0;                                                       
 static char **field  = NULL;                                                    // field pointers
 static int  maxfield = 0;                                                       // size of field[]
 static int  nfield   = 0;                                                       // number of fields in field[]
-static char fieldsep[] = ","; 													// field separator chars
+static char fieldsep[] = ","; 																									// field separator chars
 static char *advquoted(char *);
 static int split(void);
                                                                                 // END CSV Processing
@@ -1254,6 +1320,13 @@ char oldPassword[PASSWORD_SIZE];                                                
 char website[WEBSITE_SIZE];                                                     // holds the URL for the credentials
 char salt[SALT_SIZE];                                                           // holds the salt for each set of credentials
 char style[STYLE_SIZE];                                                         // holds the style of the current account (<TAB> or <CR> between send user name and password)
+char groupCategory_1[CATEGORY_SIZE];
+char groupCategory_2[CATEGORY_SIZE];
+char groupCategory_3[CATEGORY_SIZE];
+char groupCategory_4[CATEGORY_SIZE];
+char groupCategory_5[CATEGORY_SIZE];
+char groupCategory_6[CATEGORY_SIZE];
+char groupCategory_7[CATEGORY_SIZE];
 uint8_t groups;                                                                 // to which of 8 groups does the set of credentials belongs
 
 boolean updateExistingAccount = false;                                          // indicates if we are updating an existing account
@@ -1290,13 +1363,9 @@ const char spaceFilled[] = "                    ";                              
 char masterPassword[MASTER_PASSWORD_SIZE];                                      // this is where we store the master password for the device
 char newPassword[MASTER_PASSWORD_SIZE];                                         // this is where we store the master password when entering a new password
 char masterSalt[MASTER_PASSWORD_SIZE];                                          // holds the salt associated with the hashed master password
-//char salt[MASTER_PASSWORD_SIZE];                                              // will hold the salt, read from EEprom or calculated
-//char eepromMasterHash[HASHED_MASTER_PASSWORD_SZ];                             // buffer for the hashed master password; salt||masterPassword
 
-uint8_t loginFailures;                                                          // count of the number of consecutive login failures since the last successful 
-                                                                                // password entry.
-//#define MAX_LOGIN_FAILURES        10                                          // "Factory Reset" after MAX_LOGIN_FAILURES attempts to login. Guards against 
-                                                                                // brute force attack.
+uint8_t loginFailures;                                                          // count of the number of consecutive login failures since the last successful password entry.
+                                                                                // Used to defend against brute force attack.
 uint8_t showPasswordsFlag;                                                      // flag indicating if we show passwords via the UI, or hide them.
 uint8_t keyboardFlag;                                                           // flag indicating if we're using the keyboard to edit credentials
 uint8_t decoyPassword;                                                          // specifies if the decoy password feature is enabled
@@ -1318,7 +1387,7 @@ uint32_t iterationCount = 0;                                                    
 uint8_t headPosition;                                                           // the head of the doubly linked list that keeps account names sorted
 uint8_t tailPosition;                                                           // the tail of the doubly linked list that keeps account names sorted
 uint8_t groupFilter = ALL_GROUPS;                                               // turn on all groups in the filter
-uint8_t fromFilter = FAVORITES;													// indicates the filter in effect for menu navigation
+uint8_t fromFilter = FAVORITES;																									// indicates the filter in effect for menu navigation
 
 char buf[MAX_LEN_CSV_LINE];                                                     // input line buffer, CSV file processing
 char *unquote(char *);
@@ -1548,7 +1617,7 @@ void OnReadHead();
 void OnReadTail();
 void OnGetNextFreePos();
 void OnDeleteAccount();
-
+void initializeAllGroupCategories();																						// sets all group categories to their default values
 
 //- Main Program Control
 
@@ -1658,6 +1727,14 @@ void setup() {                                                                  
     writeDecoyPWFlag();
   }
 
+	uint8_t groupStatus;																													// setup the group menu
+	groupStatus = getGroupStatus;																									// check to see if the group names are written to EEprom
+	if (groupStatus == INITIAL_MEMORY_STATE_BYTE) {																// ...and if not initialize them
+		initializeAllGroupCategories();
+	}
+	readGroupCategories();																												// set the group categories from EEprom
+	loadGroupMenu();  															   												  	// load the group categories into the group menu
+	
   lastActivityTime = millis();                                                  // establish the start time for when the device is powered up
   authenticated = false;                                                        // we're not authenticated yet!
 
@@ -1800,11 +1877,17 @@ void ProcessEvent() {                                                           
     } else if ((STATE_ENTER_MASTER   == machineState  ) ||
                (STATE_EDIT_ACCOUNT   == machineState  ) ||
                (STATE_EDIT_STYLE     == machineState  ) ||
-               (STATE_EDIT_GROUPS    == machineState  ) ||
                (STATE_EDIT_USERNAME  == machineState  ) ||
                (STATE_EDIT_PASSWORD  == machineState  ) ||
                (STATE_EDIT_WEBSITE   == machineState  ) ||
-               (STATE_CHANGE_MASTER  == machineState  )) {
+               (STATE_CHANGE_MASTER  == machineState  )	||
+							 (STATE_EDIT_GROUP_1	 == machineState	) ||
+							 (STATE_EDIT_GROUP_2	 == machineState	) ||
+							 (STATE_EDIT_GROUP_3	 == machineState	) ||
+							 (STATE_EDIT_GROUP_4	 == machineState	) ||
+							 (STATE_EDIT_GROUP_5	 == machineState	) ||
+							 (STATE_EDIT_GROUP_6	 == machineState	) ||
+							 (STATE_EDIT_GROUP_7	 == machineState	)) {
       if (position < (LEN_ALL_CHARS - 2)) {
         position++;
       }
@@ -1825,8 +1908,11 @@ void ProcessEvent() {                                                           
       }
     } else if (STATE_MENU_FIND_BY_GROUP == machineState) {
       if ((position < (GROUP_MENU_ELEMENTS - 1)) && (acctCount > 0)) {          // we'll only show the edit account options when there's at least one account
-        position++;
-        MenuDown(currentMenu);
+        //position++;
+        //MenuDown(groupMenu);
+				if (position < GROUP_MENU_ELEMENTS) {
+					DisplayToItem((char *) (groupMenu + (++position)));
+				}
       }
     } else if ((STATE_KEY_ON_OFF_MENU     == machineState) ||
                (STATE_SHOW_PW_ON_OFF_MENU == machineState) ||
@@ -1900,10 +1986,18 @@ void ProcessEvent() {                                                           
       }
     } else if (STATE_MENU_GROUPS == machineState) {
       if (position < GROUP_MENU_ELEMENTS - 1) {                                 // prevent scrolling past the last item on the menu
+        //position++;
+        //MenuDown(groupMenu);                                                  // move one position down the current menu
+				if (position < GROUP_MENU_ELEMENTS) {
+					DisplayToItem((char *) (groupMenu + (++position)));
+				}
+      }
+    } else if (STATE_MENU_DEFINE_GROUPS == machineState) {
+      if (position < GROUP_EDIT_MENU_ELEMENTS - 1) {                            // prevent scrolling past the last item on the menu
         position++;
         MenuDown(currentMenu);                                                  // move one position down the current menu
       }
-    }
+		}
     event = EVENT_NONE;                                                         // to prevent infinite looping
     
   } else if (event == EVENT_ROTATE_CC) {                                        // scroll backward through something depending on state...
@@ -1912,14 +2006,20 @@ void ProcessEvent() {                                                           
         position--;
         MenuUp(currentMenu);
       }
-    } else if ((STATE_ENTER_MASTER  == machineState ) ||
+    } else if ((STATE_ENTER_MASTER  == machineState ) ||                    		// EVENT_ROTATE_CC
                (STATE_EDIT_ACCOUNT  == machineState ) ||
                (STATE_EDIT_STYLE    == machineState ) ||
-               (STATE_EDIT_GROUPS   == machineState ) ||                        // EVENT_ROTATE_CC
                (STATE_EDIT_USERNAME == machineState ) ||
                (STATE_EDIT_PASSWORD == machineState ) ||
                (STATE_EDIT_WEBSITE  == machineState ) ||
-               (STATE_CHANGE_MASTER == machineState )) {
+               (STATE_CHANGE_MASTER == machineState ) ||
+							 (STATE_EDIT_GROUP_1 	== machineState	) ||
+							 (STATE_EDIT_GROUP_2 	== machineState	) ||
+							 (STATE_EDIT_GROUP_3 	== machineState	) ||
+							 (STATE_EDIT_GROUP_4 	== machineState	) ||
+							 (STATE_EDIT_GROUP_5 	== machineState	) ||
+							 (STATE_EDIT_GROUP_6 	== machineState	) ||
+							 (STATE_EDIT_GROUP_7 	== machineState	)) {
       if (position > 0) {
         position--;
       }
@@ -1938,8 +2038,11 @@ void ProcessEvent() {                                                           
       }
     } else if (STATE_MENU_FIND_BY_GROUP   == machineState) {                    // EVENT_ROTATE_CC
       if (position > 0) {
-        position--;
-        MenuUp(currentMenu);
+        //position--;
+        //MenuUp(groupMenu);
+				if (position > 0) {
+					DisplayToItem((char *) (groupMenu + (--position)));
+				}
       }
     } else if ((STATE_KEY_ON_OFF_MENU     == machineState) ||
                (STATE_SHOW_PW_ON_OFF_MENU == machineState) ||
@@ -2010,8 +2113,16 @@ void ProcessEvent() {                                                           
       }
     } else if (STATE_MENU_GROUPS == machineState) {                             // EVENT_ROTATE_CC
       if (position > 0) {                                                       // 
+        //position--;
+        //MenuUp(groupMenu);
+				if (position > 0) {
+					DisplayToItem((char *) (groupMenu + (--position)));
+				}
+      }
+    } else if (STATE_MENU_DEFINE_GROUPS == machineState) {
+      if (position > 0) {                            // prevent scrolling past the last item on the menu
         position--;
-        MenuUp(currentMenu);
+        MenuUp(currentMenu);                                                  // move one position down the current menu
       }
     } 
     event = EVENT_NONE;
@@ -2218,6 +2329,55 @@ void ProcessEvent() {                                                           
             DisplayToError("ERR: 003");
             break;
       }
+    } else if (STATE_MENU_DEFINE_GROUPS == machineState) {                  		// EVENT_SINGLE_CLICK
+      enterPosition = 0;
+      switch(position) {
+        case EDIT_GROUP_1:                                              
+          DisplayToItem(groupCategory_1);
+          DisplayToMenu("Edit Group 1");
+          BlankLine3();
+          EditAttribute(STATE_EDIT_GROUP_1, DEFAULT_ALPHA_EDIT_POS);
+          break; 
+        case EDIT_GROUP_2:                                              
+          DisplayToItem(groupCategory_2);
+          DisplayToMenu("Edit Group 2");
+          BlankLine3();
+          EditAttribute(STATE_EDIT_GROUP_2, DEFAULT_ALPHA_EDIT_POS);
+          break; 
+        case EDIT_GROUP_3:                                              
+          DisplayToItem(groupCategory_3);
+          DisplayToMenu("Edit Group 3");
+          BlankLine3();
+          EditAttribute(STATE_EDIT_GROUP_3, DEFAULT_ALPHA_EDIT_POS);
+          break; 
+        case EDIT_GROUP_4:                                              
+          DisplayToItem(groupCategory_4);
+          DisplayToMenu("Edit Group 4");
+          BlankLine3();
+          EditAttribute(STATE_EDIT_GROUP_4, DEFAULT_ALPHA_EDIT_POS);
+          break; 
+        case EDIT_GROUP_5:                                              
+          DisplayToItem(groupCategory_5);
+          DisplayToMenu("Edit Group 5");
+          BlankLine3();
+          EditAttribute(STATE_EDIT_GROUP_5, DEFAULT_ALPHA_EDIT_POS);
+          break; 
+        case EDIT_GROUP_6:                                              
+          DisplayToItem(groupCategory_6);
+          DisplayToMenu("Edit Group 6");
+          BlankLine3();
+          EditAttribute(STATE_EDIT_GROUP_6, DEFAULT_ALPHA_EDIT_POS);
+          break; 
+        case EDIT_GROUP_7:                                              
+          DisplayToItem(groupCategory_7);
+          DisplayToMenu("Edit Group 7");
+          BlankLine3();
+          EditAttribute(STATE_EDIT_GROUP_7, DEFAULT_ALPHA_EDIT_POS);
+          break; 
+        default:
+            DisplayToError("ERR: 043");
+            break;
+      }
     } else if (STATE_MENU_FIND_BY_GROUP == machineState) {                      // EVENT_SINGLE_CLICK
       uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));
       switch (position) {
@@ -2232,57 +2392,85 @@ void ProcessEvent() {                                                           
         case GROUP_WORK:
           groups ^= WORK;
           if (WORK & groups) {
-            DisplayToStatus("Added to WORK");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
+						strncat (buffer, groupCategory_1, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           } else {
-            DisplayToStatus("Removed from WORK");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Removed ";
+						strncat (buffer, groupCategory_1, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           }
           break;
         case GROUP_PERSONAL:
           groups ^= PERSONAL;
           if (PERSONAL & groups) {
-            DisplayToStatus("Added to PERSONAL");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
+						strncat (buffer, groupCategory_2, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           } else {
-            DisplayToStatus("Removed PERSONAL");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Removed ";
+						strncat (buffer, groupCategory_2, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           }
           break;
         case GROUP_HOME:
           groups ^= HOME;
           if (HOME & groups) {
-            DisplayToStatus("Added to HOME");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
+						strncat (buffer, groupCategory_3, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           } else {
-            DisplayToStatus("Removed from HOME");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Removed ";
+						strncat (buffer, groupCategory_3, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           }
           break;
         case GROUP_SCHOOL:
           groups ^= SCHOOL;
           if (SCHOOL & groups) {
-            DisplayToStatus("Added to SCHOOL");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
+						strncat (buffer, groupCategory_4, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           } else {
-            DisplayToStatus("Removed from SCHOOL");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Removed ";
+						strncat (buffer, groupCategory_4, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           }
           break;
         case GROUP_FINANCIAL:
           groups ^= FINANCIAL;
           if (FINANCIAL & groups) {
-            DisplayToStatus("Added to FINANCE");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
+						strncat (buffer, groupCategory_5, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           } else {
-            DisplayToStatus("Removed FINANCE");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Removed ";
+						strncat (buffer, groupCategory_5, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           }
           break;
         case GROUP_MAIL:
           groups ^= MAIL;
           if (MAIL & groups) {
-            DisplayToStatus("Added to MAIL");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
+						strncat (buffer, groupCategory_6, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           } else {
-            DisplayToStatus("Removed from MAIL");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Removed ";
+						strncat (buffer, groupCategory_6, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           }
           break;
         case GROUP_CUSTOM:
           groups ^= CUSTOM;
           if (CUSTOM & groups) {
-            DisplayToStatus("Added to CUSTOM");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
+						strncat (buffer, groupCategory_7, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           } else {
-            DisplayToStatus("Removed from CUSTOM");
+					  char buffer[DISPLAY_BUFFER_SIZE] = "Removed ";
+						strncat (buffer, groupCategory_7, DISPLAY_BUFFER_SIZE - strlen(buffer));
+            DisplayToStatus(buffer);
           }
           break;
         default:
@@ -2303,6 +2491,20 @@ void ProcessEvent() {                                                           
       enterAttributeChar(website, false);
     } else if (STATE_EDIT_STYLE == machineState) {                              // EVENT_SINGLE_CLICK
       enterAttributeChar(style, false);
+		} else if (STATE_EDIT_GROUP_1 == machineState) {
+			enterAttributeChar(groupCategory_1, false);
+		} else if (STATE_EDIT_GROUP_2 == machineState) {
+			enterAttributeChar(groupCategory_2, false);
+		} else if (STATE_EDIT_GROUP_3 == machineState) {
+			enterAttributeChar(groupCategory_3, false);
+		} else if (STATE_EDIT_GROUP_4 == machineState) {
+			enterAttributeChar(groupCategory_4, false);
+		} else if (STATE_EDIT_GROUP_5 == machineState) {
+			enterAttributeChar(groupCategory_5, false);
+		} else if (STATE_EDIT_GROUP_6 == machineState) {
+			enterAttributeChar(groupCategory_6, false);
+		} else if (STATE_EDIT_GROUP_7 == machineState) {
+			enterAttributeChar(groupCategory_7, false);
     } else if ((STATE_KEY_ON_OFF_MENU     == machineState) ||                   // EVENT_SINGLE_CLICK
                (STATE_SHOW_PW_ON_OFF_MENU == machineState) ||
                (STATE_DECOY_ON_OFF_MENU   == machineState) ||
@@ -2543,6 +2745,9 @@ void ProcessEvent() {                                                           
           machineState = STATE_MENU_LOGOUT_TIMEOUT;
           event = EVENT_SHOW_LOG_TIME_MENU;
           break;
+        case SETTINGS_GROUP_DEFINITION:
+          event = EVENT_SHOW_GROUP_DEF_MENU;
+          break;
         case SETTINGS_CHANGE_MASTER:
           event = EVENT_CHANGE_MASTER;
           break;
@@ -2666,20 +2871,20 @@ void ProcessEvent() {                                                           
       eeprom_write_bytes(GET_ADDR_STYLE(acctPosition), style, STYLE_SIZE);
       position = EDIT_ACCT_NAME;
       event = EVENT_SHOW_EDIT_MENU;
-    } else if (STATE_EDIT_GROUPS == machineState) {                             // EVENT_LONG_CLICK
-      menuNumber = EDIT_MENU_NUMBER;
-      int arraySize = 0;
-      for (uint8_t i = 0; i < MENU_SIZE; i++) {
-        arraySize += sizeof(enterMenu[i]);  
-      }
-      memcpy(currentMenu, enterMenu, arraySize);
-      elements = EDIT_MENU_ELEMENTS;
-      machineState = STATE_EDIT_CREDS_MENU;
-      if (position < 0 || position > (EDIT_MENU_ELEMENTS - 1)) position = 0;    // for safety
-      ShowMenu(position, currentMenu, "  Edit Credentials  ");
-      readAcctFromEEProm(acctPosition, accountName);
-      DisplayToStatus(accountName);
-      event = EVENT_NONE;
+//    } else if (STATE_EDIT_GROUPS == machineState) {                             // EVENT_LONG_CLICK
+//      menuNumber = EDIT_MENU_NUMBER;
+//      int arraySize = 0;
+//      for (uint8_t i = 0; i < MENU_SIZE; i++) {
+//        arraySize += sizeof(enterMenu[i]);  
+//      }
+//      memcpy(currentMenu, enterMenu, arraySize);
+//      elements = EDIT_MENU_ELEMENTS;
+//      machineState = STATE_EDIT_CREDS_MENU;
+//      if (position < 0 || position > (EDIT_MENU_ELEMENTS - 1)) position = 0;    // for safety
+//      ShowMenu(position, currentMenu, "  Edit Credentials  ");
+//      readAcctFromEEProm(acctPosition, accountName);
+//      DisplayToStatus(accountName);
+//      event = EVENT_NONE;
     } else if (STATE_EDIT_CREDS_MENU == machineState){                          // go back to send creds menu or main menu,depending on how you got here.
       if (!addFlag) {
         switchToSendCredsMenu();
@@ -2689,42 +2894,42 @@ void ProcessEvent() {                                                           
         BlankLine3();
       }
     } else if (STATE_SEND_CREDS_MENU == machineState){                          // EVENT_LONG_CLICK
-	  switch (groupFilter) {
-		case FAVORITES:
-		  switchToFindByGroupMenu(GROUP_FAVORITES, false);
-		  break;
-		case WORK:
-		  switchToFindByGroupMenu(GROUP_WORK, false);
-		  break;
-		case PERSONAL:
-		  switchToFindByGroupMenu(GROUP_PERSONAL, false);
-		  break;
-		case HOME:
-		  switchToFindByGroupMenu(GROUP_HOME, false);
-		  break;
-		case SCHOOL:
-		  switchToFindByGroupMenu(GROUP_SCHOOL, false);
-		  break;
-		case FINANCIAL:
-		  switchToFindByGroupMenu(GROUP_FINANCIAL, false);
-		  break;
-		case MAIL:
-		  switchToFindByGroupMenu(GROUP_MAIL, false);
-		  break;
-		case CUSTOM:
-		  switchToFindByGroupMenu(GROUP_CUSTOM, false);
-		  break;
-		case ALL_GROUPS:
-		  switchToFindAcctMenu();
-		  break;
-		default:
-		  position = 0;
-		  DisplayToError("ERR: 040");
-		  delayNoBlock(ONE_SECOND * 2);
-		  switchToFindAcctMenu();
-		  break;
-	  }
-	  BlankLine3();                                                         // wipes out the name of the account 
+			switch (groupFilter) {
+			case FAVORITES:
+				switchToFindByGroupMenu(GROUP_FAVORITES, false);
+				break;
+			case WORK:
+				switchToFindByGroupMenu(GROUP_WORK, false);
+				break;
+			case PERSONAL:
+				switchToFindByGroupMenu(GROUP_PERSONAL, false);
+				break;
+			case HOME:
+				switchToFindByGroupMenu(GROUP_HOME, false);
+				break;
+			case SCHOOL:
+				switchToFindByGroupMenu(GROUP_SCHOOL, false);
+				break;
+			case FINANCIAL:
+				switchToFindByGroupMenu(GROUP_FINANCIAL, false);
+				break;
+			case MAIL:
+				switchToFindByGroupMenu(GROUP_MAIL, false);
+				break;
+			case CUSTOM:
+				switchToFindByGroupMenu(GROUP_CUSTOM, false);
+				break;
+			case ALL_GROUPS:
+				switchToFindAcctMenu();
+				break;
+			default:
+				position = 0;
+				DisplayToError("ERR: 040");
+				delayNoBlock(ONE_SECOND * 2);
+				switchToFindAcctMenu();
+				break;
+			}
+			BlankLine3();                                                         // wipes out the name of the account 
     } else if (STATE_FIND_ACCOUNT == machineState){                             // long click after selecting an account
       event = EVENT_SHOW_MAIN_MENU;
       BlankLine2();
@@ -2752,51 +2957,52 @@ void ProcessEvent() {                                                           
 //  } else if (STATE_SEARCH_FAVORITES == machineState) {                        // EVENT_LONG_CLICK
 //    event = EVENT_SEARCH_FAVORITES;                                           // TODO: code EVENT_SEARCH_FAVORITES
 
-  } else if((STATE_SEARCH_FAVORITES == machineState) ||
-            (STATE_SEARCH_WORK      == machineState) ||    
-            (STATE_SEARCH_PERSONAL  == machineState) ||    
-            (STATE_SEARCH_HOME      == machineState) ||    
-            (STATE_SEARCH_SCHOOL    == machineState) ||    
-            (STATE_SEARCH_FINANCIAL == machineState) ||    
-            (STATE_SEARCH_MAIL      == machineState) ||    
-            (STATE_SEARCH_CUSTOM    == machineState)) {                         // EVENT_LONG_CLICK
-      switch (machineState) {
-        case STATE_SEARCH_FAVORITES:
-          position = 0;
-          break;
-        case STATE_SEARCH_WORK:
-          position = 1;
-          break;
-        case STATE_SEARCH_PERSONAL:
-          position = 2;
-          break;
-        case STATE_SEARCH_HOME:
-          position = 3;
-          break;
-        case STATE_SEARCH_SCHOOL:
-          position = 4;
-          break;
-        case STATE_SEARCH_FINANCIAL:
-          position = 5;
-          break;
-        case STATE_SEARCH_MAIL:
-          position = 6;
-          break;
-        case STATE_SEARCH_CUSTOM:
-          position = 7;
-          break;
-        default:
-          position = 0;
-          DisplayToError("ERR: 040");
-          delayNoBlock(ONE_SECOND * 2);
-          break;
-      }
-      switchFindByGroup();
+		} else if((STATE_SEARCH_FAVORITES == machineState) ||
+							(STATE_SEARCH_WORK      == machineState) ||    
+							(STATE_SEARCH_PERSONAL  == machineState) ||    
+							(STATE_SEARCH_HOME      == machineState) ||    
+							(STATE_SEARCH_SCHOOL    == machineState) ||    
+							(STATE_SEARCH_FINANCIAL == machineState) ||    
+							(STATE_SEARCH_MAIL      == machineState) ||    
+							(STATE_SEARCH_CUSTOM    == machineState)) {                         // EVENT_LONG_CLICK
+			switch (machineState) {
+				case STATE_SEARCH_FAVORITES:
+					position = 0;
+					break;
+				case STATE_SEARCH_WORK:
+					position = 1;
+					break;
+				case STATE_SEARCH_PERSONAL:
+					position = 2;
+					break;
+				case STATE_SEARCH_HOME:
+					position = 3;
+					break;
+				case STATE_SEARCH_SCHOOL:
+					position = 4;
+					break;
+				case STATE_SEARCH_FINANCIAL:
+					position = 5;
+					break;
+				case STATE_SEARCH_MAIL:
+					position = 6;
+					break;
+				case STATE_SEARCH_CUSTOM:
+					position = 7;
+					break;
+				default:
+					position = 0;
+					DisplayToError("ERR: 040");
+					delayNoBlock(ONE_SECOND * 2);
+					break;
+			}
+			switchFindByGroup();
     } else if ((STATE_KEY_ON_OFF_MENU     == machineState) ||                   // EVENT_LONG_CLICK
                (STATE_SHOW_PW_ON_OFF_MENU == machineState) ||
                (STATE_DECOY_ON_OFF_MENU   == machineState) ||
                (STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
+							 (STATE_MENU_DEFINE_GROUPS  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState)    ){
       switch (machineState) {
         case STATE_KEY_ON_OFF_MENU:
@@ -2817,6 +3023,9 @@ void ProcessEvent() {                                                           
         case STATE_MENU_LOGIN_ATTEM:
           position = 5;
           break;
+				case STATE_MENU_DEFINE_GROUPS:
+					position = 6;
+					break;
         default:
           position = 0;
           DisplayToError("ERR: 042");
@@ -2825,6 +3034,55 @@ void ProcessEvent() {                                                           
       }
       //position = 0;                                                           // return to the top of the settings menu
       event = EVENT_SHOW_SETTINGS_MENU;
+		} else if (STATE_EDIT_GROUP_1 == machineState) {
+			ProcessGroupInput( 			groupCategory_1,
+															CATEGORY_SIZE,
+															groupEditMenu[EDIT_GROUP_1],
+															EDIT_GROUP_1,
+															GET_ADDR_CATEGORY_1					);
+      BlankLine3();
+		} else if (STATE_EDIT_GROUP_2 == machineState) {
+			ProcessGroupInput( 			groupCategory_2,
+															CATEGORY_SIZE,
+															groupEditMenu[EDIT_GROUP_2],
+															EDIT_GROUP_2,
+															GET_ADDR_CATEGORY_2					);
+      BlankLine3();
+		} else if (STATE_EDIT_GROUP_3 == machineState) {
+			ProcessGroupInput( 			groupCategory_3,
+															CATEGORY_SIZE,
+															groupEditMenu[EDIT_GROUP_3],
+															EDIT_GROUP_3,
+															GET_ADDR_CATEGORY_3					);
+      BlankLine3();
+		} else if (STATE_EDIT_GROUP_4 == machineState) {
+			ProcessGroupInput( 			groupCategory_4,
+															CATEGORY_SIZE,
+															groupEditMenu[EDIT_GROUP_4],
+															EDIT_GROUP_4,
+															GET_ADDR_CATEGORY_4					);
+      BlankLine3();
+		} else if (STATE_EDIT_GROUP_5 == machineState) {
+			ProcessGroupInput( 			groupCategory_5,
+															CATEGORY_SIZE,
+															groupEditMenu[EDIT_GROUP_5],
+															EDIT_GROUP_5,
+															GET_ADDR_CATEGORY_5					);
+      BlankLine3();
+		} else if (STATE_EDIT_GROUP_6 == machineState) {
+			ProcessGroupInput( 			groupCategory_6,
+															CATEGORY_SIZE,
+															groupEditMenu[EDIT_GROUP_6],
+															EDIT_GROUP_6,
+															GET_ADDR_CATEGORY_6					);
+      BlankLine3();
+		} else if (STATE_EDIT_GROUP_7 == machineState) {
+			ProcessGroupInput( 			groupCategory_7,
+															CATEGORY_SIZE,
+															groupEditMenu[EDIT_GROUP_7],
+															EDIT_GROUP_7,
+															GET_ADDR_CATEGORY_7					);
+      BlankLine3();
     } else if (STATE_MENU_FILE == machineState) {                               // EVENT_LONG_CLICK
       event = EVENT_SHOW_MAIN_MENU;                                             // if any other state show main menu (e.g just after EVENT_RESET)
     } else {                                                                    
@@ -2945,6 +3203,19 @@ void ProcessEvent() {                                                           
         break;
     }
     ShowMenu(position, currentMenu, "   RGB Intensity   ");  
+    event = EVENT_NONE;
+
+  } else if (event == EVENT_SHOW_GROUP_DEF_MENU) {
+    menuNumber = GROUP_EDIT_MENU_NUMBER;
+    int arraySize = 0;
+    for (uint8_t i = 0; i < MENU_SIZE; i++) {
+      arraySize += sizeof(groupEditMenu[i]);  
+    }
+    memcpy(currentMenu, groupEditMenu, arraySize);
+    elements = GROUP_EDIT_MENU_ELEMENTS;
+		machineState = STATE_MENU_DEFINE_GROUPS;
+		position = 0;
+    ShowMenu(position, currentMenu, " Customize Groups  ");  
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_LOG_TIME_MENU) {
@@ -3168,6 +3439,22 @@ void ProcessAttributeInput( char *attributeName,                                
   event = EVENT_SHOW_EDIT_MENU;   
 }
 
+void ProcessGroupInput( 		char *attributeName,                                // Invoked after EVENT_LONG_CLICK
+                            uint8_t attributeSize, 
+                            const char *menuName, 
+                            uint8_t nextPosition,
+                            uint32_t address          ) {
+  ReadFromSerial(attributeName, attributeSize, menuName);
+  attributeName[attributeSize - 1] = NULL_TERM;                                 // for safety
+  uint8_t pos = 0;
+  while (attributeName[pos++] != NULL_TERM);                                    // make sure the account name is attributeSize chars long, pad with NULL_TERM
+  while (pos < attributeSize) attributeName[pos++] = NULL_TERM;                 // "           "              "
+  eeprom_write_bytes(address, attributeName, attributeSize);
+  position = nextPosition;
+	loadGroupMenu();
+  event = EVENT_SHOW_GROUP_DEF_MENU;   
+}
+
 void EditAttribute(uint8_t aState, uint8_t pos) {                               // called when we single click on Edit Account or similar
   char charToPrint[2];
   charToPrint[0] = allChars[enterPosition];
@@ -3267,68 +3554,79 @@ void switchFindByGroup() {
   for (uint8_t i = 0; i < MENU_SIZE; i++) {
     arraySize += sizeof(groupMenu[i]);
   }
-  memcpy(currentMenu, groupMenu, arraySize);
+  //memcpy(currentMenu, groupMenu, arraySize);
   elements = GROUP_MENU_ELEMENTS;
   machineState = STATE_MENU_GROUPS;
-  //position = 0;
-  ShowMenu(position, currentMenu,"   Find by Group    ");
+  //ShowMenu(position, currentMenu,"   Find by Group    ");
+  DisplayToItem(groupMenu[position]);
+  DisplayToMenu("   Find by Group    ");
   event = EVENT_NONE;
 }  
 
 void switchToFindByGroup() {
-  machineState = STATE_MENU_FIND_BY_GROUP;                            // x
   menuNumber = GROUP_MENU_NUMBER;
   int arraySize;arraySize = 0;                                        // int arraySize = 0; would not compile here...
   for (uint8_t i = 0; i < MENU_SIZE; i++) {
     arraySize += sizeof(groupMenu[i]);
   }
-  memcpy(currentMenu, groupMenu, arraySize);
+  //memcpy(currentMenu, groupMenu, arraySize);
   elements = GROUP_MENU_ELEMENTS;
-  ShowMenu(position, currentMenu,"       Groups       ");
+  machineState = STATE_MENU_FIND_BY_GROUP;                            // x
+  //ShowMenu(position, currentMenu,"       Groups       ");
+  DisplayToItem(groupMenu[position]);
+  DisplayToMenu("       Groups       ");
   event = EVENT_NONE;
 }  
 
 void switchToFindByGroupMenu(uint8_t menu, boolean setAcctPosition) {
+	char buffer[DISPLAY_BUFFER_SIZE] = "Find ";
   switch (menu) {
     case GROUP_FAVORITES:
       groupFilter = FAVORITES;
       machineState = STATE_SEARCH_FAVORITES;
-      DisplayToMenu("   Find Favorites   ");
+      DisplayToMenu("Find Favorites");
       break;
     case GROUP_WORK:
       groupFilter = WORK;
       machineState = STATE_SEARCH_WORK;
-      DisplayToMenu("     Find Work      ");
+			strncat (buffer, groupCategory_1, DISPLAY_BUFFER_SIZE - strlen(buffer));
+      DisplayToMenu(buffer);
       break;
     case GROUP_PERSONAL:
       groupFilter = PERSONAL;
       machineState = STATE_SEARCH_PERSONAL;
-      DisplayToMenu("   Find Personal    ");
+			strncat (buffer, groupCategory_2, DISPLAY_BUFFER_SIZE - strlen(buffer));
+      DisplayToMenu(buffer);
       break;
     case GROUP_HOME:
       groupFilter = HOME;
       machineState = STATE_SEARCH_HOME;
-      DisplayToMenu("     Find Home      ");
+			strncat (buffer, groupCategory_3, DISPLAY_BUFFER_SIZE - strlen(buffer));
+      DisplayToMenu(buffer);
       break;
     case GROUP_SCHOOL:
       groupFilter = SCHOOL;
       machineState = STATE_SEARCH_SCHOOL;
-      DisplayToMenu("    Find School     ");
+			strncat (buffer, groupCategory_4, DISPLAY_BUFFER_SIZE - strlen(buffer));
+      DisplayToMenu(buffer);
       break;
     case GROUP_FINANCIAL:
       groupFilter = FINANCIAL;
       machineState = STATE_SEARCH_FINANCIAL;
-      DisplayToMenu("   Find Financial   ");
+			strncat (buffer, groupCategory_5, DISPLAY_BUFFER_SIZE - strlen(buffer));
+      DisplayToMenu(buffer);
       break;
     case GROUP_MAIL:
       groupFilter = MAIL;
       machineState = STATE_SEARCH_MAIL;
-      DisplayToMenu("     Find Mail      ");
+			strncat (buffer, groupCategory_6, DISPLAY_BUFFER_SIZE - strlen(buffer));
+      DisplayToMenu(buffer);
       break;
     case GROUP_CUSTOM:
       groupFilter = CUSTOM;
       machineState = STATE_SEARCH_CUSTOM;
-      DisplayToMenu("    Find Custom     ");
+			strncat (buffer, groupCategory_7, DISPLAY_BUFFER_SIZE - strlen(buffer));
+      DisplayToMenu(buffer);
       break;
     default:
       DisplayToError("ERR: 027");
@@ -3481,6 +3779,9 @@ void FactoryReset() {
     writeLoginAttempts();                                                       // and write it to EEprom
     RGBLEDIntensity = RGB_LED_DEFAULT;
     writeRGBLEDIntensity();
+		initializeAllGroupCategories();
+		readGroupCategories();
+		loadGroupMenu();
     randomSeed(analogRead(RANDOM_PIN));                                         // seed the random number generator
     ShowSplashScreen();
     DisplayToStatus("Factory Reset");
@@ -3489,6 +3790,58 @@ void FactoryReset() {
     BlankLine2();
     DisplayToStatus("Not logged in");
   }
+}
+
+void initializeAllGroupCategories() {
+	  char buff[CATEGORY_SIZE];
+		memcpy(buff,"Work\0\0\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_1, buff, CATEGORY_SIZE	);							// initialize the credential group categories
+		memcpy(buff,"Personal\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_2, buff, CATEGORY_SIZE	);							// initialize the credential group categories
+		memcpy(buff,"Home\0\0\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_3, buff, CATEGORY_SIZE	);							// initialize the credential group categories
+		memcpy(buff,"School\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_4, buff, CATEGORY_SIZE	);							// initialize the credential group categories
+		memcpy(buff,"Financial\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_5, buff, CATEGORY_SIZE	);							// initialize the credential group categories
+		memcpy(buff,"Mail\0\0\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_6, buff, CATEGORY_SIZE	);							// initialize the credential group categories
+		memcpy(buff,"Health\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_7, buff, CATEGORY_SIZE	);							// initialize the credential group categories
+}
+
+void readGroupCategories() {
+	read_eeprom_array     (GET_ADDR_CATEGORY_1,                                 	// read category from EEprom
+												 groupCategory_1, 
+												 CATEGORY_SIZE);
+	read_eeprom_array     (GET_ADDR_CATEGORY_2,                                	 	// read category from EEprom
+												 groupCategory_2, 
+												 CATEGORY_SIZE);
+	read_eeprom_array     (GET_ADDR_CATEGORY_3,                                 	// read category from EEprom
+												 groupCategory_3, 
+												 CATEGORY_SIZE);
+	read_eeprom_array     (GET_ADDR_CATEGORY_4,                                 	// read category from EEprom
+												 groupCategory_4, 
+												 CATEGORY_SIZE);
+	read_eeprom_array     (GET_ADDR_CATEGORY_5,                                 	// read category from EEprom
+												 groupCategory_5, 
+												 CATEGORY_SIZE);
+	read_eeprom_array     (GET_ADDR_CATEGORY_6,                                 	// read category from EEprom
+												 groupCategory_6, 
+												 CATEGORY_SIZE);
+	read_eeprom_array     (GET_ADDR_CATEGORY_7,                                 	// read category from EEprom
+												 groupCategory_7, 
+												 CATEGORY_SIZE);
+}
+
+void loadGroupMenu() {
+	memcpy(groupMenu+1, groupCategory_1, CATEGORY_SIZE);
+	memcpy(groupMenu+2, groupCategory_2, CATEGORY_SIZE);
+	memcpy(groupMenu+3, groupCategory_3, CATEGORY_SIZE);
+	memcpy(groupMenu+4, groupCategory_4, CATEGORY_SIZE);
+	memcpy(groupMenu+5, groupCategory_5, CATEGORY_SIZE);
+	memcpy(groupMenu+6, groupCategory_6, CATEGORY_SIZE);
+	memcpy(groupMenu+7, groupCategory_7, CATEGORY_SIZE);
 }
 
 void InitializeGlobals() {
