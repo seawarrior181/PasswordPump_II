@@ -23,6 +23,9 @@
 # - If an account name contains a comma, and you visit the field, after
 #   exiting the GUI and reloading all of the accounts, the comma has changed
 #   into a hashtag and all of the remaining fields are blank.
+# - If input focus is on the password field, and you select Insert, then
+#   navigate to the Account field, the password field of the account you
+#   were on originally is set to blank.
 # * During import of PasswordPump format, the username is occasionally dropped
 # * Similarly, if any of the fields have an embedded | (pipe) character the
 #   fields in the PasswordPumpGUI can get out of synch; e.g. account name
@@ -104,13 +107,13 @@ window = Tk()
 window.title("PasswordPump Edit Credentials v2.0.3")
 
 if (platform.system() == "Windows"):
-    window.geometry('400x530')
+    window.geometry('400x555')
 elif (platform.system() == "Darwin"):  # Macintosh
     window.geometry('500x600')
 elif (platform.system() == "Linux"):
     window.geometry('500x600')
 else:
-    window.geometry('400x530')
+    window.geometry('400x555')
 
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
@@ -229,7 +232,7 @@ def clickedOpen():
     #txt_pass.bind("<Tab>",(lambda _: clickedPassParam(txt_pass)))
     #txt_url.bind("<Tab>",(lambda _: clickedUrlParam(txt_url)))
 
-    txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the clicks off of the field save the edited item
+    txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the user clicks off of the field save the edited item
     txt_user.bind("<FocusOut>",(lambda _: clickedUserParam(txt_user)))
     txt_pass.bind("<FocusOut>",(lambda _: clickedPassParam(txt_pass)))
     txt_old_pass.bind("<FocusOut>",(lambda _: clickedOldPassParam(txt_old_pass)))
@@ -270,8 +273,8 @@ def clickedOpen():
     #btn_close.config(state='normal')
     btn_next.config(state='normal')
     btn_previous.config(state='normal')
-    #btn_insert.config(state='normal')
-    #btn_delete.config(state='normal')
+    btn_insert.config(state='normal')
+    btn_delete.config(state='normal')
     btn_generate.config(state='normal')
     btn_flip_pw.config(state='normal')
     menubar.entryconfig('File', state='normal')
@@ -290,6 +293,8 @@ def clickedAcctParam(txt_acct_param):
     clickedAcct()
 
 def clickedAcct():
+    window.config(cursor="watch")                                              # TODO: this is not working
+    window.update()
     aResAcct = stripBadChars(txt_acct.get())
     resAcct = aResAcct[0:32]
     global position                                                            # the position on EEprom, don't confuse with selection
@@ -331,6 +336,8 @@ def clickedAcct():
     except Exception as ex:
         updateDirections("Exception encountered in clickedAcct; " + str(ex))
     #txt_acct.config(state='disabled')
+    window.config(cursor="")
+    window.update()
 
 def clickedUserParam(txt_user_param):
     clickedUser()
@@ -620,12 +627,30 @@ def OnEntryUp(event):
 def clickedInsert():
     global state
     state = "Inserting"
-    txt_acct.config(state='normal')
+
+    txt_acct.bind("<FocusOut>",(lambda _: doNothing(txt_acct)))                # When the user clicks off of the field do nothing
+    txt_user.bind("<FocusOut>",(lambda _: doNothing(txt_user)))
+    txt_pass.bind("<FocusOut>",(lambda _: doNothing(txt_pass)))
+    txt_old_pass.bind("<FocusOut>",(lambda _: doNothing(txt_old_pass)))
+    txt_url.bind("<FocusOut>",(lambda _: doNothing(txt_url)))
+
+    #txt_acct.config(state='normal')
     txt_acct.delete(0, END)
     txt_user.delete(0, END)
     txt_pass.delete(0, END)
     txt_old_pass.delete(0, END)
     txt_url.delete(0, END)
+
+    txt_acct.focus_set()                                                       # Put input focus on the account field
+
+    txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the clicks off of the field save the edited item
+    txt_user.bind("<FocusOut>",(lambda _: clickedUserParam(txt_user)))
+    txt_pass.bind("<FocusOut>",(lambda _: clickedPassParam(txt_pass)))
+    txt_old_pass.bind("<FocusOut>",(lambda _: clickedOldPassParam(txt_old_pass)))
+    txt_url.bind("<FocusOut>",(lambda _: clickedUrlParam(txt_url)))
+
+def doNothing(txt_param):
+    x = 0                                                                      # do nothing
 
 def clickedLoadDB(event):
     global selection
@@ -1367,8 +1392,8 @@ importMenu.add_command(label = 'Import from KeePass', command = ImportFileKeePas
 importMenu.add_command(label = 'Import from PasswordPump', command = ImportFilePasswordPump)
 file.add_cascade(label = 'Export', menu=exportMenu)
 exportMenu.add_cascade(label = 'Export to PasswordPump', command = ExportFile)
-file.add_command(label = 'Insert', command = clickedInsert)
-file.add_command(label = 'Delete', command = clickedDelete)
+#file.add_command(label = 'Insert', command = clickedInsert)
+#file.add_command(label = 'Delete', command = clickedDelete)
 file.add_command(label = 'Exit', command = clickedClose)
 menubar.add_cascade(label = 'File', menu = file)
 
@@ -1396,13 +1421,13 @@ btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
 btn_previous.grid(column=1, row=18)
 btn_previous.config(state='disabled')
 
-#btn_insert = Button(window, text="Insert", command=clickedInsert)
-#btn_insert.grid(column=1, row=19)
-#btn_insert.config(state='disabled')
+btn_insert = Button(window, text="Insert", command=clickedInsert)
+btn_insert.grid(column=1, row=19)
+btn_insert.config(state='disabled')
 
-#btn_delete = Button(window, text="Delete", command=clickedDelete)
-#btn_delete.grid(column=1, row=20)
-#btn_delete.config(state='disabled')
+btn_delete = Button(window, text="Delete", command=clickedDelete)
+btn_delete.grid(column=4, row=19)
+btn_delete.config(state='disabled')
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=4, row=0)
