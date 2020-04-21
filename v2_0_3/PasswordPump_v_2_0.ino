@@ -673,6 +673,14 @@
       5
       10
       25
+	  Rename Groups
+			Edit Group 1
+			Edit Group 2
+			Edit Group 3
+			Edit Group 4
+			Edit Group 5
+			Edit Group 6
+			Edit Group 7
     Change Master Psswrd
   Factory Reset [confirm]   
 
@@ -1427,6 +1435,13 @@ enum                                                                            
   pyGetAccountCount     ,
   pyDecoyPassword       ,
   pyShowPasswords       ,
+	pyReadGroup1Name			,
+	pyReadGroup2Name			,
+	pyReadGroup3Name			,
+	pyReadGroup4Name			,
+	pyReadGroup5Name			,
+	pyReadGroup6Name			,
+	pyReadGroup7Name			,
   pyChangeMasterPass    
 };
 
@@ -6320,6 +6335,13 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyGetAccountCount     , OnGetAccountCount);
   cmdMessenger.attach(pyDecoyPassword       , OnDecoyPassword);
   cmdMessenger.attach(pyShowPasswords       , OnShowPasswords);
+  cmdMessenger.attach(pyReadGroup1Name      , OnReadGroup1Name);
+  cmdMessenger.attach(pyReadGroup2Name      , OnReadGroup2Name);
+  cmdMessenger.attach(pyReadGroup3Name      , OnReadGroup3Name);
+  cmdMessenger.attach(pyReadGroup4Name      , OnReadGroup4Name);
+  cmdMessenger.attach(pyReadGroup5Name      , OnReadGroup5Name);
+  cmdMessenger.attach(pyReadGroup6Name      , OnReadGroup6Name);
+  cmdMessenger.attach(pyReadGroup7Name      , OnReadGroup7Name);
   cmdMessenger.attach(pyChangeMasterPass    , OnChangeMasterPass);
 }
 
@@ -6430,6 +6452,76 @@ void OnReadGroup(){
   acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   uint8_t group = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));
   cmdMessenger.sendBinCmd(kAcknowledge, group);
+  setPurple();
+}
+
+void OnReadGroup1Name(){
+  setGreen();
+  char group[CATEGORY_SIZE];
+	read_eeprom_array     (GET_ADDR_CATEGORY_1,                                 	// read category from EEprom
+												 group, 
+												 CATEGORY_SIZE);
+  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  setPurple();
+}
+
+void OnReadGroup2Name(){
+  setGreen();
+  char group[CATEGORY_SIZE];
+	read_eeprom_array     (GET_ADDR_CATEGORY_2,                                 	// read category from EEprom
+												 group, 
+												 CATEGORY_SIZE);
+  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  setPurple();
+}
+
+void OnReadGroup3Name(){
+  setGreen();
+  char group[CATEGORY_SIZE];
+	read_eeprom_array     (GET_ADDR_CATEGORY_3,                                 	// read category from EEprom
+												 group, 
+												 CATEGORY_SIZE);
+  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  setPurple();
+}
+
+void OnReadGroup4Name(){
+  setGreen();
+  char group[CATEGORY_SIZE];
+	read_eeprom_array     (GET_ADDR_CATEGORY_4,                                 	// read category from EEprom
+												 group, 
+												 CATEGORY_SIZE);
+  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  setPurple();
+}
+
+void OnReadGroup5Name(){
+  setGreen();
+  char group[CATEGORY_SIZE];
+	read_eeprom_array     (GET_ADDR_CATEGORY_5,                                 	// read category from EEprom
+												 group, 
+												 CATEGORY_SIZE);
+  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  setPurple();
+}
+
+void OnReadGroup6Name(){
+  setGreen();
+  char group[CATEGORY_SIZE];
+	read_eeprom_array     (GET_ADDR_CATEGORY_6,                                 	// read category from EEprom
+												 group, 
+												 CATEGORY_SIZE);
+  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  setPurple();
+}
+
+void OnReadGroup7Name(){
+  setGreen();
+  char group[CATEGORY_SIZE];
+	read_eeprom_array     (GET_ADDR_CATEGORY_7,                                 	// read category from EEprom
+												 group, 
+												 CATEGORY_SIZE);
+  cmdMessenger.sendCmd(kStrAcknowledge, group);
   setPurple();
 }
 
