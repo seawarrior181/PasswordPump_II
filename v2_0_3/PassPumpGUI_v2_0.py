@@ -106,12 +106,12 @@ global c
 window = Tk()
 window.title("PasswordPump Edit Credentials v2.0.3")
 
-if (platform.system() == "Windows"):
+if (platform.system() == "Windows"):                                           # e.g. Windows10
     window.geometry('400x555')
-elif (platform.system() == "Darwin"):  # Macintosh
-    window.geometry('500x600')
-elif (platform.system() == "Linux"):
-    window.geometry('500x600')
+elif (platform.system() == "Darwin"):                                          # Macintosh
+    window.geometry('580x600')
+elif (platform.system() == "Linux"):                                           # e.g. Ubuntu
+    window.geometry('580x600')
 else:
     window.geometry('400x555')
 
@@ -217,6 +217,13 @@ def clickedOpen():
                 ["pyGetAccountCount", ""],
                 ["pyDecoyPassword", "b"],
                 ["pyShowPasswords", "b"],
+                ["pyReadGroup1Name",""],
+                ["pyReadGroup2Name",""],
+                ["pyReadGroup3Name",""],
+                ["pyReadGroup4Name",""],
+                ["pyReadGroup5Name",""],
+                ["pyReadGroup6Name",""],
+                ["pyReadGroup7Name",""],
                 ["pyChangeMasterPass", "s"]]
 
     global c                                                                   # Initialize the messenger
@@ -282,6 +289,17 @@ def clickedOpen():
     menubar.entryconfig('Settings', state='normal')
     window.config(cursor="")
     updateDirections("Opened port")
+
+    ReadGroupNames()
+
+    textboxWork.config(text=groupName1)
+    textboxPersonal.config(text=groupName2)
+    textboxHome.config(text=groupName3)
+    textboxSchool.config(text=groupName4)
+    textboxFinancial.config(text=groupName5)
+    textboxMail.config(text=groupName6)
+    textboxCustom.config(text=groupName7)
+
 
 def updateDirections(directions):
     txt_dir.delete('1.0', END)
@@ -599,6 +617,61 @@ def loadListBox():                                                             #
     except Exception as e:
         updateDirections("Exception in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(e))
         head = 0
+
+def ReadGroupNames():
+    global groupName1
+    global groupName2
+    global groupName3
+    global groupName4
+    global groupName5
+    global groupName6
+    global groupName7
+    try:
+        c.send("pyReadGroup1Name")
+        response = c.receive()
+        groupName_list = response[1]
+        groupName1 = groupName_list[0]
+
+        c.send("pyReadGroup2Name")
+        response = c.receive()
+        groupName_list = response[1]
+        groupName2 = groupName_list[0]
+
+        c.send("pyReadGroup3Name")
+        response = c.receive()
+        groupName_list = response[1]
+        groupName3 = groupName_list[0]
+
+        c.send("pyReadGroup4Name")
+        response = c.receive()
+        groupName_list = response[1]
+        groupName4 = groupName_list[0]
+
+        c.send("pyReadGroup5Name")
+        response = c.receive()
+        groupName_list = response[1]
+        groupName5 = groupName_list[0]
+
+        c.send("pyReadGroup6Name")
+        response = c.receive()
+        groupName_list = response[1]
+        groupName6 = groupName_list[0]
+
+        c.send("pyReadGroup7Name")
+        response = c.receive()
+        groupName_list = response[1]
+        groupName7 = groupName_list[0]
+
+    except UnicodeDecodeError as e:
+        updateDirections("UnicodeDecodeError in pyReadGroup1Name; " + str(e))
+        groupName1 = "UnicodeDecodeError"
+    except ValueError as ve:
+        updateDirections("ValueError in pyReadGroupName; " + str(ve))
+        groupName1 = "ValueError"
+    except Exception as e:
+        updateDirections("Exception in pyReadGroupName; " + str(e))
+        groupName1 = "Exception"
+
 
 def OnEntryDownNoEvent():
     OnEntryDown(0)
@@ -1463,35 +1536,43 @@ vFinancial = IntVar()
 vMail = IntVar()
 vCustom = IntVar()
 
-textboxFavorites = Checkbutton(window, text="Favorites", variable=vFavorites, command=OnFavorites, onvalue=1, offvalue=0)
+groupName1 = "Group1"
+groupName2 = "Group2"
+groupName3 = "Group3"
+groupName4 = "Group4"
+groupName5 = "Group5"
+groupName6 = "Group6"
+groupName7 = "Group7"
+
+textboxFavorites = Checkbutton(window, text="Favorites ", variable=vFavorites, command=OnFavorites, onvalue=1, offvalue=0)
 textboxFavorites.var = vFavorites
 textboxFavorites.grid(column=1,row=12)
 
-textboxWork = Checkbutton(window, text="Work      ", variable=vWork, command=OnWork, onvalue=1, offvalue=0)
+textboxWork = Checkbutton(window, text=groupName1, variable=vWork, command=OnWork, onvalue=1, offvalue=0)
 textboxWork.var = vWork
 textboxWork.grid(column=1,row=13)
 
-textboxPersonal = Checkbutton(window, text="Personal ", variable=vPersonal, command=OnPersonal, onvalue=1, offvalue=0)
+textboxPersonal = Checkbutton(window, text=groupName2, variable=vPersonal, command=OnPersonal, onvalue=1, offvalue=0)
 textboxPersonal.var = vPersonal
 textboxPersonal.grid(column=1,row=14)
 
-textboxHome = Checkbutton(window, text="Home     ", variable=vHome, command=OnHome, onvalue=1, offvalue=0)
+textboxHome = Checkbutton(window, text=groupName3, variable=vHome, command=OnHome, onvalue=1, offvalue=0)
 textboxHome.var = vHome
 textboxHome.grid(column=1,row=15)
 
-textboxSchool = Checkbutton(window, text="School   ", variable=vSchool, command=OnSchool, onvalue=1, offvalue=0)
+textboxSchool = Checkbutton(window, text=groupName4, variable=vSchool, command=OnSchool, onvalue=1, offvalue=0)
 textboxSchool.var = vSchool
 textboxSchool.grid(column=2,row=12)
 
-textboxFinancial = Checkbutton(window, text="Financial", variable=vFinancial, command=OnFinancial, onvalue=1, offvalue=0)
+textboxFinancial = Checkbutton(window, text=groupName5, variable=vFinancial, command=OnFinancial, onvalue=1, offvalue=0)
 textboxFinancial.var = vFinancial
 textboxFinancial.grid(column=2,row=13)
 
-textboxMail = Checkbutton(window, text="Mail       ", variable=vMail, command=OnMail, onvalue=1, offvalue=0)
+textboxMail = Checkbutton(window, text=groupName6, variable=vMail, command=OnMail, onvalue=1, offvalue=0)
 textboxMail.var = vMail
 textboxMail.grid(column=2,row=14)
 
-textboxCustom = Checkbutton(window, text="Custom", variable=vCustom, command=OnCustom, onvalue=1, offvalue=0)
+textboxCustom = Checkbutton(window, text=groupName7, variable=vCustom, command=OnCustom, onvalue=1, offvalue=0)
 textboxCustom.var = vCustom
 textboxCustom.grid(column=2,row=15)
 
