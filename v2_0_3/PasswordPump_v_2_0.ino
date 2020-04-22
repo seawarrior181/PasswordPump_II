@@ -69,15 +69,10 @@
     via a combination of the PasswordPump and the PasswordPumpGUI.
   - When deleting duplicate accounts (duplicate account names) corruption is 
     introduced.
-  - Navigation back to previous menu needs work (EVENT_LONG_CLICK).
-  - Nail down the menu / UI layout.  
-  - After deleting account change the location of the menu
   - Embedded quote in a CSV import file are not getting saved to the filed e.g.
     password.
   - When you import credentials with <CR><LF> in the account name bad things
     happen.
-  - Added account 'Add Account' and then deleted, corrupted linked list
-  - Added account to the end of the linked list, corrupted linked list
   - When entering an account name 29 chars long via keyboard, nothing gets 
     entered.
   - In the switch statement for EVENT_SINGLE_CLICK the case statements 
@@ -85,16 +80,21 @@
     correctly.
   - Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
-  x Should probably remove Keyboard ON/OFF from saved properties and always 
-    default to Keyboard OFF; or make sure it is always OFF when backing up 
-    EEProm.
   x single character user names and passwords are not working well
   x Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
     BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
   x The linked list is occasionally becoming corrupt. Added the ability to 
     fix a corrupt linked list. Exact conditions of corruption unknown at this 
     point.
-  x single click after Reset brings you to alpha edit mode
+  * single click after Reset brings you to alpha edit mode
+  * Should probably remove Keyboard ON/OFF from saved properties and always 
+    default to Keyboard OFF; or make sure it is always OFF when backing up 
+    EEProm.
+  * Added account 'Add Account' and then deleted, corrupted linked list
+  * Added account to the end of the linked list, corrupted linked list
+  * After deleting account change the location of the menu
+  * Nail down the menu / UI layout.  
+  * Navigation back to previous menu needs work (EVENT_LONG_CLICK).
   * When returning from setting anthing in the settings menu you're not returned
     to the menu item from where you came.
   * When long clicking after search by group you don't return to the right 
