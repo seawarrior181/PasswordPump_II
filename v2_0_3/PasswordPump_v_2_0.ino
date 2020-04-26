@@ -1,7 +1,7 @@
 /*
   PasswordPump_v_2_0.ino
 
-  Project Name: PasswordPump, a password manager
+  Project Name: PasswordPump II, a better password manager
   Author:       Daniel J. Murphy
   Version:      2.0
   Date:         2019/07/26
@@ -238,6 +238,8 @@
   - re-enter master password to authorize credentials reset
   - Consolidate code in the import files sections
   - A back space should be available during character input via rotary encoder.
+	- In the customize groups menu, use the current name of the group instead of
+	  the group number.
   ? Add a feature whereby the unit factory resets after two triple clicks, even
     if not yet authenticated. (commented out, caused problems)
   ? Add a feature whereby the unit logs out after two double clicks. (commented
@@ -559,11 +561,11 @@
   Red                       Error backing up or initializing EEprom, failed 
                             login attempt(s).
   Yellow                    Error backing up or initializing EEprom
-  Blue                      Not logged in including failed login attempt
+	Alternating								Not logged in
   
   Budgeting Memory
   ================
-  Sketch uses ? bytes (20%) of program storage space. Maximum is 507904 
+  Sketch uses ? bytes (15%) of program storage space. Maximum is 507904 
   bytes. 
 
   Fixing CmdMessenger
@@ -591,7 +593,7 @@
 
   Running the PC Client
   =====================
-  - c:\repos\murphyrepo\dev\python\PassPumpGUI>c:\python3\python PassPumpGUI_v0_5.py
+  - c:\python3\python C:\temp\Software\PassPumpGUI_v2_0.py
   
   Menu Navigation                                                               // TODO: update the states here...
   ===============
@@ -974,13 +976,6 @@
 #define EVENT_SEARCH_FAVORITES    30
 #define EVENT_SHOW_FAVORITES_MENU 31
 #define EVENT_SHOW_GROUP_DEF_MENU 32
-//#define EVENT_SEARCH_WORK         27
-//#define EVENT_SEARCH_PERSONAL     28
-//#define EVENT_SEARCH_HOME         29
-//#define EVENT_SEARCH_SCHOOL       30
-//#define EVENT_SEARCH_FINANCIAL    31
-//#define EVENT_SEARCH_MAIL         32
-//#define EVENT_SEARCH_CUSTOM       33
                                                                                 // Not using an enum here to save memory.  TODO: states are not really mutually
 //- States                                                                      // exclusive so we could save a byte by just numbering these sequentially.
 
@@ -1049,10 +1044,10 @@
 #define KBD_MENU_O_POS            10                                            // where to append "FF" or "N" on the "Keyboard O" menu item in settings
 #define SH_PW_MENU_O_POS          15                                            // where to append "FF" or "N" on the  "Show Password O" menu item in settings
 #define SH_DC_MENU_O_POS          16                                            // where to append "FF" or "N" on the "Decoy Password O" menu item in settings
-#define MENU_SIZE                 10                                             // selections in the menu
+#define MENU_SIZE                 10                                            // selections in the menu
 
 #define MAIN_MENU_NUMBER          0
-#define MAIN_MENU_ELEMENTS        10                                             // number of selections in the main menu
+#define MAIN_MENU_ELEMENTS        10                                            // number of selections in the main menu
                                                                             
 char * mainMenu[] =               {              "Master Password",             // menu picks appear only on the top line
                                                  "Find Favorite",               // find favorite credentials
@@ -1108,7 +1103,7 @@ const char * const sendMenu[] =   {              "Send Password <RET>",         
 #define EDIT_MENU_NUMBER          2
 #define EDIT_MENU_ELEMENTS        8                                             // the number of selections in the menu for editing credentials
 const char * const enterMenu[] =  {              "Edit Account Name",           // menu picks appear only on the top line
-                                                 "Edit User Name",               // edit the user name
+                                                 "Edit User Name",              // edit the user name
                                                  "Edit Password",               // edit the password
                                                  "Edit URL",                    // edit the website URL
                                                  "Indicate Style",              // 0, <CR>, 1, <TAB> between user name and password when both sent
@@ -1189,7 +1184,7 @@ const char * const RGBLEDIntensityMenu[] = {     "High",                        
 
 #define LOGIN_ATTEMPTS_MENU_NUMBER   6
 #define LOGIN_ATTEMPTS_MENU_ELEMENTS 4
-const char * const LoginAttemptsMenu[] = {       "3",                          // INITIAL_MEMORY_STATE_BYTE
+const char * const LoginAttemptsMenu[] = {       "3",                           // INITIAL_MEMORY_STATE_BYTE
                                                  "5",
                                                  "10",
                                                  "25",
@@ -1346,6 +1341,17 @@ boolean isYellow  = false;                                                      
 boolean isBlue    = false;                                                      // indicates if the RGB LED is blue
 
 boolean oledDim   = false;                                                      // indicates if the oled display is dimmed
+
+//uint8_t red = 0;
+//uint8_t green = 0;
+//uint8_t blue = 0;
+uint16_t angle = 0;
+
+const uint8_t HSVlights[61] = 
+{0, 4, 8, 13, 17, 21, 25, 30, 34, 38, 42, 47, 51, 55, 59, 64, 68, 72, 76,
+81, 85, 89, 93, 98, 102, 106, 110, 115, 119, 123, 127, 132, 136, 140, 144,
+149, 153, 157, 161, 166, 170, 174, 178, 183, 187, 191, 195, 200, 204, 208,
+212, 217, 221, 225, 229, 234, 238, 242, 246, 251, 255};
 
 #define LEN_ALL_CHARS             88
 #define DEFAULT_ALPHA_EDIT_POS    34                                            // allChars is sort of unnecessary TODO: eliminate allChars?
@@ -1518,11 +1524,6 @@ boolean authenticateMaster(char *password);
 void sha256Hash(char *password);
 void encrypt32Bytes(char *outBuffer, char *inBuffer);
 void decrypt32(char *outBuffer, char *inBuffer);
-
-//void writeAllToEEProm(char *accountName,                                      // TODO: remove this, it's not used
-//                      char *username, 
-//                      char *password, 
-//                      uint8_t pos) ;
 uint8_t countAccounts() ;
 uint8_t getNextFreeAcctPos(void) ;
 void readAcctFromEEProm(uint8_t pos, char *buf);                                // read the account from EEprom and decrypt it
@@ -1667,7 +1668,6 @@ void setup() {                                                                  
   pinMode(RANDOM_PIN, INPUT);                                                   // used to seed the random number generator, this pin MUST float
   randomSeed(analogRead(RANDOM_PIN));                                           // seed the random number generator
 
-  //oled.begin(&Adafruit128x32, SSD1306_I2C_ADDR);
   if(!oled.begin(SSD1306_SWITCHCAPVCC, SSD1306_I2C_ADDR)) {                     // Address 0x3C for 128x32
     DebugLN("ERR: 000 SSD1306 allocation failed");
     for(;;);                                                                    // Don't proceed, loop forever
@@ -1675,18 +1675,14 @@ void setup() {                                                                  
                                                                                 // Show initial display buffer contents on the screen --
                                                                                 // the library initializes this with an Adafruit splash screen.
   DimDisplay(false);
-  //ScrollPasswordPump();
   oled.display();
-  //delayNoBlock(2000);                                                         // Pause for 2 seconds
   oled.clearDisplay();
   oled.setTextSize(1);                                                          // Draw 1X-scale text
   oled.setTextColor(WHITE);
   oled.setCursor(0, 0);
   oled.cp437(true);                                                             // Use full 256 char 'Code Page 437' font
-  //oled.println("PasswordPump");
-  //oled.display();                                                             // Show initial text
-  //delayNoBlock(1000);
-
+  //oled.invertDisplay(true);
+	
   //oled.setFont(TimesNewRoman13);                                              // perfect, slightly smaller than Arial14
   //oled.setFont(Arial14);                                                      // perfect but it's trueType so could be an issue
   //oled.setFont(fixednums8x16);                                                // Doesn't work, blank screen
@@ -1694,9 +1690,7 @@ void setup() {                                                                  
   //oled.setFont(Adafruit5x7);                                                  // Nice but a bit small.  Can get 3 lines of output.
   //oled.setFont(Adafruit5x7);                                                  // Nice but a bit small.  Can get 3 lines of output.
   ShowSplashScreen();
-//BlankLine3();
   
-  setBlue();                                                                    // not yet authenticated
   DisableInterrupts();                                                          // turn off global interrupts, initially set to true
   initSPI();
 
@@ -1711,11 +1705,20 @@ void setup() {                                                                  
     FactoryReset();
   };
   
+  RGBLEDIntensity = getRGBLEDInt;                                               // the intensity of the RGB LED
+  if (RGBLEDIntensity == INITIAL_MEMORY_STATE_BYTE) {
+    RGBLEDIntensity = RGB_LED_DEFAULT;
+    writeRGBLEDIntensity();
+  }
+
+  setBlue();                                                                    // not yet authenticated
+  
   loginFailures = getLoginFailures;                                             // getLoginFailures returns a byte.
   if (loginFailures == INITIAL_MEMORY_STATE_BYTE ) {                            // if loginFailures has never been written too
     loginFailures = 0;                                                          // set it to zero
     writeLoginFailures();                                                       // and write it to EEprom.
   }
+	if (loginFailures) setRed();
 
   loginAttempts = getLoginAttempts;                                             // the maximum number of login attempts before factory reset
   if ((loginAttempts == INITIAL_MEMORY_STATE_BYTE) ||                           // if loginAttempts has never been written too
@@ -1724,12 +1727,6 @@ void setup() {                                                                  
     writeLoginAttempts();                                                       // and write it to EEprom
   }
 
-  RGBLEDIntensity = getRGBLEDInt;                                               // the intensity of the RGB LED
-  if (RGBLEDIntensity == INITIAL_MEMORY_STATE_BYTE) {
-    RGBLEDIntensity = RGB_LED_DEFAULT;
-    writeRGBLEDIntensity();
-  }
-  
   showPasswordsFlag = getShowPasswordsFlag;                                     // setup the show passwords flag and menu item. (getShowPasswordsFlag returns byte)
   if (showPasswordsFlag == INITIAL_MEMORY_STATE_BYTE ) {                        // this should never be true because the reset event sets the show passwords 
     showPasswordsFlag = true;                                                   // flag to a value but, for safety, set the show password flag to ON
@@ -1753,7 +1750,6 @@ void setup() {                                                                  
   lastActivityTime = millis();                                                  // establish the start time for when the device is powered up
   authenticated = false;                                                        // we're not authenticated yet!
 
-// Added next 10 lines and commented out the 11th 2020-02-15 to change initial splash screen behavior
   machineState = STATE_SHOW_MAIN_MENU;
   position = ENTER_MASTER_PASSWORD; 
   event = EVENT_NONE;
@@ -1764,7 +1760,6 @@ void setup() {                                                                  
   }
   memcpy(currentMenu, mainMenu, arraySize);
   elements = MAIN_MENU_ELEMENTS;
-//event = EVENT_SHOW_MAIN_MENU;                                                 // first job is to show the first element of the main menu
 
   EnableInterrupts();                                                           // Turn on global interrupts
 }
@@ -1837,13 +1832,12 @@ void ProcessEvent() {                                                           
     EnableInterrupts();
     milliseconds = millis();
     if (++iterationCount == MAX_ITERATION_COUNT) {                              // we don't want to call millis() every single time through the loop
-      //DebugLN("Alive!");
       iterationCount = 0;                                                       // necessary?  won't we just wrap around?
       if (logoutTimeout && authenticated) {                                     // if logoutTimeout != 0, i.e. there is a logout timeout set.
         long logoutTime = lastActivityTime + (logoutTimeout * 60000);
         if (milliseconds < logoutTime) {                                        // check to see if the device has been idle for logoutTimeout milliseconds
-        // Need to find a way to get the display to clear every time we display a new number...
-        // if (authenticated) {                                                 // if authenticated display the time remaining until logout in seconds on display line 3, right justified
+																																								// Need to find a way to get the display to clear every time we display a new number...
+					// if (authenticated) {                                               // if authenticated display the time remaining until logout in seconds on display line 3, right justified
             // long timeLeft = (lastActivityTime + logoutTimeout)- milliseconds;// calculate time remaining until logout 
             // timeLeft /= 1000;                                                // convert timeLeft to seconds, max of 4 decimal places
             // char timeTillLogout[4]; 
@@ -1854,7 +1848,7 @@ void ProcessEvent() {                                                           
             // oled.setCursor(96,LINE_3_POS);                                   // x, y
             // oled.print(timeTillLogout);
             // oled.display();
-        // }
+					// }
           if ((milliseconds + LOGOUT_WARNING) > logoutTime) {                   // Check to see if we are within 25 seconds of logging out
             if (RGBLEDIntensity) {
               uint8_t oldRGBLEDIntensity = RGBLEDIntensity;
@@ -1867,15 +1861,22 @@ void ProcessEvent() {                                                           
           }
           return;                                                               // not time to logout yet and event == EVENT_NONE, so just return.
         } else {
-          //sendLockAndLogout();                                                  // Send LEFT GUI - l to computer          
+          //sendLockAndLogout();                                                // Uncomment if you want the computer screen to lock when auto logout of PasswordPump; Send LEFT GUI - l to computer          
           event = EVENT_LOGOUT;                                                 // otherwise we've been idle for more than logoutTimeout, logout.
-          //DebugLN("Logging Out!");
+																																								// do not return, continue processing in this function
         }
-      } else {
-        return;                                                                 // logout timeout is not enabled
+      } else {																																	// logout timeout is not enabled or we are already logged out
+        return;                                                                 
       }
-    } else {                                                                    // iterationCount is < 255
-      return;                                                                   // not time to check millis() yet, just return
+    } else {                                                                    // iterationCount is < 1048575
+			if (iterationCount % 32768 == 0) {
+				if (!authenticated && !loginFailures && RGBLEDIntensity != RGB_LED_OFF) {	
+					angle += 1;															  														// if we are logged out and there are no login failures
+					if (angle > 360) angle = 0;
+					trueHSV(angle);																		  									// pulse the RGB LED
+				}
+			}
+			return;                                                                   // not time to check millis() yet, just return
     }
   }
 
@@ -1889,7 +1890,7 @@ void ProcessEvent() {                                                           
         position++;
         MenuDown(currentMenu);                                                  // move one position down the current menu
       }
-    } else if ((STATE_ENTER_MASTER   == machineState  ) ||
+    } else if ((STATE_ENTER_MASTER   == machineState  ) ||											// event == EVENT_ROTATE_CW
                (STATE_EDIT_ACCOUNT   == machineState  ) ||
                (STATE_EDIT_STYLE     == machineState  ) ||
                (STATE_EDIT_USERNAME  == machineState  ) ||
@@ -1908,48 +1909,42 @@ void ProcessEvent() {                                                           
       }
       char charToPrint = allChars[position];                                    // TODO: eliminate this assignment / needless charToPrint variable
       ShowChar(charToPrint, enterPosition);
-    } else if (STATE_SEND_CREDS_MENU == machineState){
+    } else if (STATE_SEND_CREDS_MENU == machineState){											    // event == EVENT_ROTATE_CW
       if (position < SEND_MENU_ELEMENTS - 1) {
         position++;
         MenuDown(currentMenu);
       }
-    } else if (STATE_EDIT_CREDS_MENU == machineState){
-      //DebugMetric("position: ",position);
-      //DebugMetric("acctCount: ",acctCount);
+    } else if (STATE_EDIT_CREDS_MENU == machineState){											    // event == EVENT_ROTATE_CW
       if ((position < (EDIT_MENU_ELEMENTS - 1)) && (acctCount > 0)) {           // we'll only show the edit account options when there's at least one account
         position++;
         MenuDown(currentMenu);
         SwitchRotatePosition(position);
       }
-    } else if (STATE_MENU_FIND_BY_GROUP == machineState) {
+    } else if (STATE_MENU_FIND_BY_GROUP == machineState) {											// event == EVENT_ROTATE_CW
       if ((position < (GROUP_MENU_ELEMENTS - 1)) && (acctCount > 0)) {          // we'll only show the edit account options when there's at least one account
-        //position++;
-        //MenuDown(groupMenu);
-				if (position < GROUP_MENU_ELEMENTS) {
-					DisplayToItem((char *) (groupMenu + (++position)));
-				}
+				DisplayToItem((char *) (groupMenu + (++position)));
       }
-    } else if ((STATE_KEY_ON_OFF_MENU     == machineState) ||
+    } else if ((STATE_KEY_ON_OFF_MENU     == machineState) ||										// event == EVENT_ROTATE_CW
                (STATE_SHOW_PW_ON_OFF_MENU == machineState) ||
                (STATE_DECOY_ON_OFF_MENU   == machineState)) {
       position = !position;                                                     // flip from 0 to 1 or from 1 to 0
       ShowMenu(position, currentMenu);
-    } else if (STATE_MENU_LOGIN_ATTEM     == machineState) {
+    } else if (STATE_MENU_LOGIN_ATTEM     == machineState) {									  // event == EVENT_ROTATE_CW
       if (position < LOGIN_ATTEMPTS_MENU_ELEMENTS - 1) {                        
         position++;
         MenuDown(currentMenu);
       }
-    } else if (STATE_MENU_RGB_INTENSITY   == machineState) {
+    } else if (STATE_MENU_RGB_INTENSITY   == machineState) {									  // event == EVENT_ROTATE_CW
       if (position < RGB_INTENSITY_MENU_ELEMENTS - 1) {                         
         position++;
         MenuDown(currentMenu);
       }
-    } else if (STATE_MENU_LOGOUT_TIMEOUT  == machineState) {
+    } else if (STATE_MENU_LOGOUT_TIMEOUT  == machineState) {									  // event == EVENT_ROTATE_CW
       if (position < LOGOUT_TIMEOUT_MENU_ELEMENTS - 1) {                        
         position++;
         MenuDown(currentMenu);
       }
-    } else if ((STATE_SEARCH_FAVORITES     == machineState) ||
+    } else if ((STATE_SEARCH_FAVORITES     == machineState) ||									// event == EVENT_ROTATE_CW
                (STATE_SEARCH_WORK          == machineState) ||
                (STATE_SEARCH_PERSONAL      == machineState) ||
                (STATE_SEARCH_HOME          == machineState) ||
@@ -1971,7 +1966,7 @@ void ProcessEvent() {                                                           
         acctPosition = position;                                                // set acctPosition back to the last account found belonging to the group
       }
       event = EVENT_NONE;
-    } else if (STATE_FIND_ACCOUNT == machineState) {     
+    } else if (STATE_FIND_ACCOUNT == machineState) {     											  // event == EVENT_ROTATE_CW
       uint8_t nextPos = getNextPtr(position);
       if (nextPos != INITIAL_MEMORY_STATE_BYTE) {
         position = nextPos;
@@ -1979,7 +1974,7 @@ void ProcessEvent() {                                                           
       acctPosition = position;
       readAcctFromEEProm(acctPosition, accountName);
       DisplayToItem(accountName);
-    } else if ((STATE_CONFIRM_BACK_EEPROM == machineState ) || 
+    } else if ((STATE_CONFIRM_BACK_EEPROM == machineState ) || 								  // event == EVENT_ROTATE_CW
                (STATE_CONFIRM_RESTORE     == machineState ) ||
                //(STATE_CONFIRM_FIX_CORRUPT== machineState ) ||
                (STATE_CONFIRM_RESET       == machineState ) ||
@@ -1989,25 +1984,21 @@ void ProcessEvent() {                                                           
                (STATE_CONFIRM_IMP_CP_CSV  == machineState )) {
       position = !position;
       ShowChar(confirmChars[position], POS_Y_N_CONFIRM);
-    } else if (STATE_MENU_SETTINGS == machineState) {
+    } else if (STATE_MENU_SETTINGS == machineState) {											      // event == EVENT_ROTATE_CW
       if (position < SETTINGS_MENU_ELEMENTS - 1) {                              // prevent scrolling past the last item on the menu
         position++;
         MenuDown(currentMenu);                                                  // move one position down the current menu
       }
-    } else if (STATE_MENU_FILE == machineState) {
+    } else if (STATE_MENU_FILE == machineState) {																// event == EVENT_ROTATE_CW
       if (position < FILE_MENU_ELEMENTS - 1) {                                  // prevent scrolling past the last item on the menu
         position++;
         MenuDown(currentMenu);                                                  // move one position down the current menu
       }
-    } else if (STATE_MENU_GROUPS == machineState) {
+    } else if (STATE_MENU_GROUPS == machineState) {															// event == EVENT_ROTATE_CW
       if (position < GROUP_MENU_ELEMENTS - 1) {                                 // prevent scrolling past the last item on the menu
-        //position++;
-        //MenuDown(groupMenu);                                                  // move one position down the current menu
-				if (position < GROUP_MENU_ELEMENTS) {
-					DisplayToItem((char *) (groupMenu + (++position)));
-				}
+				DisplayToItem((char *) (groupMenu + (++position)));
       }
-    } else if (STATE_MENU_DEFINE_GROUPS == machineState) {
+    } else if (STATE_MENU_DEFINE_GROUPS == machineState) {											// event == EVENT_ROTATE_CW
       if (position < GROUP_EDIT_MENU_ELEMENTS - 1) {                            // prevent scrolling past the last item on the menu
         position++;
         MenuDown(currentMenu);                                                  // move one position down the current menu
@@ -2052,13 +2043,9 @@ void ProcessEvent() {                                                           
         SwitchRotatePosition(position);
       }
     } else if (STATE_MENU_FIND_BY_GROUP   == machineState) {                    // EVENT_ROTATE_CC
-      if (position > 0) {
-        //position--;
-        //MenuUp(groupMenu);
-				if (position > 0) {
-					DisplayToItem((char *) (groupMenu + (--position)));
-				}
-      }
+			if (position > 0) {
+				DisplayToItem((char *) (groupMenu + (--position)));
+			}
     } else if ((STATE_KEY_ON_OFF_MENU     == machineState) ||
                (STATE_SHOW_PW_ON_OFF_MENU == machineState) ||
                (STATE_DECOY_ON_OFF_MENU   == machineState)   ) {                // EVENT_ROTATE_CC
@@ -2082,14 +2069,12 @@ void ProcessEvent() {                                                           
       acctPosition = getPrevPtr(acctPosition);
       while ( (acctPosition != INITIAL_MEMORY_STATE_BYTE) &&
              !(readGroupFromEEprom(acctPosition) & groupFilter) ) {             // 
-        //position = acctPosition;
         acctPosition = getPrevPtr(acctPosition);
       }
       if (acctPosition != INITIAL_MEMORY_STATE_BYTE) {                          // we found a favorite
         position = acctPosition;
         readAcctFromEEProm(position, accountName);
         DisplayToItem((char *) accountName);
-        //DebugLN((char *) accountName);
       } else {                                                                  // we reached the beginning of the linked list
         acctPosition = position;                                                // set acctPosition back to the last known member of the group
       }
@@ -2127,17 +2112,13 @@ void ProcessEvent() {                                                           
         MenuUp(currentMenu);
       }
     } else if (STATE_MENU_GROUPS == machineState) {                             // EVENT_ROTATE_CC
-      if (position > 0) {                                                       // 
-        //position--;
-        //MenuUp(groupMenu);
-				if (position > 0) {
-					DisplayToItem((char *) (groupMenu + (--position)));
-				}
-      }
+			if (position > 0) {
+				DisplayToItem((char *) (groupMenu + (--position)));
+			}
     } else if (STATE_MENU_DEFINE_GROUPS == machineState) {
-      if (position > 0) {                            // prevent scrolling past the last item on the menu
+      if (position > 0) {                            														// prevent scrolling past the last item on the menu
         position--;
-        MenuUp(currentMenu);                                                  // move one position down the current menu
+        MenuUp(currentMenu);              	                                    // move one position down the current menu
       }
     } 
     event = EVENT_NONE;
@@ -2161,7 +2142,6 @@ void ProcessEvent() {                                                           
             }
             if (i > CREDS_ACCOMIDATED) {
               DisplayToError("ERR: 032");
-              delayNoBlock(ONE_SECOND * 2);
             }
             if (acctPosition != INITIAL_MEMORY_STATE_BYTE) {                    // we found a favorite
               position = acctPosition;
@@ -2170,7 +2150,6 @@ void ProcessEvent() {                                                           
               ShowMenu(FIND_FAVORITE, mainMenu, "   Find Favorite    ");
               readAcctFromEEProm(position, accountName);
               DisplayToItem((char *) accountName);
-              //DebugLN((char *) accountName);
             }
           }
           event = EVENT_NONE;
@@ -2200,26 +2179,16 @@ void ProcessEvent() {                                                           
           Serial.begin(BAUD_RATE);
           attachCommandCallbacks();
           event = EVENT_NONE;
-          int counter; counter = 0;
+          int counter; counter = 0;																							// compile error if this is all done in one statement (?)
           setPurple();
           while ((machineState == STATE_FEED_SERIAL_DATA) &&
-//               (event != EVENT_SINGLE_CLICK           ) &&
                  (event != EVENT_LONG_CLICK             )   ) {
             encoderButton.loop();                                               // polling for button press TODO: replace w/ interrupt
             cmdMessenger.feedinSerialData();                                    // Process incoming serial data, and perform callbacks
-//            if (counter%129792 == 0) {                                        // 259584 to slow down
-//              if (isYellow) {
-//                setBlue();
-//              } else {
-//                setYellow();
-//              }
-//            }
-//            counter++;
           }
-//        Serial.end();
-//        DisableInterrupts();
+          Serial.end();
+          DisableInterrupts();
           setGreen();
-//        event = EVENT_SHOW_MAIN_MENU;
           break;
         case ADD_ACCOUNT:                                                       // Add account
           addFlag = true;                                                       // necessary for when we return to the main menu
@@ -2287,19 +2256,19 @@ void ProcessEvent() {                                                           
             event = EVENT_NONE;
           }
           break; 
-        case EDIT_USERNAME:                                                    // Enter user name     
+        case EDIT_USERNAME:                                                     // Enter user name     
           DisplayToMenu(accountName);
           DisplayToItem("Edit User Name");
           BlankLine3();
           EditAttribute(STATE_EDIT_USERNAME, DEFAULT_ALPHA_EDIT_POS);
           break; 
-        case EDIT_PASSWORD:                                                    // Enter Password   
+        case EDIT_PASSWORD:                                                     // Enter Password   
           DisplayToMenu(accountName);
           DisplayToItem("Edit Password");
           BlankLine3();
           EditAttribute(STATE_EDIT_PASSWORD, DEFAULT_ALPHA_EDIT_POS);
           break; 
-       case EDIT_WEBSITE:                                                     // Enter URL
+       case EDIT_WEBSITE:                                                       // Enter URL
           DisplayToMenu(accountName);
           DisplayToItem("Edit URL");
           BlankLine3();
@@ -2717,7 +2686,6 @@ void ProcessEvent() {                                                           
       if (confirmChars[position] == 'Y') {
         FactoryReset();
       }
-      event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_CONFIRM_DEL_ACCT == machineState) {                        // EVENT_SINGLE_CLICK
       if (confirmChars[position] == 'Y') {
         deleteAccount(acctPosition);
@@ -2801,7 +2769,6 @@ void ProcessEvent() {                                                           
       }
     } else {
       DisplayToError("ERR: 028");                                               // invalid state during event single click
-      delayNoBlock(ONE_SECOND * 2);
     }
 
   } else if (event == EVENT_LONG_CLICK) {                                       // jump up / back to previous menu 
@@ -2940,7 +2907,6 @@ void ProcessEvent() {                                                           
 			default:
 				position = 0;
 				DisplayToError("ERR: 040");
-				delayNoBlock(ONE_SECOND * 2);
 				switchToFindAcctMenu();
 				break;
 			}
@@ -3008,7 +2974,6 @@ void ProcessEvent() {                                                           
 				default:
 					position = 0;
 					DisplayToError("ERR: 040");
-					delayNoBlock(ONE_SECOND * 2);
 					break;
 			}
 			switchFindByGroup();
@@ -3044,7 +3009,6 @@ void ProcessEvent() {                                                           
         default:
           position = 0;
           DisplayToError("ERR: 042");
-          delayNoBlock(ONE_SECOND * 2);
           break;
       }
       //position = 0;                                                           // return to the top of the settings menu
@@ -3645,7 +3609,6 @@ void switchToFindByGroupMenu(uint8_t menu, boolean setAcctPosition) {
       break;
     default:
       DisplayToError("ERR: 027");
-      delayNoBlock(ONE_SECOND * 2);
       break;
   }
   
@@ -3799,11 +3762,13 @@ void FactoryReset() {
 		loadGroupMenu();
     randomSeed(analogRead(RANDOM_PIN));                                         // seed the random number generator
     ShowSplashScreen();
-    DisplayToStatus("Factory Reset");
-    event = EVENT_SHOW_MAIN_MENU;                                               // first job is to show the first element of the main menu
-  } else { 
-    BlankLine2();
-    DisplayToStatus("Not logged in");
+    //DisplayToStatus("Factory Reset");
+    //event = EVENT_SHOW_MAIN_MENU;                                             // first job is to show the first element of the main menu
+		event = EVENT_NONE;
+    machineState = STATE_SHOW_MAIN_MENU;
+		position = ENTER_MASTER_PASSWORD;
+    //BlankLine2();
+    //DisplayToStatus("Not logged in");
   }
 }
 
@@ -3912,7 +3877,6 @@ void buttonReleasedHandler(Button2& btn) {
 
 //- Delete Account
 
-/*
 void deleteAccount(uint8_t position) {
   //DebugLN("deleteAccount()");
   DisplayToStatus("Erasing creds");
@@ -3934,60 +3898,6 @@ void deleteAccount(uint8_t position) {
 
   writeNextPtr(position, INITIAL_MEMORY_STATE_BYTE);                            // set the next pointer for this position to 255
   writePrevPtr(position, INITIAL_MEMORY_STATE_BYTE);                            // set the previous pointer for this position to 255
-  
-  char emptyPassword[PASSWORD_SIZE];
-  for (uint8_t i = 0; i < PASSWORD_SIZE; i++) {
-    emptyPassword[i] = NULL_TERM;                                               // to completely overwrite the password in EEProm
-  }
-  char allBitsOnArray[2];
-  allBitsOnArray[0] = INITIAL_MEMORY_STATE_BYTE;                                // this makes the account name free/empty/available
-  allBitsOnArray[1] = NULL_TERM;
-  char firstNullTermArray[1];
-  firstNullTermArray[0] = NULL_TERM;                                            // equivalent to ""
-  writeAllToEEProm( allBitsOnArray,                                             // account:  "-1\0", the -1 signals that the position is free/empty/available.
-                    firstNullTermArray,                                         // user name: "\0", so when it is read it will come back empty
-                    emptyPassword,                                              // password: "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", to overwrite the entire pw
-                    position                );                                  // position to be deleted
-  writeGroup(position, NONE);
-  accountName[0] = NULL_TERM;
-  memcpy(password, emptyPassword, PASSWORD_SIZE);
-  username[0] = NULL_TERM;
-  website[0]  = NULL_TERM;
-
-  acctCount--;
-  acctPosition = headPosition;
-  DisplayToStatus("Credentials erased");
-}
-*/
-
-void deleteAccount(uint8_t position) {
-  //DebugLN("deleteAccount()");
-  DisplayToStatus("Erasing creds");
-
-  uint8_t prevPosition = getPrevPtr(position);                                  // get the previous account position from the linked list
-  uint8_t nextPosition = getNextPtr(position);                                  // get the next account position from the linked list
-
-  if(prevPosition != INITIAL_MEMORY_STATE_BYTE) {                               // if we're not already the head position
-    writeNextPtr(prevPosition, nextPosition);                                   // write the next account position into the next account pointer of the previous position
-  } else {
-    headPosition = nextPosition;                                                // we're deleting the head, make the next element the new head
-    writeListHeadPos();                                                         // write the head position to EEprom
-  }
-  if(nextPosition != INITIAL_MEMORY_STATE_BYTE) {                               // if we're not already the tail position
-    writePrevPtr(nextPosition, prevPosition);                                   // write the previous account position into the previous account pointer of the next position
-  } else {
-    tailPosition = prevPosition;                                                // we're deleting the dail, make the previous element the new tail
-  }
-
-  writeNextPtr(position, INITIAL_MEMORY_STATE_BYTE);                            // set the next pointer for this position to 255
-  writePrevPtr(position, INITIAL_MEMORY_STATE_BYTE);                            // set the previous pointer for this position to 255
-  //char accountName[ACCOUNT_SIZE];
-  //char username[USERNAME_SIZE];                                               
-  //char password[PASSWORD_SIZE];                                               
-  //char salt[SALT_SIZE];                                                       
-  //char website[WEBSITE_SIZE];                                                 
-  //char style[STYLE_SIZE];                                                     
-  //char oldPassword[PASSWORD_SIZE];                                            
   for (uint8_t i = 0; i < ACCOUNT_SIZE;   i++) accountName[i] = INITIAL_MEMORY_STATE_CHAR;
   for (uint8_t i = 0; i < USERNAME_SIZE;  i++) username[i]    = INITIAL_MEMORY_STATE_CHAR;
   for (uint8_t i = 0; i < PASSWORD_SIZE;  i++) password[i]    = INITIAL_MEMORY_STATE_CHAR;
@@ -4258,7 +4168,10 @@ void DisplayToStatus(char* lineToPrint) {
 void DisplayToError(char* lineToPrint) {
   strncpy(line3DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
   line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
+	oled.invertDisplay(true);
   DisplayBuffer();
+  delayNoBlock(ONE_SECOND * 2);
+	oled.invertDisplay(false);
 }
 
 void DisplayToDebug(char* lineToPrint) {
@@ -4384,6 +4297,18 @@ void setColorsFalse() {
   isGreen   = false;
   isYellow  = false;
   isBlue    = false;
+}
+
+void trueHSV(int angle) {
+  byte red, green, blue;
+
+  if (angle<60) {red = 255; green = HSVlights[angle]; blue = 0;} else
+  if (angle<120) {red = HSVlights[120-angle]; green = 255; blue = 0;} else 
+  if (angle<180) {red = 0, green = 255; blue = HSVlights[angle-120];} else 
+  if (angle<240) {red = 0, green = HSVlights[240-angle]; blue = 255;} else 
+  if (angle<300) {red = HSVlights[angle-240], green = 0; blue = 255;} else 
+                 {red = 255, green = 0; blue = HSVlights[360-angle];} 
+  setColor(red, green, blue);
 }
 
 //- Encryption
@@ -4634,16 +4559,6 @@ void decrypt96(char *outBuffer, char *inBuffer) {                               
 }
 
 //- EEPROM functions
-
-//void writeAllToEEProm(char *accountName,                                        // TODO: check to see if this is used.  If so add website.
-//                      char *username, 
-//                      char *password, 
-//                      uint8_t pos)        {                                     // used by delete account and factory reset.
-//  //DebugLN("writeAllToEEProm()");
-//  eeprom_write_bytes(GET_ADDR_ACCT(pos), accountName, ACCOUNT_SIZE);
-//  eeprom_write_bytes(GET_ADDR_USER(pos), username, USERNAME_SIZE);
-//  eeprom_write_bytes(GET_ADDR_PASS(pos), password, PASSWORD_SIZE);
-//}
 
 //- Read Attributes from EEprom
 
@@ -5296,7 +5211,6 @@ uint8_t countAccounts() {                                                       
     if (pos == prevPos) {
       //DebugLN("Corruption in countAccounts()");
       DisplayToError("ERR: 041");
-      delayNoBlock(ONE_SECOND * 2);
       return(acctCount);
     }
   }
@@ -5460,7 +5374,6 @@ void importKeePassCSV() {
               uint32_t i = ACCOUNT_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 024");                                       // User name is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             DisplayToStatus(field);                                             // show the account name on the display
             //delayNoBlock(500);                                                // remove for production
@@ -5473,14 +5386,12 @@ void importKeePassCSV() {
                 while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {     // check to see if we have an invalid condition after encryption, if we do,
                                                                                 // concatenate characters until the first char in the cipher isn't 255.
                   DisplayToError("ERR: 039");                                   // encrypted account name starts with 255, fixing...
-                  delayNoBlock(ONE_SECOND * 2);
                   len = strlen(field);
                   if (len > 2) {
                     field[len - 2] = NULL_TERM;                                 // Chop a character off the end of the account name
                     encrypt32Bytes(bufferAcct, field);                          // encrypt again and hope for the best
                   } else {
                     DisplayToError("ERR: 020");                                 // display the error to the screen and continue processing.  
-                    delayNoBlock(ONE_SECOND * 2);
                     fieldNum = 100;                                             // force our way out of the for loop
                     break;
                   }
@@ -5496,7 +5407,6 @@ void importKeePassCSV() {
                 fieldNum = 100;                                                 // force our way out of the for loop
                 outOfSpace = true;
                 DisplayToError("ERR: 012");                                     // out of space in EEprom
-                delayNoBlock(ONE_SECOND * 2);
               }
             }
             break;
@@ -5505,7 +5415,6 @@ void importKeePassCSV() {
               uint32_t i = USERNAME_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 021");                                       // User name is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             char bufferUser[USERNAME_SIZE];
             if (len > 0) {
@@ -5524,7 +5433,6 @@ void importKeePassCSV() {
               uint32_t i = PASSWORD_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 022");                                       // Password is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             char bufferPass[PASSWORD_SIZE];
             if (len > 0) {
@@ -5543,7 +5451,6 @@ void importKeePassCSV() {
               uint32_t i = WEBSITE_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 023");                                       // Web site is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             char bufferWebsite[WEBSITE_SIZE];
             if (len > 0) {
@@ -5633,7 +5540,6 @@ void RestoreFromPPCVSFile() {
               uint32_t i = ACCOUNT_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 024");                                       // User name is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             //Debug("Account: ");DebugLN(field);
             DisplayToStatus(field);                                             // show the account name on the display
@@ -5646,14 +5552,12 @@ void RestoreFromPPCVSFile() {
                 while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {     // check to see if we have an invalid condition after encryption, if we do,
                                                                                 // concatenate characters until the first char in the cipher isn't 255.
                   DisplayToError("ERR: 039");                                   // encrypted account name starts with 255, fixing...
-                  delayNoBlock(ONE_SECOND * 2);
                   len = strlen(field);
                   if (len > 2) {
                     field[len - 2] = NULL_TERM;                                 // Chop a character off the end of the account name
                     encrypt32Bytes(bufferAcct, field);                          // encrypt again and hope for the best
                   } else {
                     DisplayToError("ERR: 020");                                 // display the error to the screen and continue processing.  
-                    delayNoBlock(ONE_SECOND * 2);
                     fieldNum = 100;                                             // force our way out of the for loop
                     break;
                   }
@@ -5671,7 +5575,6 @@ void RestoreFromPPCVSFile() {
                 fieldNum = 100;                                                 // force our way out of the for loop
                 outOfSpace = true;
                 DisplayToError("ERR: 012");                                     // out of space in EEprom
-                delayNoBlock(ONE_SECOND * 2);
               }
             }
             break;
@@ -5679,7 +5582,6 @@ void RestoreFromPPCVSFile() {
             if (len > (USERNAME_SIZE - 1)) {
               uint32_t i = USERNAME_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
-              DisplayToError("ERR: 021");                                       // User name is too long
               delayNoBlock(ONE_SECOND * 2);
             }
             char bufferUser[USERNAME_SIZE];
@@ -5699,7 +5601,6 @@ void RestoreFromPPCVSFile() {
               uint32_t i = PASSWORD_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 022");                                       // Password is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             char bufferPass[PASSWORD_SIZE];
             if (len > 0) {
@@ -5718,7 +5619,6 @@ void RestoreFromPPCVSFile() {
               uint32_t i = WEBSITE_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 023");                                       // Web site is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             char bufferWebsite[WEBSITE_SIZE];
             if (len > 0) {
@@ -5735,7 +5635,6 @@ void RestoreFromPPCVSFile() {
           case 4:                                                               // this is the group
             if (len > (GROUP_SIZE)) {
               DisplayToError("ERR: 035");                                       // Web site is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             uint8_t group;
             group = atoi(field);
@@ -5745,7 +5644,6 @@ void RestoreFromPPCVSFile() {
             break;
           default:
             DisplayToError("ERR: 036");
-            delayNoBlock(ONE_SECOND * 2);
             break;
         }                                                                       // end switch
         uint16_t fieldLen = sizeof(field);
@@ -5824,7 +5722,6 @@ void ImportChromeExportFile() {
               uint32_t i = ACCOUNT_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 024");                                       // User name is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             //Debug("Account: ");DebugLN(field);
             DisplayToStatus(field);                                             // show the account name on the display
@@ -5837,14 +5734,12 @@ void ImportChromeExportFile() {
                 while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {     // check to see if we have an invalid condition after encryption, if we do,
                                                                                 // concatenate characters until the first char in the cipher isn't 255.
                   DisplayToError("ERR: 039");                                   // encrypted account name starts with 255, fixing...
-                  delayNoBlock(ONE_SECOND * 2);
                   len = strlen(field);
                   if (len > 2) {
                     field[len - 2] = NULL_TERM;                                 // Chop a character off the end of the account name
                     encrypt32Bytes(bufferAcct, field);                          // encrypt again and hope for the best
                   } else {
                     DisplayToError("ERR: 020");                                 // display the error to the screen and continue processing.  
-                    delayNoBlock(ONE_SECOND * 2);
                     fieldNum = 100;                                             // force our way out of the for loop
                     break;
                   }
@@ -5862,7 +5757,6 @@ void ImportChromeExportFile() {
                 fieldNum = 100;                                                 // force our way out of the for loop
                 outOfSpace = true;
                 DisplayToError("ERR: 012");                                     // out of space in EEprom
-                delayNoBlock(ONE_SECOND * 2);
               }
             }
             break;
@@ -5871,7 +5765,6 @@ void ImportChromeExportFile() {
               uint32_t i = WEBSITE_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 023");                                       // Web site is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             char bufferWebsite[WEBSITE_SIZE];
             if (len > 0) {
@@ -5890,7 +5783,6 @@ void ImportChromeExportFile() {
               uint32_t i = USERNAME_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 021");                                       // User name is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             char bufferUser[USERNAME_SIZE];
             if (len > 0) {
@@ -5909,7 +5801,6 @@ void ImportChromeExportFile() {
               uint32_t i = PASSWORD_SIZE - 1;
               while (i < len) field[i++] = NULL_TERM;                           // right pad the field w/ null terminator char
               DisplayToError("ERR: 022");                                       // Password is too long
-              delayNoBlock(ONE_SECOND * 2);
             }
             char bufferPass[PASSWORD_SIZE];
             if (len > 0) {
@@ -5926,7 +5817,6 @@ void ImportChromeExportFile() {
             break;
           default:
             DisplayToError("ERR: 036");
-            delayNoBlock(ONE_SECOND * 2);
             break;
         }                                                                       // end switch
         uint16_t fieldLen = sizeof(field);
@@ -6211,7 +6101,6 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
         prefixIniMemState = false;                                              // assume the problem is fixed...
       } else {
         DisplayToError("ERR: 027");                                             // display the error to the screen and continue processing.  
-        delayNoBlock(ONE_SECOND * 2);
         break;
       }
     }
@@ -6278,7 +6167,6 @@ uint8_t FindAccountPos(char *passedAccountName) {                               
     if ((accountName[0] == NULL_TERM) ||
         (accountName[0] == (char) INITIAL_MEMORY_STATE_CHAR)) {
       DisplayToError("ERR: 031");                                               // Empty credentials found in linked list; error but we'll use this spot
-      delayNoBlock(ONE_SECOND * 2);
       return pos;                                                               // 
     }
     //                                      Z            A                      positive, stop and return getNextFreeAcctPos
@@ -6295,7 +6183,6 @@ uint8_t FindAccountPos(char *passedAccountName) {                               
   }
   if (i > CREDS_ACCOMIDATED) {
     DisplayToError("ERR: 033");                                                 // ran out  of room for credentials.
-    delayNoBlock(ONE_SECOND * 2);
   }
   return(getNextFreeAcctPos());                                                 // return the next free account position
 }
@@ -6545,14 +6432,12 @@ void OnUpdateAccountName(){                                                     
       while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {               // check to see if we have an invalid condition after encryption, if we do,
                                                                                 // concatenate characters until the first char in the cipher isn't 255.
         DisplayToError("ERR: 039");                                             // encrypted account name starts with 255, fixing...
-        delayNoBlock(ONE_SECOND * 2);
         size_t len = strlen(accountName);
         if (len > 2) {
           accountName[len - 2] = NULL_TERM;                                     // Chop a character off the end of the account name
           encrypt32Bytes(bufferAcct, accountName);                              // encrypt again and hope for the best
         } else {
           DisplayToError("ERR: 020");                                           // display the error to the screen and continue processing.  
-          delayNoBlock(ONE_SECOND * 2);
           badAcctName = true;                                                   // can't get this account name to encrypt to something that doesn't
           break;                                                                // start with 255
         }
@@ -6568,7 +6453,6 @@ void OnUpdateAccountName(){                                                     
       }
     } else {
       DisplayToError("ERR: 012");                                               // out of space in EEprom
-      delayNoBlock(ONE_SECOND * 2);
     }
   }                                                                             // if we're updating an existing account no need to write out the 
                                                                                 // account, set the pointers or increment the account count. Don't
@@ -6618,7 +6502,6 @@ void OnUpdateURL(){
   if (len > (WEBSITE_SIZE - 1)) {
     urlArray[WEBSITE_SIZE - 1] = NULL_TERM;
     DisplayToError("ERR: 023");                                                 // Web site is too long
-    delayNoBlock(ONE_SECOND * 2);
   } else {
     while (len < WEBSITE_SIZE) urlArray[len++] = NULL_TERM;
   }
@@ -6659,7 +6542,6 @@ void OnUpdateURL_3(){
   if (lenWebsite > (WEBSITE_SIZE - 1)) {
     website[WEBSITE_SIZE - 1] = NULL_TERM;
     DisplayToError("ERR: 023");                                                 // Web site is too long
-    delayNoBlock(ONE_SECOND * 2);
   } else {
     while (lenWebsite < WEBSITE_SIZE) website[lenWebsite++] = NULL_TERM;
   }
@@ -6819,7 +6701,6 @@ void OnExit() {                                                                 
   setGreen();
   event = EVENT_SHOW_MAIN_MENU;
   machineState = STATE_SHOW_MAIN_MENU;
-  //writeListHeadPos();                                                         // for safety, didn't work
 }  
 
 /* This doesn't compile.
