@@ -410,7 +410,7 @@
     for SSD1306 display device
   - https://github.com/SpenceKonde/arduino-tiny-841/blob/master/avr/libraries/SPI/SPI.cpp
   
-  - ?? https://spaniakos.github.io/AES/index.html - AES encryption
+  - NOT USED BUT INTERESTING: https://spaniakos.github.io/AES/index.html - AES encryption
   
   Drivers
   =======
@@ -442,6 +442,7 @@
   - 3 220ohm resistors
   - 2 4.7kohm resistors (to hold i2c SDA and SCL lines high)
   - 1 plastic knob for rotary encoder
+	- 1 custom PCB or breadboard
 
   Cost
   ====
@@ -744,17 +745,14 @@
 
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
-#include "Button2.h";                                                           // for the button on the rotary encoder https://github.com/LennartHennigs/Button2
-#include <Keyboard.h>                                                           // for simulating a USB keyboard and sending output to it https://github.com/arduino-libraries/Keyboard
-#include <SHA256.h>                                                             // for hashing the master password https://rweather.github.io/arduinolibs/index.html
-#include <AES.h>                                                                // for encrypting credentials https://rweather.github.io/arduinolibs/index.html
-#include <SPI.h>                                                                // https://github.com/SpenceKonde/arduino-tiny-841/blob/master/avr/libraries/SPI/SPI.cpp
 #include <Wire.h>
-#include <Adafruit_SSD1306.h>                                                   // for SSD1306 monochrome 128x64 and 128x32 OLEDs https://github.com/adafruit/Adafruit_SSD1306 
-#include <Adafruit_GFX.h>
-#include "SdFat.h"                                                              // https://github.com/greiman/SdFat
+#include <Button2.h>                                                            // https://github.com/LennartHennigs/Button2 for the button on the rotary encoder 
+#include <Keyboard.h>                                                           // https://github.com/arduino-libraries/Keyboard for simulating a USB keyboard and sending output to it 
+#include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
+#include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
+#include <Adafruit_SSD1306.h>                                                   // https://github.com/adafruit/Adafruit_SSD1306 for SSD1306 monochrome 128x64 and 128x32 OLEDs  
 #include "Adafruit_SPIFlash.h"                                                  // https://github.com/adafruit/Adafruit_SPIFlash
-#include "CmdMessenger.h"
+#include <CmdMessenger.h>																												// https://github.com/thijse/Arduino-CmdMessenger 
 
 #include <stdio.h>                                                              // needed for CSV file program
 #include <string.h>                                                             //  "     "       "       "
@@ -882,8 +880,8 @@
 #define DISPLAY_BUFFER_SIZE       21                                            // 0x0015, 21; room for 20 chars and the null terminator
 
 #define WEBSITE_SIZE              0x0060                                        // 96 bytes
-#define ACCOUNT_SIZE              0x0020                                        // 32 bytes, put on the 1/2 page boundary
-#define USERNAME_SIZE             0x0020                                        // 32 bytes, put on the 1/2 page boundary
+#define ACCOUNT_SIZE              0x0020                                        // 32 bytes
+#define USERNAME_SIZE             0x0020                                        // 32 bytes
 #define PASSWORD_SIZE             0x0020                                        // 32 bytes
 #define OLD_PASSWORD_SIZE         0x0020                                        // 32 bytes (only used to calculate addresses, elsewhere we use PASSWORD_SIZE.
 #define SALT_SIZE                 0x0010                                        // 16 bytes
@@ -3337,7 +3335,7 @@ void ScrollPasswordPump(void) {
   oled.setTextSize(1);                                                          // Draw 2X-scale text
   oled.setTextColor(WHITE);
   oled.setCursor(0, LINE_2_POS);
-  oled.println(F("PasswordPump  v2.0.3"));
+  oled.println(F("PasswordPump  v2.0.4"));
   oled.display();                                                               // Show initial text
   oled.startscrollright(0x00, 0x0F);
   delay(3000);
@@ -3855,7 +3853,7 @@ void InitializeGlobals() {
 }
 
 void ShowSplashScreen() {
-    strcpy(line1DispBuff,"PasswordPump  v2.0.3");
+    strcpy(line1DispBuff,"PasswordPump  v2.0.4");
     strcpy(line2DispBuff, __DATE__);
     strcpy(line3DispBuff,"(c)2020 Dan Murphy ");
     DisplayBuffer();
