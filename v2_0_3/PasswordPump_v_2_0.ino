@@ -3335,7 +3335,7 @@ void ScrollPasswordPump(void) {
   oled.setTextSize(1);                                                          // Draw 2X-scale text
   oled.setTextColor(WHITE);
   oled.setCursor(0, LINE_2_POS);
-  oled.println(F("PasswordPump  v2.0.4"));
+  oled.println(F("PasswordPump  v2.0.3"));
   oled.display();                                                               // Show initial text
   oled.startscrollright(0x00, 0x0F);
   delay(3000);
