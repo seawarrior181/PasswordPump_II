@@ -394,37 +394,84 @@
   necessary for your intended use. For example, other rights such as publicity,
   privacy, or moral rights may limit how you use the material.
 
+  Libraries
+  =========
+	- https://github.com/LennartHennigs/Button2 				For the button on the 
+																											rotary encoder 
+	-	https://github.com/arduino-libraries/Keyboard 		For simulating a USB 
+																											keyboard and sending 
+																											output to it 
+	-	https://rweather.github.io/arduinolibs/index.html For encrypting 
+																											credentials and for 
+																											hashing the master 
+																											password 
+	-	https://github.com/adafruit/Adafruit_SSD1306 			For SSD1306 monochrome 
+																											128x64 and 128x32 OLEDs  
+	-	https://github.com/adafruit/Adafruit_SPIFlash			For FAT filesystems on 
+																											SPI flash chips
+	- https://github.com/thijse/Arduino-CmdMessenger 		A messaging library for 
+																											the Arduino and 
+																											.NET/Mono platforms
+
   Library Modifications
   =====================
-  - Changed Adafruit_SSD1306::begin in Adafruit_SSD1306.cpp to suppress display
+	-	Changed Adafruit_SSD1306::begin in Adafruit_SSD1306.cpp to suppress display
     of the Adafruit splash screen on the SSD1306 display.
+
+  - Fixing CmdMessenger
+		It's necessary to make an edit to the most recent version of PyCmdMessenger 
+		to make it compile.  On line 492 of CmdMessenger.cpp, change 
+
+		return '\0';
+
+  to
   
-  Libraries                                                                     // TODO: UPDATE THIS
-  =========
-  - https://rweather.github.io/arduinolibs/index.html - AES and SHA library
-  - https://github.com/LennartHennigs/Button2 - Used for the button on the 
-    rotary encoder
-  - https://github.com/arduino-libraries/Keyboard - Used to send characters to 
-    the keyboard as if typed by the user
-  - https://github.com/greiman/SSD1306Ascii/blob/master/examples/AvrI2c128x32/AvrI2c128x32.ino
-    for SSD1306 display device
-  - https://github.com/SpenceKonde/arduino-tiny-841/blob/master/avr/libraries/SPI/SPI.cpp
+		char *str;
+		*str = '\0';
+		return str;
   
-  - NOT USED BUT INTERESTING: https://spaniakos.github.io/AES/index.html - AES encryption
+  Burning The Firmware    
+  ====================    
+	From the Arduino IDE:
+		1) Under Tools do the following:  
+			- Set the Board: "Adafruit ItsyBitsy M4 (SAMD51)".  
+			- Cache: “Enabled”
+			- CPU Speed: “120 MHz (standard)”
+			- Optimize: “Small (-Os) (standard)”
+			- Max QSPI: “50 MHz (standard)”
+			- USB Stack: “Arduino”
+			- Debug: “Off”
+			- Identify the port associated with your PasswordPump after you've readied
+			  it for upload by double clicking on the reset button on the bottom of 
+			  the device, and noticing that the RGB LED fades on and off slowly, then 
+			  set the port in Tools, (for example, under Windows substitute %% for 
+			  your port number; Port: COM%% Adafruit ItsyBitsy M4 (SAMD51)).
+			- Programmer: “Arduino as ISP”
+		2) Select Tools->Upload
+		3) Verify that the upload was successful
+
+	Using arm-none-eabi-size:
+		1) cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\bin\
+    2) arm-none-eabi-size -A C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.elf
+		3) Verify that the upload was successful
   
+	Using BOSSA
+		1) cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.8.0-48-gb176eee
+		2) bossac -i -d --port=COM67 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.bin -R 
+		3) Verify that the upload was successful
+
   Drivers
   =======
   - It might be necessary to install the following drivers: 
     https://github.com/adafruit/Adafruit_Windows_Drivers/releases
     https://github.com/adafruit/Adafruit_Windows_Drivers/releases/tag/2.4.0.0
   
-  Other Artifacts                                                               // TODO: update these with URLs.
+  Other Artifacts                                                              
   ===============
   - Project web site:       https://www.5volts.org/
-  - Gerber files:
   - Case design files:      https://www.tinkercad.com/things/7qHtCGWOTI5
                             https://www.tinkercad.com/things/3j5hXKeFjPE
-  - Source code repository: https://github.com/seawarrior181/PasswordPump       // TODO: This is for the original PasswordPump, change it for the ItsyBitsy Password Pump
+  - Source code repository: https://github.com/seawarrior181/PasswordPump_II  
 
   Bill Of Materials
   =================
@@ -568,29 +615,6 @@
   ================
   Sketch uses ? bytes (15%) of program storage space. Maximum is 507904 
   bytes. 
-
-  Fixing CmdMessenger
-  ===================
-  It's necessary to make an edit to the most recent version of PyCmdMessenger 
-  to make it compile.  On line 492 of CmdMessenger.cpp, change 
-
-		return '\0';
-
-  to
-  
-		char *str;
-		*str = '\0';
-		return str;
-
-  
-  Burning The Firmware    TODO: update this after uploading the .elf file to 
-  ====================    github.  Incorporate this into the instructions for 
-                          uploading keepass and google password files.
-  cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\bin\
-  arm-none-eabi-size -A C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.elf
-  
-  cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.8.0-48-gb176eee
-  bossac -i -d --port=COM67 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.bin -R 
 
   Running the PC Client
   =====================
@@ -3853,7 +3877,7 @@ void InitializeGlobals() {
 }
 
 void ShowSplashScreen() {
-    strcpy(line1DispBuff,"PasswordPump  v2.0.4");
+    strcpy(line1DispBuff,"PasswordPump  v2.0.3");
     strcpy(line2DispBuff, __DATE__);
     strcpy(line3DispBuff,"(c)2020 Dan Murphy ");
     DisplayBuffer();
