@@ -1,12 +1,3 @@
-<style type="text/css">
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-style:solid;border-width:0px;font-family:Arial, sans-serif;font-size:14px;overflow:hidden;
-  padding:10px 5px;word-break:normal;}
-.tg th{border-style:solid;border-width:0px;font-family:Arial, sans-serif;font-size:14px;font-weight:normal;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-nk4u{background-color:#9698ed;border-color:#f8ff00;text-align:left;vertical-align:top}
-.tg .tg-qpa4{border-color:#f8ff00;text-align:left;vertical-align:top}
-</style>
 <table class="tg">
   <tr>
     <th class="tg-nk4u">URL</th>
