@@ -1,9 +1,8 @@
 # PasswordPump v2.0
 
-The PasswordPump is a USB device that helps you manage credentials and supply credentials to computers, applications and web sites.  The purpose of this repository on GitHub is to disseminate software for and information about the PasswordPump II.  See the Password Pump II Users Guide.pdf and https://5volts.org for details.  PasswordPumpM4_02.dip is a DIPTrace (https://diptrace.com/) file.  You can use DIPTrace with that file to create the files necessary to manufacture the custom PCB.
+This is v2.0 of the PasswordPump, a USB device that manages credentials for up to 250 accounts.  Credentials (account names, usernames, passwords, URLs and old passwords) are stored ONLY on the device itself, on two removable EEprom chips using military grade encryption (AES-256).  The credentials are not stored in the cloud or in a file on your computer where they are more exposed to hackers.  Credentials are backed up on the device itself; i.e. encrypted credentials are moved from the primary EEprom chip to the backup EEprom on demand.  You may remove the EEprom chips from the device (perhaps to keep a third or fourth backup).  Credentials are entered either via the rotary encoder (on the left), via keyboard and serial terminal, or via a Python based graphical user interface (the PasswordPumpGUI).   The device itself is approximately 1 1/8 x 2 3/4 inches, or 29 x 71 millimeters.  Currently it's not housed inside of a case, but it should be and will be once a design of the case is complete.  If you design a case for the PasswordPump please share it with us!
 
-(c) 2020 Daniel Murphy
-
+The purpose of this repository on GitHub is to disseminate software for and information about the PasswordPump v2.0.  See the Password Pump II Users Guide.pdf and https://5volts.org for details.  
 
 # Change Log
 unreleased v2.0.4 
@@ -21,3 +20,5 @@ unreleased v2.0.4
 # License
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+
+(c) 2020 Daniel Murphy
