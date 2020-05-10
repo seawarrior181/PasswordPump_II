@@ -3,8 +3,8 @@
 
   Project Name: PasswordPump II, a better password manager
   Author:       Daniel J. Murphy
-  Version:      2.0
-  Date:         2019/07/26
+  Version:      2.0.4
+  Date:         2019/07/26 - 2020/05/10
   Device:       Adafruit ItsyBitsy M4 Express‎
   MCU:          ATSAMD51J19 Cortex M4 processor
   Language:     Arduino C++
@@ -79,6 +79,14 @@
     are not in order. When they are in order it doesn't evaluate 
     correctly.
   - Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
+	- Issue because listHead is set to 0 before there are any elements in the 
+	  linked list; after factory reset when importing credentials ERR: 031
+		appears, but it's benign.
+	- Via PasswordPumpGUI Insert, then <Alt><Tab> to another application.  Upon
+	  returning to PasswordPumpGUI the Account Name is "Unknown".  Set focus to
+		another account, the PasswordPump and PasswordPumpGUI freeze.  Close the
+		PasswordPumpGUI window and long click on the PasswordPump.  Now there is
+		only one account in the PasswordPump. Restore from secondary EEprom.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x single character user names and passwords are not working well
   x Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
@@ -394,37 +402,79 @@
   necessary for your intended use. For example, other rights such as publicity,
   privacy, or moral rights may limit how you use the material.
 
+  Libraries
+  =========
+	- https://github.com/LennartHennigs/Button2 				For the button on the 
+																											rotary encoder 
+	-	https://github.com/arduino-libraries/Keyboard 		For simulating a USB 
+																											keyboard and sending 
+																											output to it 
+	-	https://rweather.github.io/arduinolibs/index.html For encrypting 
+																											credentials and for 
+																											hashing the master 
+																											password 
+	-	https://github.com/adafruit/Adafruit_SSD1306 			For SSD1306 monochrome 
+																											128x64 and 128x32 OLEDs  
+	-	https://github.com/adafruit/Adafruit_SPIFlash			For FAT filesystems on 
+																											SPI flash chips
+	- https://github.com/thijse/Arduino-CmdMessenger 		A messaging library for 
+																											the Arduino and 
+																											.NET/Mono platforms
+
   Library Modifications
   =====================
-  - Changed Adafruit_SSD1306::begin in Adafruit_SSD1306.cpp to suppress display
+	-	Changed Adafruit_SSD1306::begin in Adafruit_SSD1306.cpp to suppress display
     of the Adafruit splash screen on the SSD1306 display.
+
+  - Fixing CmdMessenger
+		It's necessary to make an edit to the most recent version of PyCmdMessenger 
+		to make it compile.  On line 492 of CmdMessenger.cpp, change 
+
+		return '\0';
+
+  to
   
-  Libraries                                                                     // TODO: UPDATE THIS
-  =========
-  - https://rweather.github.io/arduinolibs/index.html - AES and SHA library
-  - https://github.com/LennartHennigs/Button2 - Used for the button on the 
-    rotary encoder
-  - https://github.com/arduino-libraries/Keyboard - Used to send characters to 
-    the keyboard as if typed by the user
-  - https://github.com/greiman/SSD1306Ascii/blob/master/examples/AvrI2c128x32/AvrI2c128x32.ino
-    for SSD1306 display device
-  - https://github.com/SpenceKonde/arduino-tiny-841/blob/master/avr/libraries/SPI/SPI.cpp
+		char *str;
+		*str = '\0';
+		return str;
   
-  - NOT USED BUT INTERESTING: https://spaniakos.github.io/AES/index.html - AES encryption
-  
+  Burning The Firmware    
+  ====================    
+	From the Arduino IDE:
+		1) Under Tools do the following:  
+			- Set the Board: "Adafruit ItsyBitsy M4 (SAMD51)".  
+			- Cache: “Enabled”
+			- CPU Speed: “120 MHz (standard)”
+			- Optimize: “Small (-Os) (standard)”
+			- Max QSPI: “50 MHz (standard)”
+			- USB Stack: “Arduino”
+			- Debug: “Off”
+			- Identify the port associated with your PasswordPump after you've readied
+			  it for upload by double clicking on the reset button on the bottom of 
+			  the device, and noticing that the RGB LED fades on and off slowly, then 
+			  set the port in Tools, (for example, under Windows substitute %% for 
+			  your port number; Port: COM%% Adafruit ItsyBitsy M4 (SAMD51)).
+			- Programmer: “Arduino as ISP”
+		2) Select Tools->Upload
+		3) Verify that the upload was successful
+
+	Using BOSSA
+		1) cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.8.0-48-gb176eee
+		2) bossac -i -d --port=COM67 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.bin -R 
+		3) Verify that the upload was successful
+
   Drivers
   =======
   - It might be necessary to install the following drivers: 
     https://github.com/adafruit/Adafruit_Windows_Drivers/releases
     https://github.com/adafruit/Adafruit_Windows_Drivers/releases/tag/2.4.0.0
   
-  Other Artifacts                                                               // TODO: update these with URLs.
+  Other Artifacts                                                              
   ===============
   - Project web site:       https://www.5volts.org/
-  - Gerber files:
   - Case design files:      https://www.tinkercad.com/things/7qHtCGWOTI5
                             https://www.tinkercad.com/things/3j5hXKeFjPE
-  - Source code repository: https://github.com/seawarrior181/PasswordPump       // TODO: This is for the original PasswordPump, change it for the ItsyBitsy Password Pump
+  - Source code repository: https://github.com/seawarrior181/PasswordPump_II  
 
   Bill Of Materials
   =================
@@ -568,29 +618,6 @@
   ================
   Sketch uses ? bytes (15%) of program storage space. Maximum is 507904 
   bytes. 
-
-  Fixing CmdMessenger
-  ===================
-  It's necessary to make an edit to the most recent version of PyCmdMessenger 
-  to make it compile.  On line 492 of CmdMessenger.cpp, change 
-
-		return '\0';
-
-  to
-  
-		char *str;
-		*str = '\0';
-		return str;
-
-  
-  Burning The Firmware    TODO: update this after uploading the .elf file to 
-  ====================    github.  Incorporate this into the instructions for 
-                          uploading keepass and google password files.
-  cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\bin\
-  arm-none-eabi-size -A C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.elf
-  
-  cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.8.0-48-gb176eee
-  bossac -i -d --port=COM67 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.bin -R 
 
   Running the PC Client
   =====================
@@ -751,7 +778,7 @@
 #include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
 #include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
 #include <Adafruit_SSD1306.h>                                                   // https://github.com/adafruit/Adafruit_SSD1306 for SSD1306 monochrome 128x64 and 128x32 OLEDs  
-#include "Adafruit_SPIFlash.h"                                                  // https://github.com/adafruit/Adafruit_SPIFlash
+#include <Adafruit_SPIFlash.h>                                                  // https://github.com/adafruit/Adafruit_SPIFlash
 #include <CmdMessenger.h>																												// https://github.com/thijse/Arduino-CmdMessenger 
 
 #include <stdio.h>                                                              // needed for CSV file program
@@ -799,6 +826,7 @@
 #define GREEN_PIN                 A4                                            //   "
 
 #define RANDOM_PIN                A0                                            // this pin must float; it's used to generate the seed for the random number generator
+#define RANDOM_PIN2								A1																						// this pin must float; it's used to generate the seed for the random number generator
 
 #define UNUSED_PIN1               A1
 #define UNUSED_PIN2               A2
@@ -1651,7 +1679,7 @@ void setup() {                                                                  
   pinMode(ROTARY_PIN1, INPUT_PULLUP);
   pinMode(ROTARY_PIN2, INPUT_PULLUP);
   
-  pinMode(UNUSED_PIN1, OUTPUT);digitalWrite(UNUSED_PIN1, LOW);                  // set all unused pins as output and set them low (0.0v)
+  //pinMode(UNUSED_PIN1, OUTPUT);digitalWrite(UNUSED_PIN1, LOW);                  // set all unused pins as output and set them low (0.0v)
   pinMode(UNUSED_PIN2, OUTPUT);digitalWrite(UNUSED_PIN2, LOW);
   pinMode(UNUSED_PIN3, OUTPUT);digitalWrite(UNUSED_PIN3, LOW);
   pinMode(UNUSED_PIN4, OUTPUT);digitalWrite(UNUSED_PIN4, LOW);
@@ -1663,8 +1691,9 @@ void setup() {                                                                  
   
   encoderButton.setReleasedHandler(buttonReleasedHandler);                      // fires when button is released
 
-  pinMode(RANDOM_PIN, INPUT);                                                   // used to seed the random number generator, this pin MUST float
-  randomSeed(analogRead(RANDOM_PIN));                                           // seed the random number generator
+  //pinMode(RANDOM_PIN, INPUT);                                                 // used to seed the random number generator, this pin MUST float
+  //randomSeed(analogRead(RANDOM_PIN));                                           // seed the random number generator
+  randomSeed(micros() * micros() ^ analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator
 
   if(!oled.begin(SSD1306_SWITCHCAPVCC, SSD1306_I2C_ADDR)) {                     // Address 0x3C for 128x32
     DebugLN("ERR: 000 SSD1306 allocation failed");
@@ -3758,7 +3787,8 @@ void FactoryReset() {
 		initializeAllGroupCategories();
 		readGroupCategories();
 		loadGroupMenu();
-    randomSeed(analogRead(RANDOM_PIN));                                         // seed the random number generator
+    //randomSeed(analogRead(RANDOM_PIN));                                       // seed the random number generator
+  	randomSeed(micros() * micros() ^ analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator
     ShowSplashScreen();
     //DisplayToStatus("Factory Reset");
     //event = EVENT_SHOW_MAIN_MENU;                                             // first job is to show the first element of the main menu
@@ -6273,16 +6303,14 @@ void OnReadAccountName() {
   char accountName[ACCOUNT_SIZE];
   acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());   // 
   readAcctFromEEProm(acctPosition, accountName);                                // read and decrypt the account name
-  DisplayToStatus(accountName);
   if (strlen(accountName) > 0) {
     if (accountName[0] == ' ') {
       accountName[0] = '_';
     }
-  }
-  if (strlen(accountName) > 0) {
+		DisplayToStatus(accountName);
     cmdMessenger.sendCmd(kStrAcknowledge, accountName);
   } else {
-    cmdMessenger.sendCmd(kStrAcknowledge, "Unknown");                           // I've never seen this happen
+    cmdMessenger.sendCmd(kStrAcknowledge, "Click File->Exit Now!");             // I've never seen this happen
   }
   setPurple();
 }
@@ -6415,46 +6443,47 @@ void OnUpdateAccountName(){                                                     
   char accountName[ACCOUNT_SIZE];
   cmdMessenger.copyStringArg(accountName, ACCOUNT_SIZE);
   if (strlen(accountName) > 0) {
-    if (accountName[0] == '_') {
+    if (accountName[0] == '_') {																								// tkinter will left justify anything that starts with a space
       accountName[0] = ' ';
     }
-  }
-  boolean badAcctName = false;
-  DisplayToEdit((char *)accountName);                                           // Display the account name on the second line
-  acctPosition = FindAccountPos(accountName);                                   // get the next open position, sets updateExistingAccount
-  if (!updateExistingAccount) {                                                 // if we're not updating an existing account we must be inserting
-    if (acctPosition != INITIAL_MEMORY_STATE_BYTE) {                            // if we are not out of space
-      SetSaltAndKey(acctPosition);                                              // populate and save the salt, set the key with the salt and master password
-      char bufferAcct[ACCOUNT_SIZE];
-      encrypt32Bytes(bufferAcct, accountName);
-      while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {               // check to see if we have an invalid condition after encryption, if we do,
-                                                                                // concatenate characters until the first char in the cipher isn't 255.
-        DisplayToError("ERR: 039");                                             // encrypted account name starts with 255, fixing...
-        size_t len = strlen(accountName);
-        if (len > 2) {
-          accountName[len - 2] = NULL_TERM;                                     // Chop a character off the end of the account name
-          encrypt32Bytes(bufferAcct, accountName);                              // encrypt again and hope for the best
-        } else {
-          DisplayToError("ERR: 020");                                           // display the error to the screen and continue processing.  
-          badAcctName = true;                                                   // can't get this account name to encrypt to something that doesn't
-          break;                                                                // start with 255
-        }
-      }
-      if (!badAcctName) {
-        if (!updateExistingAccount) {                                           // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
-          eeprom_write_bytes(GET_ADDR_ACCT(acctPosition),bufferAcct,ACCOUNT_SIZE);// write the account name to EEprom
-          writePointers(acctPosition, accountName);                             // insert the account into the linked list by updating previous and next pointers.
-          acctCount++;                                                          // we added a new account, increment the count of accounts
-        }
-        uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));        // initialize the groups
-        if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(acctPosition, NONE);// a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
-      }
-    } else {
-      DisplayToError("ERR: 012");                                               // out of space in EEprom
-    }
-  }                                                                             // if we're updating an existing account no need to write out the 
+		boolean badAcctName = false;
+		DisplayToEdit((char *)accountName);                                         // Display the account name on the second line
+		acctPosition = FindAccountPos(accountName);                                 // get the next open position, sets updateExistingAccount
+		if (!updateExistingAccount) {                                               // if we're not updating an existing account we must be inserting
+			if (acctPosition != INITIAL_MEMORY_STATE_BYTE) {                          // if we are not out of space
+				SetSaltAndKey(acctPosition);                                            // populate and save the salt, set the key with the salt and master password
+				char bufferAcct[ACCOUNT_SIZE];
+				encrypt32Bytes(bufferAcct, accountName);
+				while (bufferAcct[0] == (char) INITIAL_MEMORY_STATE_CHAR) {             // check to see if we have an invalid condition after encryption, if we do,
+																																								// concatenate characters until the first char in the cipher isn't 255.
+					DisplayToError("ERR: 039");                                           // encrypted account name starts with 255, fixing...
+					size_t len = strlen(accountName);
+					if (len > 2) {
+						accountName[len - 2] = NULL_TERM;                                   // Chop a character off the end of the account name
+						encrypt32Bytes(bufferAcct, accountName);                            // encrypt again and hope for the best
+					} else {
+						DisplayToError("ERR: 020");                                         // display the error to the screen and continue processing.  
+						badAcctName = true;                                                 // can't get this account name to encrypt to something that doesn't
+						break;                                                              // start with 255
+					}
+				}
+				if (!badAcctName) {
+					if (!updateExistingAccount) {                                         // if we're updating an existing account no need to write out the account, set the pointers or increment the account count
+						eeprom_write_bytes(GET_ADDR_ACCT(acctPosition),bufferAcct,ACCOUNT_SIZE);// write the account name to EEprom
+						writePointers(acctPosition, accountName);                           // insert the account into the linked list by updating previous and next pointers.
+						acctCount++;                                                        // we added a new account, increment the count of accounts
+					}
+					uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));      // initialize the groups
+					if (groups == INITIAL_MEMORY_STATE_BYTE) writeGroup(acctPosition, NONE);// a set of credentials cannot belong to all groups because that's INITIAL_MEMORY_STATE_BYTE.
+				}
+			} else {
+				DisplayToError("ERR: 012");                                             // out of space in EEprom
+			}
+		}                             																							// if we're updating an existing account no need to write out the 
                                                                                 // account, set the pointers or increment the account count. Don't
                                                                                 // update the account name, once it is created it can't be changed.
+	}
+
   cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
