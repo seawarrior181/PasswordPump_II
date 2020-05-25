@@ -21,7 +21,7 @@
   </tr>
   <tr>
     <td class="tg-qpa4"><a href="https://github.com/adafruit/Adafruit_SPIFlash" target="_blank" rel="noopener noreferrer">https://github.com/adafruit/Adafruit_SPIFlash</a></td>
-    <td class="tg-qpa4">for FAT filesystems on SPI flash chips</td>
+    <td class="tg-qpa4">for FAT filesystems on SPI flash chips.  Only needed for possilble future functionality.</td>
   </tr>
   <tr>
     <td class="tg-qpa4"><a href="https://github.com/thijse/Arduino-CmdMessenger" target="_blank" rel="noopener noreferrer">https://github.com/thijse/Arduino-CmdMessenger</a></td>
