@@ -1,0 +1,1 @@
+This version of the PasswordPump custom PCB will accomodate the Adafruit ItsyBitsy M0 or the Adafruit ItsyBitsy M4; with the RGB LED working correctly with either board.
