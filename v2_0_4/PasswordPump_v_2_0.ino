@@ -63,8 +63,8 @@
   ====================  
     - = outstanding             
     x = fixed but needs testing 
-    * = fixed                   
-  - Decoy password feature is not working when the decoy password is entered.
+		! = will not fix
+    * = fixed - if a release is listed, that's the release in which it was fixed                  
   - It is possible to enter a duplicate account via the PasswordPump device or 
     via a combination of the PasswordPump and the PasswordPumpGUI.
   - When deleting duplicate accounts (duplicate account names) corruption is 
@@ -75,25 +75,26 @@
     happen.
   - When entering an account name 29 chars long via keyboard, nothing gets 
     entered.
-  - In the switch statement for EVENT_SINGLE_CLICK the case statements 
-    are not in order. When they are in order it doesn't evaluate 
-    correctly.
-  - Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
 	- Issue because listHead is set to 0 before there are any elements in the 
 	  linked list; after factory reset when importing credentials ERR: 031
 		appears, but it's benign.
-	- Via PasswordPumpGUI Insert, then <Alt><Tab> to another application.  Upon
-	  returning to PasswordPumpGUI the Account Name is "Unknown".  Set focus to
-		another account, the PasswordPump and PasswordPumpGUI freeze.  Close the
-		PasswordPumpGUI window and long click on the PasswordPump.  Now there is
-		only one account in the PasswordPump. Restore from secondary EEprom.
+  x Decoy password feature is not working when the decoy password is entered.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x single character user names and passwords are not working well
   x Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
     BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
-  x The linked list is occasionally becoming corrupt. Added the ability to 
+  x The linked list is occasionally becoming corrupt. Disabled the ability to 
     fix a corrupt linked list. Exact conditions of corruption unknown at this 
-    point.
+    point.  Might be fixed.
+  ! In the switch statement for EVENT_SINGLE_CLICK the case statements 
+    are not in order. When they are in order it doesn't evaluate 
+    correctly.
+  ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
+	* 2.4.0: Via PasswordPumpGUI Insert, then <Alt><Tab> to another application.  
+		Upon returning to PasswordPumpGUI the Account Name is "Unknown".  Set focus
+		to another account, the PasswordPump and PasswordPumpGUI freeze.  Close the
+		PasswordPumpGUI window and long click on the PasswordPump.  Now there is
+		only one account in the PasswordPump. Restore from secondary EEprom.
   * single click after Reset brings you to alpha edit mode
   * Should probably remove Keyboard ON/OFF from saved properties and always 
     default to Keyboard OFF; or make sure it is always OFF when backing up 
@@ -225,7 +226,6 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
-  - Allow users to name the categories.
   - Make it work over bluetooth
   - Make the size of the generated password configurable.
   - Somehow signal to the user when entering the master password for the first 
@@ -255,6 +255,7 @@
   x Add a decoy password that executes a factory reset when the password plus
     the characters "FR" are supplied as the master password.
   x Enable decoy password feature, make it configurable
+  * Allow users to name the categories.
   * Dim the display when it's not in use.
   * Always reflect the account that's selected in the PC client on the device.
   * Automatic logout countdown
@@ -764,8 +765,14 @@
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
+//#define __SAMD51__
+#define __SAMD21__
+#ifdef __SAMD51__
 #define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
-#define __SAMD51__
+#endif
+#ifdef __SAMD21__
+#define F_CPU                      48000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M0 is 48MHz 
+#endif
 //#define SLOW_SPI
 #define DEBUG_ENABLED             0
 #define TEST_EEPROM               0
@@ -823,13 +830,25 @@
 
 #define RED_PIN                   5                                             // Pin locations for the RGB LED, must be PWM capable 
 #define BLUE_PIN                  13                                            //   "
+#ifdef __SAMD51__
 #define GREEN_PIN                 A4                                            //   "
+#define SET_OUT_PIN								A2
+#endif
+#ifdef __SAMD21__
+#define GREEN_PIN                 A2                                            //   "
+#define SET_OUT_PIN								A4
+#endif
 
 #define RANDOM_PIN                A0                                            // this pin must float; it's used to generate the seed for the random number generator
 #define RANDOM_PIN2								A1																						// this pin must float; it's used to generate the seed for the random number generator
 
-#define UNUSED_PIN1               A1
+//#define UNUSED_PIN1               A1
+#ifdef __SAMD21__
+#define UNUSED_PIN2               A4
+#endif
+#ifdef __SAMD51__
 #define UNUSED_PIN2               A2
+#endif
 #define UNUSED_PIN3               A3
 #define UNUSED_PIN4               A5
 #define UNUSED_PIN5               2
@@ -1491,7 +1510,7 @@ AESSmall256 aes;                                                                
 
 Button2 encoderButton = Button2(BUTTON_PIN);                                    // the button on the rotary encoder.
 Adafruit_SSD1306 oled((uint8_t) SCREEN_WIDTH, (uint8_t) SCREEN_HEIGHT, (TwoWire *) &Wire, (int8_t) OLED_RESET, (uint32_t) KHZ_4000, (uint32_t) KHZ_100);
-
+/*
 #if defined(__SAMD51__) || defined(NRF52840_XXAA)
   Adafruit_FlashTransport_QSPI flashTransport(PIN_QSPI_SCK, PIN_QSPI_CS, PIN_QSPI_IO0, PIN_QSPI_IO1, PIN_QSPI_IO2, PIN_QSPI_IO3);
 #else
@@ -1503,7 +1522,7 @@ Adafruit_SSD1306 oled((uint8_t) SCREEN_WIDTH, (uint8_t) SCREEN_HEIGHT, (TwoWire 
 #endif
 Adafruit_SPIFlash flash(&flashTransport);
 FatFileSystem fatfs;                                                            // file system object from SdFat
-
+*/
 //- Function Prototypes
 
 void setup(void);                                                               // first function run by device
@@ -1603,7 +1622,7 @@ void DebugMetric(char *text, uint8_t number);
 void TestEEPromWrite();
 void TestEEPromRead();
 void InitAllEEProm();
-void importKeePassCSV();
+//void importKeePassCSV();
 char *csvgetline(File fin);
 int csvnfield(void);
 char *csvfield(int n);
@@ -1675,11 +1694,12 @@ void setup() {                                                                  
   pinMode(RED_PIN,    OUTPUT);                                                  // RGB LED pins
   pinMode(GREEN_PIN,  OUTPUT);                                                  // "
   pinMode(BLUE_PIN,   OUTPUT);                                                  // "
+	pinMode(SET_OUT_PIN,OUTPUT);																									// Pin that will receive PWM output from GREEN_PIN
 
   pinMode(ROTARY_PIN1, INPUT_PULLUP);
   pinMode(ROTARY_PIN2, INPUT_PULLUP);
   
-  //pinMode(UNUSED_PIN1, OUTPUT);digitalWrite(UNUSED_PIN1, LOW);                  // set all unused pins as output and set them low (0.0v)
+  //pinMode(UNUSED_PIN1, OUTPUT);digitalWrite(UNUSED_PIN1, LOW);                // set all unused pins as output and set them low (0.0v)
   pinMode(UNUSED_PIN2, OUTPUT);digitalWrite(UNUSED_PIN2, LOW);
   pinMode(UNUSED_PIN3, OUTPUT);digitalWrite(UNUSED_PIN3, LOW);
   pinMode(UNUSED_PIN4, OUTPUT);digitalWrite(UNUSED_PIN4, LOW);
@@ -2718,21 +2738,21 @@ void ProcessEvent() {                                                           
         deleteAccount(acctPosition);
       }
       switchToFindAcctMenu();
-    } else if (STATE_CONFIRM_IMP_KP_CSV == machineState) {                      // EVENT_SINGLE_CLICK
-      if (confirmChars[position] == 'Y') {
-        importKeePassCSV();
-      }
-      event = EVENT_SHOW_MAIN_MENU;
-    } else if (STATE_CONFIRM_IMP_PP_CSV == machineState) {                      // EVENT_SINGLE_CLICK
-      if (confirmChars[position] == 'Y') {
-        RestoreFromPPCVSFile();
-      }
-      event = EVENT_SHOW_MAIN_MENU;
-    } else if (STATE_CONFIRM_IMP_CP_CSV == machineState) {                      // EVENT_SINGLE_CLICK
-      if (confirmChars[position] == 'Y') {
-        ImportChromeExportFile();
-      }
-      event = EVENT_SHOW_MAIN_MENU;
+    //} else if (STATE_CONFIRM_IMP_KP_CSV == machineState) {                    // EVENT_SINGLE_CLICK
+    //  if (confirmChars[position] == 'Y') {
+    //    importKeePassCSV();
+    //  }
+    //  event = EVENT_SHOW_MAIN_MENU;
+    //} else if (STATE_CONFIRM_IMP_PP_CSV == machineState) {                      // EVENT_SINGLE_CLICK
+    //  if (confirmChars[position] == 'Y') {
+    //    RestoreFromPPCVSFile();
+    //  }
+    //  event = EVENT_SHOW_MAIN_MENU;
+    //} else if (STATE_CONFIRM_IMP_CP_CSV == machineState) {                      // EVENT_SINGLE_CLICK
+    //  if (confirmChars[position] == 'Y') {
+    //    ImportChromeExportFile();
+    //  }
+    //  event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_MENU_SETTINGS == machineState) {                           // EVENT_SINGLE_CLICK
       switch (position) {
         case SETTINGS_SET_KEYBOARD:
@@ -4344,26 +4364,20 @@ void trueHSV(int angle) {
 boolean authenticateMaster(char *enteredPassword) {                             // verify if the master password is correct here
   //DebugLN("authenticateMaster()");
   char eepromMasterHash[HASHED_MASTER_PASSWORD_SZ];                             // buffer for the hashed master password; salt||masterPassword
-  char enteredMasterPWUnHash[HASHED_MASTER_PASSWORD_SZ];                        // holds the unhashed master password after some processing
+  char enteredMasterPW[HASHED_MASTER_PASSWORD_SZ];                        			// holds the unhashed master password after some processing
   uint8_t pos = 0;
   while (enteredPassword[pos++] != NULL_TERM);                                  // make sure the unencrypted password is 16 chars long
   while (pos < (MASTER_PASSWORD_SIZE - 1)) enteredPassword[pos++] = NULL_TERM;  // "           "              " , right padded w/ NULL terminator
   enteredPassword[MASTER_PASSWORD_SIZE - 1] = NULL_TERM;                        // NULL_TERM in index 15 no matter what
-  //Debug("enteredPassword: ");DebugLN(enteredPassword);
   uint8_t aByte = read_eeprom_byte(GET_ADDR_MASTER_HASH);
-  //DebugMetric("aByte: ",aByte);
   if (aByte == INITIAL_MEMORY_STATE_BYTE){                                      // first time, we need to write instead of read
     setSalt(salt, MASTER_SALT_SIZE);                                            // generate a random salt
-    //Debug("salt (INITIAL_MEMORY_STATE_BYTE=0xFF): ");DebugLN(salt);
     eeprom_write_bytes(GET_ADDR_MASTER_SALT, salt, MASTER_SALT_SIZE);           // save the un-encrypted/un-hashed salt to EEprom
     memcpy(eepromMasterHash, salt, MASTER_SALT_SIZE);                           // copy salt into the hashed master password variable
     memcpy(eepromMasterHash + MASTER_SALT_SIZE,                                 // concatenate the salt and the master password
            enteredPassword, 
            MASTER_PASSWORD_SIZE                          );
-    //Debug("eepromMasterHash (INITIAL_MEMORY_STATE_BYTE=0xFF): ");DebugLN(eepromMasterHash);
     sha256Hash(eepromMasterHash);                                               // hash the master password in place; pass in 32, get back 32
-    //Debug("sha256Hash(eepromMasterHash): ");DebugLN(eepromMasterHash);
-    //DebugLN(" ");
     eeprom_write_bytes    (GET_ADDR_MASTER_HASH,                                // only write the first 16 bytes of the hashed master password
                            eepromMasterHash, 
                            HASHED_MASTER_PASSWORD_SZ);                          // write the (hased) master password to EEprom
@@ -4372,20 +4386,15 @@ boolean authenticateMaster(char *enteredPassword) {                             
     read_eeprom_array     (GET_ADDR_MASTER_HASH,                                // read hashed master password from EEprom
                            eepromMasterHash,                                    // to compare against the hash of the salt||entered password.
                            HASHED_MASTER_PASSWORD_SZ);
-    //Debug("eepromMasterHash: ");DebugLN(eepromMasterHash);
-    //DebugLN(" ");
     read_eeprom_array     (GET_ADDR_MASTER_SALT,                                // read salt from EEprom
                            salt, 
                            MASTER_SALT_SIZE);
-    //Debug("salt: ");DebugLN(salt);
-    memcpy(enteredMasterPWUnHash, salt, MASTER_SALT_SIZE);                      // copy salt into the hashed master password variable
-    memcpy(enteredMasterPWUnHash + MASTER_SALT_SIZE,                            // concatenate the salt and the master password
+    memcpy(enteredMasterPW, salt, MASTER_SALT_SIZE);                      			// copy salt into the hashed master password variable
+    memcpy(enteredMasterPW + MASTER_SALT_SIZE,                            			// concatenate the salt and the master password
            enteredPassword,                                                     // entered password
            MASTER_PASSWORD_SIZE                          );
-    //Debug("enteredMasterPWUnHash: ");DebugLN(enteredMasterPWUnHash);
-    sha256Hash(enteredMasterPWUnHash);                                          // hash the master salt||entered password
-    //Debug("Hashed enteredMasterPWUnHash: ");DebugLN(enteredMasterPWUnHash);
-    if (0 == memcmp(enteredMasterPWUnHash,
+    sha256Hash(enteredMasterPW);                                          			// hash the master salt||entered password
+    if (0 == memcmp(enteredMasterPW,
                     eepromMasterHash,
                     HASHED_MASTER_PASSWORD_SZ)) {                               // entered password hash matches master password hash, authenticated
       setGreen();                                                               // turn the RGB green to signal the correct password was provided
@@ -4394,12 +4403,22 @@ boolean authenticateMaster(char *enteredPassword) {                             
                                                                                 // encrypt a word using the master password as the key
     } else {                                                                    // failed authentication
       if (decoyPassword) {                                                      // if the decoy password was entered factory reset the device
-        if (0 == strncmp(enteredPassword,"FR",SIZE_OF_DECOY_PW)) {              // check for decoy password signal, "FR".  You still need to know the master password to factory reset the device
-          char subbuff[MASTER_PASSWORD_SIZE + SIZE_OF_DECOY_PW];                // prepare a buffer for the master password portion of the entered string after "FR"
-          uint8_t len = strlen(enteredPassword);
-          memcpy(subbuff, enteredPassword + SIZE_OF_DECOY_PW, len - SIZE_OF_DECOY_PW);// copy the portion of the entered password after "FR" into subbuff
-          subbuff[len - SIZE_OF_DECOY_PW] = NULL_TERM;                          // null terminate the entered password substring
-          if (authenticateMaster(subbuff)) {                                    // check to see if the correct master password was entered after "FR"
+				size_t lenEntPW = strlen(enteredPassword);
+				if (0 == memcmp(enteredPassword + (lenEntPW - SIZE_OF_DECOY_PW),"FR",SIZE_OF_DECOY_PW)) {
+																																								
+																																								// we now know that entered password ended in "FR"
+					for (uint8_t j = lenEntPW - SIZE_OF_DECOY_PW; j < lenEntPW; j++)			// blank out the "FR"
+						enteredPassword[j] = NULL_TERM;
+					for (uint8_t i = 0; i < HASHED_MASTER_PASSWORD_SZ; i++) 
+						enteredMasterPW[i] = NULL_TERM;																			// empty enteredMasterPW
+					memcpy(enteredMasterPW, salt, MASTER_SALT_SIZE);                 			// copy salt into the hashed master password variable
+					memcpy(enteredMasterPW + MASTER_SALT_SIZE,                       			// concatenate the salt and the master password
+								 enteredPassword,      																					// entered password less "FR"
+								 MASTER_PASSWORD_SIZE               );
+					sha256Hash(enteredMasterPW);                                     			// hash the master salt||entered password
+					if (0 == memcmp(enteredMasterPW,
+													eepromMasterHash,
+													HASHED_MASTER_PASSWORD_SZ)) {                         // decoy password entered!
             uint8_t originalRGBLEDIntensity = RGBLEDIntensity;                  // save the setting for the RGB LED intensity
             RGBLEDIntensity = 0;                                                // don't call attention to the fact that we're wiping the device, turn off the RGB LED
             loginFailures = 1 + loginAttempts;                                  // forces the factory reset to execute
@@ -5354,6 +5373,7 @@ void FixCorruptLinkedList() {                                                   
 }
 */
 
+/*
 //- Import/Export File Functions
 
 void importKeePassCSV() {
@@ -5687,7 +5707,7 @@ void RestoreFromPPCVSFile() {
     //DebugLN("Failed to open PasswordPump csv file for reading");
   }
 
-  //Debug("Total size of file (bytes): "); if (DEBUG_ENABLED) Serial.println(myFile.size(), DEC); // You can get the current position, remaining data, and total size of the file:
+//Debug("Total size of file (bytes): "); if (DEBUG_ENABLED) Serial.println(myFile.size(), DEC); // You can get the current position, remaining data, and total size of the file:
 //Debug("Current position in file: "); if (DEBUG_ENABLED) Serial.println(myFile.position(), DEC);
 //Debug("Available data to read in file: "); if (DEBUG_ENABLED) Serial.println(myFile.available(), DEC);
 //Debug("File name: "); if (DEBUG_ENABLED) Serial.println(myFile.getName());    // And a few other interesting attributes of a file:
@@ -6011,7 +6031,7 @@ int csvnfield(void)                                                             
 {
   return nfield;
 }
-
+*/
 //- Debugging Routines  
 
 void Debug(char *text){
@@ -6729,28 +6749,33 @@ void OnExit() {                                                                 
   event = EVENT_SHOW_MAIN_MENU;
   machineState = STATE_SHOW_MAIN_MENU;
 }  
-
-/* This doesn't compile.
-// https://forum.arduino.cc/index.php?topic=129083.0
-uint32_t trueRandom()
-{
-    static bool enabled = false;
-    if (!enabled) {
-        pmc_enable_periph_clk(ID_TRNG);
-        TRNG->TRNG_IDR = 0xFFFFFFFF;
-        TRNG->TRNG_CR = TRNG_CR_KEY(0x524e47) | TRNG_CR_ENABLE;
-        enabled = true;
-    }
-
-    while (! (TRNG->TRNG_ISR & TRNG_ISR_DATRDY))
-        ;
-    return TRNG->TRNG_ODATA;
+/*
+#define REPS 1000
+void setup1() {
+  Serial.begin(9600);
+  while (!Serial);
+  delay(2000);
+  MCLK->APBCMASK.reg |= MCLK_APBCMASK_TRNG;   // TRNG clock on
+  TRNG->CTRLA.reg = TRNG_CTRLA_ENABLE;
 }
-*/
 
+void loop1() {
+  uint32_t r, us;
+  us = micros();
+  for (int i = 0; i < REPS; i++) {
+    while ((TRNG->INTFLAG.reg & TRNG_INTFLAG_DATARDY) == 0) ; // 84 APB cycles
+    r = TRNG->DATA.reg;
+  }
+  us = micros() - us;
+  Serial.print(us); Serial.print(" us   mbs ");
+  Serial.println(32 * REPS / us);
+  Serial.println(r, HEX);
+  delay(2000);
+}
+
+// https://forum.arduino.cc/index.php?topic=129083.0
 // samd51 AES CBC 128-bit key
 
-/* THIS IS PASTED HERE FOR FUTURE USE
 #define PRREG(x) Serial.print(#x" 0x"); Serial.println(x,HEX)
 #define NBYTES (1024)
 
@@ -6806,7 +6831,7 @@ void aes_cbc_decrypt(const uint8_t *ciphertext, uint8_t *plaintext, size_t size,
   }
 }
 
-void setup() {
+void setup2() {
   Serial.begin(9600);
   while (!Serial);
   delay(1000);
@@ -6819,7 +6844,7 @@ void setup() {
   PRREG(REG_AES_CTRLB);
 }
 
-void loop() {
+void loop2() {
   static const uint8_t keyAes128[]  =
   { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
     0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c
