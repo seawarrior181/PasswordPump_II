@@ -765,8 +765,8 @@
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-//#define __SAMD51__
-#define __SAMD21__
+#define __SAMD51__
+//#define __SAMD21__
 #ifdef __SAMD51__
 #define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
 #endif
