@@ -1,0 +1,1 @@
+This is the directory for v2_0_0 of the PasswordPump custom PCB.  It will accomodate the Adafruit ItsyBitsy M4 or the Adafruit ItsyBitsy M0; however, with the M0 the RGB LED will not always work correctly.
