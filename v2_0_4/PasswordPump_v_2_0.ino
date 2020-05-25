@@ -5,7 +5,7 @@
   Author:       Daniel J. Murphy
   Version:      2.0.4
   Date:         2019/07/26 - 2020/05/10
-  Device:       Adafruit ItsyBitsy M4 Express‎
+  Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
   MCU:          ATSAMD51J19 Cortex M4 processor
   Language:     Arduino C++
   Memory:       512KB Flash and 192KB RAM
