@@ -1,16 +1,16 @@
 /*
   PasswordPump_v_2_0.ino
 
-  Project Name: PasswordPump II, a better password manager
+  Project Name: PasswordPump 2.0, a better password manager
   Author:       Daniel J. Murphy
   Version:      2.0.4
   Date:         2019/07/26 - 2020/05/10
-  Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
-  MCU:          ATSAMD51J19 Cortex M4 processor
   Language:     Arduino C++
-  Memory:       512KB Flash and 192KB RAM
+  Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
+  MCU:          ATSAMD21G18 32-bit Cortex M0+ or ATSAMD51J19 32-bit Cortex M4
+  Memory:       256KB Flash and 32 KB RAM or 512KB Flash and 192KB RAM
   EEprom:       2MB of SPI Flash (not used)
-  Clock Speed:  120MHz
+  Clock Speed:  48 MHz or 120MHz
   Voltage:      3.3v MCU & 25LC512 EEProm / 5v RGB LED, Rotary Encoder, 
                 SSD1306 OLED 
   Current:      0.03A
@@ -78,18 +78,18 @@
 	- Issue because listHead is set to 0 before there are any elements in the 
 	  linked list; after factory reset when importing credentials ERR: 031
 		appears, but it's benign.
-  x Decoy password feature is not working when the decoy password is entered.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x single character user names and passwords are not working well
   x Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
     BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
-  x The linked list is occasionally becoming corrupt. Disabled the ability to 
-    fix a corrupt linked list. Exact conditions of corruption unknown at this 
-    point.  Might be fixed.
   ! In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
+  * The linked list is occasionally becoming corrupt. Disabled the ability to 
+    fix a corrupt linked list. Exact conditions of corruption unknown at this 
+    point.  Might be fixed.
+  * Decoy password feature is not working when the decoy password is entered.
 	* 2.4.0: Via PasswordPumpGUI Insert, then <Alt><Tab> to another application.  
 		Upon returning to PasswordPumpGUI the Account Name is "Unknown".  Set focus
 		to another account, the PasswordPump and PasswordPumpGUI freeze.  Close the
@@ -237,14 +237,15 @@
   - Add the ability to fix a corrupt linked list.
   - Add the ability to pump a single tab or a single carriage return from the 
     menu.
-  - Make the menus scroll around when the end is reached
-  - Scroll the display when necessary
+  - Make the menus scroll around when the end is reached (?)
+  - Scroll the display horizontally when necessary
   - Import KeePass .xml file
   - Import LastPass files
   - Export to KeePass CSV format
   - Export to LastPass format
   - re-enter master password to authorize credentials reset
-  - Consolidate code in the import files sections
+  - Consolidate code in the import files sections (this code is currently 
+	  commented out.
   - A back space should be available during character input via rotary encoder.
 	- In the customize groups menu, use the current name of the group instead of
 	  the group number.
@@ -252,9 +253,9 @@
     if not yet authenticated. (commented out, caused problems)
   ? Add a feature whereby the unit logs out after two double clicks. (commented
     out, caused problems)
-  x Add a decoy password that executes a factory reset when the password plus
+  * Add a decoy password that executes a factory reset when the password plus
     the characters "FR" are supplied as the master password.
-  x Enable decoy password feature, make it configurable
+  * Enable decoy password feature, make it configurable
   * Allow users to name the categories.
   * Dim the display when it's not in use.
   * Always reflect the account that's selected in the PC client on the device.
@@ -353,7 +354,7 @@
   ===========
   - Best viewed in an editor w/ 160 columns, most comments are at column 80
   - Please submit defects you find so I can improve the quality of the program
-    and learn more about embedded programming.
+    and learn more about embedded programming.  dan-murphy@comcast.net
   - For anyone unfamiliar w/ Arduino when the device is powered on first setup() 
     runs and then loop() runs, in a loop, in perpetuity.
   - Set tab spacing to 2 space characters in your editor.
@@ -765,13 +766,15 @@
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-#define __SAMD51__
-//#define __SAMD21__
+//#define __LEFTY__																																// Turn this on if you have a "lefty" rotary encoder
+#define __SAMD51__																															// Turn this on for Adafruit ItsyBitsy M4
+//#define __SAMD21__																														// Turn this on for Adafruit ItsyBitsy M0
+
 #ifdef __SAMD51__
 #define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
 #endif
 #ifdef __SAMD21__
-#define F_CPU                      48000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M0 is 48MHz 
+#define F_CPU                     48000000UL                                    // micro-controller clock speed, max clock speed of ItsyBitsy M0 is 48MHz 
 #endif
 //#define SLOW_SPI
 #define DEBUG_ENABLED             0
@@ -823,9 +826,13 @@
 //- Defines
 
 #define BAUD_RATE                 115200                                        //  Baud rate for the Serial monitor, best for 16MHz (was 38400)
-
-#define ROTARY_PIN1               9                                             // Pin for ItsyBitsy SAMD51 M4
+#ifdef __LEFTY__
+#define ROTARY_PIN1               7                                             // Pin for ItsyBitsy SAMD
+#define ROTARY_PIN2               9                                             //   "                               
+#else
+#define ROTARY_PIN1               9                                             // Pin for ItsyBitsy SAMD
 #define ROTARY_PIN2               7                                             //   "                               
+#endif
 #define BUTTON_PIN                12                                            //   "                              
 
 #define RED_PIN                   5                                             // Pin locations for the RGB LED, must be PWM capable 
