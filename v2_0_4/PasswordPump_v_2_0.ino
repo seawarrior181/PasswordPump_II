@@ -766,7 +766,7 @@
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-//#define __LEFTY__																																// Turn this on if you have a "lefty" rotary encoder
+//#define __LEFTY__																															// Turn this on if you have a "lefty" rotary encoder
 #define __SAMD51__																															// Turn this on for Adafruit ItsyBitsy M4
 //#define __SAMD21__																														// Turn this on for Adafruit ItsyBitsy M0
 
