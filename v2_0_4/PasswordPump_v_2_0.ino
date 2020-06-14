@@ -24,17 +24,17 @@
     facilitate  the use of really strong 31 character UUID like passwords on all
     accounts.
 	
-	Documentation
-	=============
-	For more information about this project visit 
-	https://www.5volts.org/post/passwordpump-v2-0.
-	To see the source code in GitHub point your browser to
-	https://github.com/seawarrior181/PasswordPump_II.  
-	To purchase a kit visit
-	https://www.tindie.com/products/passwordpump/passwordpump-v20/
-	To see a video about the project navigate to 
-	https://www.youtube.com/watch?v=f4Iukt5VDUo.
-    
+  Documentation
+  =============
+  For more information about this project visit 
+  https://www.5volts.org/post/passwordpump-v2-0.
+  To see the source code in GitHub point your browser to
+  https://github.com/seawarrior181/PasswordPump_II.  
+  To purchase a kit visit
+  https://www.tindie.com/products/passwordpump/passwordpump-v20/
+  To see a video about the project navigate to 
+  https://www.youtube.com/watch?v=f4Iukt5VDUo.
+
   Features
   ========
   - Authenticate with 16 character master password
