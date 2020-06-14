@@ -4,7 +4,7 @@
   Project Name: PasswordPump 2.0, a better password manager
   Author:       Daniel J. Murphy
   Version:      2.0.4
-  Date:         2019/07/26 - 2020/05/10
+  Date:         2019/07/26 - 2020/06/14
   Language:     Arduino C++
   Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit Cortex M0+ or ATSAMD51J19 32-bit Cortex M4
@@ -23,6 +23,17 @@
   - To manage user names and passwords and to type them in via keyboard/USB.  To
     facilitate  the use of really strong 31 character UUID like passwords on all
     accounts.
+	
+	Documentation
+	=============
+	For more information about this project visit 
+	https://www.5volts.org/post/passwordpump-v2-0.
+	To see the source code in GitHub point your browser to
+	https://github.com/seawarrior181/PasswordPump_II.  
+	To purchase a kit visit
+	https://www.tindie.com/products/passwordpump/passwordpump-v20/
+	To see a video about the project navigate to 
+	https://www.youtube.com/watch?v=f4Iukt5VDUo.
     
   Features
   ========
@@ -358,6 +369,15 @@
   - For anyone unfamiliar w/ Arduino when the device is powered on first setup() 
     runs and then loop() runs, in a loop, in perpetuity.
   - Set tab spacing to 2 space characters in your editor.
+	- Uncomment the pre-compiler directive __SAMD21__	if you're using the 
+	  Adafruit ItsyBitsy M0, and comment out the pre-compiler directive 
+		__SAMD51__.  Uncomment the pre-compiler directive __SAMD51__ if you're
+		using the Adafruit ItsyBitsy M4, and comment out the pre-compiler directive
+		__SAMD21__.
+	- If, after building your PasswordPump, you notice that the rotary encoder is
+	  advancing through the alphabet when you turn the encoder counter-clockwise
+		then you can reverse this behavior by uncommenting the __LEFTY__ 
+		pre-compiler directive.
 
   Contributors
   ============
