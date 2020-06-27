@@ -23,10 +23,10 @@
 # - If an account name contains a comma, and you visit the field, after
 #   exiting the GUI and reloading all of the accounts, the comma has changed
 #   into a hashtag and all of the remaining fields are blank.
-# - If input focus is on the password field, and you select Insert, then
+# - Change the 0 / 1 for Tab and Return to just Tab and Return.
+# * If input focus is on the password field, and you select Insert, then
 #   navigate to the Account field, the password field of the account you
 #   were on originally is set to blank.
-# - Change the 0 / 1 for Tab and Return to just Tab and Return.
 # * During import of PasswordPump format, the username is occasionally dropped
 # * Similarly, if any of the fields have an embedded | (pipe) character the
 #   fields in the PasswordPumpGUI can get out of synch; e.g. account name
