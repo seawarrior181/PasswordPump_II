@@ -1,6 +1,6 @@
 /*
   PasswordPump_v_2_0.ino
-
+ 
   Project Name: PasswordPump 2.0, a better password manager
   Author:       Daniel J. Murphy
   Version:      2.0.4
@@ -786,8 +786,8 @@
   ==============================================================================
 //- Includes/Defines                                                            */
 //#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__		    				  																						// Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__  		    			  																					// Turn this on for Adafruit ItsyBitsy M0
+#define __SAMD51__		   	  			  																						// Turn this on for Adafruit ItsyBitsy M4
+//#define __SAMD21__  		     			  																					// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
 #define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -1508,6 +1508,7 @@ enum                                                                            
   pyDeleteAccount       ,
   pyExit                ,
   pyBackup              ,
+  pyFactoryReset        ,
   pyRestore             ,
   pyGetAccountCount     ,
   pyDecoyPassword       ,
@@ -1690,6 +1691,7 @@ void OnUnknownCommand();                                                        
 void OnReadAccountName();
 void OnReadUserName();
 void OnReadPassword();
+void OnFactoryReset();
 void OnReadURL();
 void OnReadStyle();
 void OnReadOldPassword();
@@ -6292,6 +6294,7 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyDeleteAccount       , OnDeleteAccount);
   cmdMessenger.attach(pyExit                , OnExit);
   cmdMessenger.attach(pyBackup              , OnBackup);
+  cmdMessenger.attach(pyFactoryReset        , OnFactoryReset);
   cmdMessenger.attach(pyRestore             , OnRestore);
   cmdMessenger.attach(pyGetAccountCount     , OnGetAccountCount);
   cmdMessenger.attach(pyDecoyPassword       , OnDecoyPassword);
@@ -6729,6 +6732,14 @@ void OnBackup(){
   CopyEEPromToBackup();
   cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
   setPurple();
+}
+
+void OnFactoryReset(){
+  loginFailures = loginAttempts + 1;                                            // so that a condition inside of EVENT_RESET evaluates to true and the reset 
+  FactoryReset();
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
+  setPurple();
+  Serial.end();
 }
 
 void OnRestore(){                                                               // This is called when we restore the data from EEprom secondary to EEprom primary from PasswordPumpGUI.py

@@ -57,11 +57,11 @@
 #
 # Enhancements:
 # - Rename account
-# - Factory reset
-# - Settings (Keyboard, Show Password, Decoy Password, RGB LED Intensity,
-#   Timeout Minutes, Login Attempts, Change Master Password)
+# - Settings (RGB LED Intensity, Timeout Minutes, Login Attempts)
 # - Configurable Generate Password length
-# - Custom group names
+# - Custom group names (currently only editable via device)
+# * Settings (Show Password, Decoy Password, Change Master Password,
+#   Factory Reset)
 # * Respect the show password setting
 # * Add old password to PasswordPump format
 # * Save to old password
@@ -218,6 +218,7 @@ def clickedOpen():
                 ["pyDeleteAccount","b"],
                 ["pyExit",""],
                 ["pyBackup",""],
+                ["pyFactoryReset",""],
                 ["pyRestore",""],
                 ["pyGetAccountCount", ""],
                 ["pyDecoyPassword", "b"],
@@ -937,6 +938,20 @@ def BackupEEprom():
         window.config(cursor="")
         updateDirections("Finished backing up EEprom.")
 
+def FactoryReset():
+    if tkinter.messagebox.askyesno("Factory Reset", "Factory reset the device and exit?"):
+        window.config(cursor="watch")
+        updateDirections("Factory resetting...")
+        global selection
+        global position
+        c.send("pyFactoryReset")
+        response = c.receive()
+        #print(response)
+        response_list = response[1]
+        position = calcAcctPositionReceive(response_list[0])                   # returns head position
+        updateDirections("Finished the factory reset.")
+        sys.exit(1)
+
 def RestoreEEprom():
     if tkinter.messagebox.askyesno("Restore", "Restore backup to primary EEprom?"):
         window.config(cursor="watch")
@@ -1482,6 +1497,7 @@ settings = Menu(menubar)
 settings.add_command(label = 'Change Master Password', command = clickedChangeMasterPass)
 settings.add_command(label = 'Show Password on Device', command = clickedShowPassword)
 settings.add_command(label = 'Decoy Password', command = clickedDecoyPassword)
+settings.add_command(label = 'Factory Reset', command = FactoryReset)
 menubar.add_cascade(label = 'Settings', menu = settings)
 
 menubar.entryconfig('File', state='disabled')
