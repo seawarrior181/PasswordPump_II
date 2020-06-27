@@ -82,9 +82,6 @@
     happen.
   - When entering an account name 29 chars long via keyboard, nothing gets 
     entered.
-	- Issue because listHead is set to 0 before there are any elements in the 
-	  linked list; after factory reset when importing credentials ERR: 031
-		appears, but it's benign.
   ! In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
@@ -93,6 +90,9 @@
   x single character user names and passwords are not working well
   x Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
     BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
+	* Issue because listHead is set to 0 before there are any elements in the 
+	  linked list; after factory reset when importing credentials ERR: 031
+		appears, but it's benign.
   * It is possible to enter a duplicate account via the PasswordPump device.
   * When deleting duplicate accounts (duplicate account names) corruption is 
     introduced.
@@ -180,8 +180,8 @@
     user.
   * Consider removing "&" from the legal characters when a password/UUID is 
     generated.
-  * An account name that exceeded 32 chars imported in entirety, wasn't 
-    truncated at 32 chars.  APEX... [burned by Notepad++ again]
+  * An account name that exceeded 31 chars imported in entirety, wasn't 
+    truncated at 31 chars.  APEX... [burned by Notepad++ again]
   * RGB LED is too bright.
   * After entering Style, we return to Account Name, but account name is blank.
   * When importing 112 keepass credential sets only 49 make it into the EEprom.
@@ -786,8 +786,8 @@
   ==============================================================================
 //- Includes/Defines                                                            */
 //#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__		  																												// Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__  			    																								// Turn this on for Adafruit ItsyBitsy M0
+#define __SAMD51__		    				  																						// Turn this on for Adafruit ItsyBitsy M4
+//#define __SAMD21__  		    			  																					// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
 #define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -6240,7 +6240,7 @@ uint8_t FindAccountPos(char *passedAccountName) {                               
     readAcctFromEEProm(pos, accountName);                                       // read and decrypt the account name; when in readAcctFromEEProm, if account[0] = INITIAL_MEMORY_STATE_BYTE, account[0] = NULL_TERM
     if ((accountName[0] == NULL_TERM) ||
         (accountName[0] == (char) INITIAL_MEMORY_STATE_CHAR)) {
-      DisplayToError("ERR: 031");                                               // Empty credentials found in linked list; error but we'll use this spot
+      if (pos != 0) DisplayToError("ERR: 031");                                 // Empty credentials found in linked list; error but we'll use this spot
       return pos;                                                               // 
     }
     //                                      Z            A                      positive, stop and return getNextFreeAcctPos
