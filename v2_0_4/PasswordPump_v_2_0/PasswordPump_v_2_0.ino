@@ -73,13 +73,9 @@
   Known Defects/Issues
   ====================  
     - = outstanding             
-    x = fixed but needs testing 
 		! = will not fix
+    x = fixed but needs testing 
     * = fixed - if a release is listed, that's the release in which it was fixed                  
-  - It is possible to enter a duplicate account via the PasswordPump device or 
-    via a combination of the PasswordPump and the PasswordPumpGUI.
-  - When deleting duplicate accounts (duplicate account names) corruption is 
-    introduced.
   - Embedded quote in a CSV import file are not getting saved to the filed e.g.
     password.
   - When you import credentials with <CR><LF> in the account name bad things
@@ -89,14 +85,17 @@
 	- Issue because listHead is set to 0 before there are any elements in the 
 	  linked list; after factory reset when importing credentials ERR: 031
 		appears, but it's benign.
-  x Duplicate names freeze the MCU in the keepass import file (consecutive?)
-  x single character user names and passwords are not working well
-  x Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
-    BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
   ! In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
+  x Duplicate names freeze the MCU in the keepass import file (consecutive?)
+  x single character user names and passwords are not working well
+  x Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
+    BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
+  * It is possible to enter a duplicate account via the PasswordPump device.
+  * When deleting duplicate accounts (duplicate account names) corruption is 
+    introduced.
   * The linked list is occasionally becoming corrupt. Disabled the ability to 
     fix a corrupt linked list. Exact conditions of corruption unknown at this 
     point.  Might be fixed.
@@ -388,7 +387,7 @@
   =========
   - Copyright ©2018, ©2019, ©2020 Daniel J Murphy <dan-murphy@comcast.net>
   
-  License                                                                       // TODO: consider making this more restrictive
+  License                                                                       
   =======
   Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
   (CC BY-NC-SA 4.0). https://creativecommons.org/licenses/by-nc-sa/4.0/
@@ -786,9 +785,9 @@
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-//#define __LEFTY__																															// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__																															// Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__																														// Turn this on for Adafruit ItsyBitsy M0
+//#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
+#define __SAMD51__		  																												// Turn this on for Adafruit ItsyBitsy M4
+//#define __SAMD21__  			    																								// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
 #define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
