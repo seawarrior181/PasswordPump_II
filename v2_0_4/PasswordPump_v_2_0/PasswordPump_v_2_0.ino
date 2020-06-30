@@ -781,13 +781,14 @@
   041 - Corrupt link list encountered while counting accounts
   042 - Invalid position when returning to settings menu
 	043 - Invalid group number when customizing groups
+  044 - Invalid category number when customizing groups from PasswordPumpGUI
 
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
 //#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__		   	  			  																						// Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__  		     			  																					// Turn this on for Adafruit ItsyBitsy M0
+#define __SAMD51__		 	  			    																						// Turn this on for Adafruit ItsyBitsy M4
+//#define __SAMD21__  		      		  																					// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
 #define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -1520,6 +1521,7 @@ enum                                                                            
 	pyReadGroup5Name			,
 	pyReadGroup6Name			,
 	pyReadGroup7Name			,
+  pyUpdateCategoryName  ,
   pyChangeMasterPass    
 };
 
@@ -1696,6 +1698,7 @@ void OnReadURL();
 void OnReadStyle();
 void OnReadOldPassword();
 void OnUpdateAccountName();
+void OnUpdateCategoryName();
 void OnUpdateUserName();
 void OnUpdatePassword();
 void OnUpdateURL();
@@ -3089,11 +3092,11 @@ void ProcessEvent() {                                                           
       //position = 0;                                                           // return to the top of the settings menu
       event = EVENT_SHOW_SETTINGS_MENU;
 		} else if (STATE_EDIT_GROUP_1 == machineState) {
-			ProcessGroupInput( 			groupCategory_1,
-															CATEGORY_SIZE,
-															groupEditMenu[EDIT_GROUP_1],
-															EDIT_GROUP_1,
-															GET_ADDR_CATEGORY_1					);
+			ProcessGroupInput( 			groupCategory_1,                                  // attribute name
+															CATEGORY_SIZE,                                    // attribute size
+															groupEditMenu[EDIT_GROUP_1],                      // menu name
+															EDIT_GROUP_1,                                     // next position
+															GET_ADDR_CATEGORY_1					);                    // address
       BlankLine3();
 		} else if (STATE_EDIT_GROUP_2 == machineState) {
 			ProcessGroupInput( 			groupCategory_2,
@@ -3501,8 +3504,8 @@ void ProcessGroupInput( 		char *attributeName,                                //
   ReadFromSerial(attributeName, attributeSize, menuName);
   attributeName[attributeSize - 1] = NULL_TERM;                                 // for safety
   uint8_t pos = 0;
-  while (attributeName[pos++] != NULL_TERM);                                    // make sure the account name is attributeSize chars long, pad with NULL_TERM
-  while (pos < attributeSize) attributeName[pos++] = NULL_TERM;                 // "           "              "
+  while (attributeName[pos++] != NULL_TERM);                                    // 
+  while (pos < attributeSize) attributeName[pos++] = NULL_TERM;                 // 
   eeprom_write_bytes(address, attributeName, attributeSize);
   position = nextPosition;
 	loadGroupMenu();
@@ -6306,6 +6309,7 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyReadGroup5Name      , OnReadGroup5Name);
   cmdMessenger.attach(pyReadGroup6Name      , OnReadGroup6Name);
   cmdMessenger.attach(pyReadGroup7Name      , OnReadGroup7Name);
+  cmdMessenger.attach(pyUpdateCategoryName  , OnUpdateCategoryName);
   cmdMessenger.attach(pyChangeMasterPass    , OnChangeMasterPass);
 }
 
@@ -6669,6 +6673,44 @@ void OnUpdateOldPassword(){
   ReadSaltAndSetKey(acctPosition);
   encrypt32Bytes(bufferOldPass, oldPassword);                                   // encrypt the old password
   eeprom_write_bytes(GET_ADDR_OLD_PASS(acctPosition), bufferOldPass, PASSWORD_SIZE);
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
+  setPurple();
+}
+
+void OnUpdateCategoryName(){
+  setGreen();
+  char categoryname[CATEGORY_SIZE];
+  uint8_t categoryNum = cmdMessenger.readBinArg<uint8_t>();
+  cmdMessenger.copyStringArg(categoryname, CATEGORY_SIZE);
+  uint8_t len = strlen(categoryname);
+  while (len < CATEGORY_SIZE) categoryname[len++] = NULL_TERM;
+  categoryname[CATEGORY_SIZE - 1] = NULL_TERM;
+  switch(categoryNum) {
+    case 1:
+      eeprom_write_bytes(GET_ADDR_CATEGORY_1, categoryname, CATEGORY_SIZE);
+      break;
+    case 2:
+      eeprom_write_bytes(GET_ADDR_CATEGORY_2, categoryname, CATEGORY_SIZE);
+      break;
+    case 3:
+      eeprom_write_bytes(GET_ADDR_CATEGORY_3, categoryname, CATEGORY_SIZE);
+      break;
+    case 4:
+      eeprom_write_bytes(GET_ADDR_CATEGORY_4, categoryname, CATEGORY_SIZE);
+      break;
+    case 5:
+      eeprom_write_bytes(GET_ADDR_CATEGORY_5, categoryname, CATEGORY_SIZE);
+      break;
+    case 6:
+      eeprom_write_bytes(GET_ADDR_CATEGORY_6, categoryname, CATEGORY_SIZE);
+      break;
+    case 7:
+      eeprom_write_bytes(GET_ADDR_CATEGORY_7, categoryname, CATEGORY_SIZE);
+      break;
+    default:
+      DisplayToError("ERR: 044");
+      break;
+  }
   cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }

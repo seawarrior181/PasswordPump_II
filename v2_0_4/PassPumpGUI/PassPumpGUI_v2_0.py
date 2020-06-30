@@ -230,6 +230,7 @@ def clickedOpen():
                 ["pyReadGroup5Name",""],
                 ["pyReadGroup6Name",""],
                 ["pyReadGroup7Name",""],
+                ["pyUpdateCategoryName","bs"],
                 ["pyChangeMasterPass", "s"]]
 
     global c                                                                   # Initialize the messenger
@@ -305,6 +306,14 @@ def clickedOpen():
     textboxFinancial.config(text=groupName5)
     textboxMail.config(text=groupName6)
     textboxCustom.config(text=groupName7)
+
+    groupsMenu.entryconfigure(1, label = groupName1)
+    groupsMenu.entryconfigure(2, label = groupName2)
+    groupsMenu.entryconfigure(3, label = groupName3)
+    groupsMenu.entryconfigure(4, label = groupName4)
+    groupsMenu.entryconfigure(5, label = groupName5)
+    groupsMenu.entryconfigure(6, label = groupName6)
+    groupsMenu.entryconfigure(7, label = groupName7)
 
 def updateDirections(directions):
     txt_dir.delete('1.0', END)
@@ -1449,6 +1458,104 @@ def SetGroupCheckBoxes():
         vCustom.set(0)
     window.update()
 
+def customizeGroup1():
+    global groupName1
+    groupNameTemp = groupName1
+    groupName1 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName1)
+    if not groupName1:
+        groupName1 = groupNameTemp
+    c.send("pyUpdateCategoryName", 1, groupName1)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    textboxWork.config(text=groupName1)
+    groupsMenu.entryconfigure(1, label = groupName1)
+
+def customizeGroup2():
+    global groupName2
+    groupNameTemp = groupName2
+    groupName2 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName2)
+    if not groupName2:
+        groupName2 = groupNameTemp
+    c.send("pyUpdateCategoryName", 2, groupName2)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    textboxPersonal.config(text=groupName2)
+    groupsMenu.entryconfigure(2, label = groupName2)
+
+def customizeGroup3():
+    global groupName3
+    groupNameTemp = groupName3
+    groupName3 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName3)
+    if not groupName3:
+        groupName3 = groupNameTemp
+    c.send("pyUpdateCategoryName", 3, groupName3)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    textboxHome.config(text=groupName3)
+    groupsMenu.entryconfigure(3, label = groupName3)
+
+def customizeGroup4():
+    global groupName4
+    groupNameTemp = groupName4
+    groupName4 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName4)
+    if not groupName4:
+        groupName4 = groupNameTemp
+    c.send("pyUpdateCategoryName", 4, groupName4)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    textboxSchool.config(text=groupName4)
+    groupsMenu.entryconfigure(4, label = groupName4)
+
+def customizeGroup5():
+    global groupName5
+    groupNameTemp = groupName5
+    groupName5 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName5)
+    if not groupName5:
+        groupName5 = groupNameTemp
+    c.send("pyUpdateCategoryName", 5, groupName5)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    textboxFinancial.config(text=groupName5)
+    groupsMenu.entryconfigure(5, label = groupName5)
+
+def customizeGroup6():
+    global groupName6
+    groupNameTemp = groupName6
+    groupName6 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName6)
+    if not groupName6:
+        groupName6 = groupNameTemp
+    c.send("pyUpdateCategoryName", 6, groupName6)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    textboxMail.config(text=groupName6)
+    groupsMenu.entryconfigure(6, label = groupName6)
+
+def customizeGroup7():
+    global groupName7
+    groupNameTemp = groupName7
+    groupName7 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName7)
+    if not groupName7:
+        groupName7 = groupNameTemp
+    c.send("pyUpdateCategoryName", 7, groupName7)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    textboxCustom.config(text=groupName7)
+    groupsMenu.entryconfig(7, label = groupName7)
+
 txt_acct = Entry(window, width=40)
 txt_acct.grid(column=2, row=2)
 
@@ -1472,6 +1579,14 @@ txt_pass.config(show="*")
 txt_old_pass.config(state='normal')
 txt_url.config(state='normal')
 
+groupName1 = "Group1"
+groupName2 = "Group2"
+groupName3 = "Group3"
+groupName4 = "Group4"
+groupName5 = "Group5"
+groupName6 = "Group6"
+groupName7 = "Group7"
+
 menubar = Menu(window)
 window.config(menu=menubar)
 file = Menu(menubar)
@@ -1494,9 +1609,18 @@ backup.add_command(label = 'Restore EEprom', command = RestoreEEprom)
 menubar.add_cascade(label = 'Backup/Restore', menu = backup)
 
 settings = Menu(menubar)
+groupsMenu = Menu(menubar)
 settings.add_command(label = 'Change Master Password', command = clickedChangeMasterPass)
 settings.add_command(label = 'Show Password on Device', command = clickedShowPassword)
 settings.add_command(label = 'Decoy Password', command = clickedDecoyPassword)
+settings.add_cascade(label = 'Customize Groups', menu=groupsMenu)
+groupsMenu.add_command(label = groupName1, command = customizeGroup1)
+groupsMenu.add_command(label = groupName2, command = customizeGroup2)
+groupsMenu.add_command(label = groupName3, command = customizeGroup3)
+groupsMenu.add_command(label = groupName4, command = customizeGroup4)
+groupsMenu.add_command(label = groupName5, command = customizeGroup5)
+groupsMenu.add_command(label = groupName6, command = customizeGroup6)
+groupsMenu.add_command(label = groupName7, command = customizeGroup7)
 settings.add_command(label = 'Factory Reset', command = FactoryReset)
 menubar.add_cascade(label = 'Settings', menu = settings)
 
@@ -1554,14 +1678,6 @@ vSchool = IntVar()
 vFinancial = IntVar()
 vMail = IntVar()
 vCustom = IntVar()
-
-groupName1 = "Group1"
-groupName2 = "Group2"
-groupName3 = "Group3"
-groupName4 = "Group4"
-groupName5 = "Group5"
-groupName6 = "Group6"
-groupName7 = "Group7"
 
 textboxFavorites = Checkbutton(window, text="Favorites ", variable=vFavorites, command=OnFavorites, onvalue=1, offvalue=0)
 textboxFavorites.var = vFavorites
