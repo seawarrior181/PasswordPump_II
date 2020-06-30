@@ -5,9 +5,26 @@ This is v2.0 of the PasswordPump, a USB device that manages credentials for up t
 The purpose of this repository on GitHub is to disseminate software for and information about the PasswordPump v2.0.  See the Password Pump II Users Guide.pdf and https://5volts.org for details.  
 
 # Change Log
-unreleased v2.0.4 Added Factory Reset to the PassPumpGUI program. Added a pre-compiler directive to deal with "lefty" rotary encoders; see users guide for more info.  Modified the custom PCB and added a pre-compiler directive for use with Adafruit ItsyBitsy M0. Fixed the defect whereby entering the decoy password did not result in a factory reset. Tweaked the mechanism for generating a random seed.  Fixed the following defect: Via PasswordPumpGUI Insert, then (Alt)(Tab) to navigate to another application;  Upon returning to PasswordPumpGUI the Account Name is "Unknown";  Set focus to another account, the PasswordPump and PasswordPumpGUI freeze;  Close the PasswordPumpGUI window and long click on the PasswordPump;  Now there is only one account in the PasswordPump; Restore from secondary EEprom.  This issue is resolved.
+unreleased v2.0.4 
+  * Added the ability to customize the group names via PasswordPumpGUI.  
+  * Added Factory Reset to the PassPumpGUI program. 
+  * Added a pre-compiler directive to deal with "lefty" rotary encoders; see users guide for more info.  
+  * Modified the custom PCB and added a pre-compiler directive for use with Adafruit ItsyBitsy M0. 
+  * Fixed the defect whereby entering the decoy password did not result in a factory reset. 
+  * Tweaked the mechanism for generating a random seed.  
+  * Fixed the following defect: Via PasswordPumpGUI Insert, then (Alt)(Tab) to navigate to another application;  Upon returning to PasswordPumpGUI the Account Name is "Unknown";  Set focus to another account, the PasswordPump and PasswordPumpGUI freeze;  Close the PasswordPumpGUI window and long click on the PasswordPump;  Now there is only one account in the PasswordPump; Restore from secondary EEprom.  This issue is resolved.
 
-2020-04-26 v2.0.3 Fixed a defect discovered by Neil whereby the @ needed to be added back to the list of characters available for input via rotary encoder.  Fixed an error whereby you could scroll past the z when entering characters via rotary encoder.  Changed automatic logout from the device so that it does not automatically lock your computer. Fixed a defect whereby when long clicking after search by group you didn't return to the right group you always returned to favorites.  Changed the Credentials menu so that you always know which account you're in.  Fixed a problem in the Settings menu where you were not returning to the menu item from which you came.  Fixed some issues with menu navigation when long clicking to make it more intuitive.  Added the ability to customize the names of groups.  Fixed a defect in PasswordPumpGUI whereby the value of a text box where the cursor is positioned before the Insert menu item is selected becomes blank after a new record is inserted by eliminating Insert (and Delete) from the File menu and substituting buttons for those functions. Fixed an issue discovered by Neil whereby the custom group names were not reflected in PasswordPumpGUI.
+2020-04-26 v2.0.3 
+  * Fixed a defect discovered by Neil whereby the @ needed to be added back to the list of characters available for input via rotary encoder.  
+  * Fixed an error whereby you could scroll past the z when entering characters via rotary encoder.  
+  * Changed automatic logout from the device so that it does not automatically lock your computer. 
+  * Fixed a defect whereby when long clicking after search by group you didn't return to the right group you always returned to favorites.  
+  * Changed the Credentials menu so that you always know which account you're in.  
+  * Fixed a problem in the Settings menu where you were not returning to the menu item from which you came.  
+  * Fixed some issues with menu navigation when long clicking to make it more intuitive.  
+  * Added the ability to customize the names of groups.  
+  * Fixed a defect in PasswordPumpGUI whereby the value of a text box where the cursor is positioned before the Insert menu item is selected becomes blank after a new record is inserted by eliminating Insert (and Delete) from the File menu and substituting buttons for those functions. 
+  * Fixed an issue discovered by Neil whereby the custom group names were not reflected in PasswordPumpGUI.
 
 2020-02-24 v2.0.2 Eliminated the need for the PyCmdMessenger edits.  You still need to install PyCmdMessenger, you just don't need to make any edits to it.
 
