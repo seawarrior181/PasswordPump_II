@@ -6,6 +6,7 @@ The purpose of this repository on GitHub is to disseminate software for and info
 
 # Change Log
 unreleased v2.0.4 
+  * Added support for German keyboards.
   * Added the ability to customize the group names via PasswordPumpGUI.  
   * Added Factory Reset to the PassPumpGUI program. 
   * Added a pre-compiler directive to deal with "lefty" rotary encoders; see users guide for more info.  
