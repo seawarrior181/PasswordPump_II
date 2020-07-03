@@ -786,9 +786,10 @@
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
+//#define __German__                                                            // Turn this on if you're using a German keyboard
 //#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__		 	  			    																						// Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__  		      		  																					// Turn this on for Adafruit ItsyBitsy M0
+#define __SAMD51__		 	  			        																				// Turn this on for Adafruit ItsyBitsy M4
+//#define __SAMD21__  		      	 																					    // Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
 #define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -804,7 +805,11 @@
 #include <avr/interrupt.h>
 #include <Wire.h>
 #include <Button2.h>                                                            // https://github.com/LennartHennigs/Button2 for the button on the rotary encoder 
-#include <Keyboard.h>                                                           // https://github.com/arduino-libraries/Keyboard for simulating a USB keyboard and sending output to it 
+#ifdef __German__
+  #include <Keyboard_DE.h>
+#else
+  #include <Keyboard.h>                                                         // https://github.com/arduino-libraries/Keyboard for simulating a USB keyboard and sending output to it 
+#endif
 #include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
 #include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
 #include <Adafruit_SSD1306.h>                                                   // https://github.com/adafruit/Adafruit_SSD1306 for SSD1306 monochrome 128x64 and 128x32 OLEDs  

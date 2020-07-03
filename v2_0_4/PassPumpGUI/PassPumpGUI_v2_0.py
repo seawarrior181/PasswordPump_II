@@ -23,7 +23,8 @@
 # - If an account name contains a comma, and you visit the field, after
 #   exiting the GUI and reloading all of the accounts, the comma has changed
 #   into a hashtag and all of the remaining fields are blank.
-# - Change the 0 / 1 for Tab and Return to just Tab and Return.
+# - Change the 0 / 1 for Tab and Return to just Tab and Return.  Select tab
+#   as the default.
 # * If input focus is on the password field, and you select Insert, then
 #   navigate to the Account field, the password field of the account you
 #   were on originally is set to blank.
@@ -59,7 +60,7 @@
 # - Rename account
 # - Settings (RGB LED Intensity, Timeout Minutes, Login Attempts)
 # - Configurable Generate Password length
-# - Custom group names (currently only editable via device)
+# * Custom group names (currently only editable via device)
 # * Settings (Show Password, Decoy Password, Change Master Password,
 #   Factory Reset)
 # * Respect the show password setting
@@ -1634,15 +1635,15 @@ cbStyle.grid(column=2, row=7)
 cbStyle.bind('<<ComboboxSelected>>', on_style_select)
 
 btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
-btn_previous.grid(column=1, row=18)
+btn_previous.grid(column=1, row=19)
 btn_previous.config(state='disabled')
 
 btn_insert = Button(window, text="Insert", command=clickedInsert)
-btn_insert.grid(column=1, row=19)
+btn_insert.grid(column=1, row=18)
 btn_insert.config(state='disabled')
 
 btn_delete = Button(window, text="Delete", command=clickedDelete)
-btn_delete.grid(column=4, row=19)
+btn_delete.grid(column=4, row=18)
 btn_delete.config(state='disabled')
 
 btn_open = Button(window, text="Open Port", command=clickedOpen)
@@ -1663,7 +1664,7 @@ btn_flip_pw.grid(column=1, row=4)
 btn_flip_pw.config(state='disabled')
 
 btn_next = Button(window, text="Next>>", command=clickedNext)
-btn_next.grid(column=4, row=18)
+btn_next.grid(column=4, row=19)
 btn_next.config(state='disabled')
 
 #btn_close = Button(window, text=" Exit ", command=clickedClose)
