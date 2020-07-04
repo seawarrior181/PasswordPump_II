@@ -7,6 +7,7 @@ The purpose of this repository on GitHub is to disseminate software for and info
 # Change Log
 unreleased v2.0.4 
   * For those willing to recompile the code, limited support for Czech, Danish, Swedish, Norwegian, Finnish, French, German or Spanish keyboards.  US is the default.
+  * In the PasswordPumpGUI, added the ability to check to see if your password has ever been discovered in a known data breach (pwned).
   * Added the ability to customize the group names via PasswordPumpGUI.  
   * Added Factory Reset to the PassPumpGUI program. 
   * Added a pre-compiler directive to deal with "lefty" rotary encoders; see users guide for more info.  
