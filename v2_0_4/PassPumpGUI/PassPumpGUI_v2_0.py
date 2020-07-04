@@ -105,6 +105,7 @@ from tendo import singleton
 #import string
 from random import *
 import platform
+import powned
 
 me = singleton.SingleInstance()                                                # will sys.exit(-1) if other instance is running
 
@@ -291,6 +292,7 @@ def clickedOpen():
     btn_insert.config(state='normal')
     btn_delete.config(state='normal')
     btn_generate.config(state='normal')
+    btn_powned.config(state='normal')
     btn_flip_pw.config(state='normal')
     menubar.entryconfig('File', state='normal')
     menubar.entryconfig('Backup/Restore', state='normal')
@@ -1406,6 +1408,15 @@ def generatePassword():
     txt_pass.focus()                                                           # to save the old password
     txt_old_pass.focus()                                                       # to save the password
 
+def checkIfPowned():
+    currentPass = txt_pass.get()
+    if (len(currentPass) != 0):
+        pownedCnt = powned.check(currentPass);
+        if (pownedCnt):
+            tkinter.messagebox.showinfo('Bad News', 'This password has been seen '+ str(pownedCnt) +' times before.  Do not use it.');
+        else:
+            tkinter.messagebox.showinfo('Good News', 'This password has not been recovered in any data breaches.');
+
 def flipPassword():
     global showPassword
     if (showPassword):
@@ -1658,6 +1669,10 @@ lb.bind("<<ListboxSelect>>", clickedLoadDB)
 btn_generate = Button(window, text="Generate", command=generatePassword)
 btn_generate.grid(column=4, row=4)
 btn_generate.config(state='disabled')
+
+btn_powned = Button(window, text="Pwned?", command=checkIfPowned)
+btn_powned.grid(column=4, row=5)
+btn_powned.config(state='disabled')
 
 btn_flip_pw = Button(window, text="Password", command=flipPassword)
 btn_flip_pw.grid(column=1, row=4)

@@ -69,6 +69,8 @@
     (Favorites, Work, Personal, Home, School, Financial, Mail, Custom)
   - Decoy password feature that automatically factory resets the device if
     entered (e.g. while the user is under duress)
+  - Supports use of several international keyboards (re-compilation may be
+    required).
   
   Known Defects/Issues
   ====================  
@@ -90,6 +92,7 @@
   x single character user names and passwords are not working well
   x Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
     BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
+  * Does not work correctly with keyboards that are not US.
 	* Issue because listHead is set to 0 before there are any elements in the 
 	  linked list; after factory reset when importing credentials ERR: 031
 		appears, but it's benign.
@@ -430,6 +433,10 @@
 	-	https://github.com/arduino-libraries/Keyboard 		For simulating a USB 
 																											keyboard and sending 
 																											output to it 
+  - https://github.com/Necr0tizing/ArduinoKeyboardLayouts
+                                                      Contains the keyboard
+                                                      layouts for alternate 
+                                                      keyboards.
 	-	https://rweather.github.io/arduinolibs/index.html For encrypting 
 																											credentials and for 
 																											hashing the master 
@@ -446,22 +453,19 @@
   =====================
 	-	Changed Adafruit_SSD1306::begin in Adafruit_SSD1306.cpp to suppress display
     of the Adafruit splash screen on the SSD1306 display.
-
-  - Fixing CmdMessenger
-		It's necessary to make an edit to the most recent version of PyCmdMessenger 
-		to make it compile.  On line 492 of CmdMessenger.cpp, change 
-
-		return '\0';
-
-  to
-  
-		char *str;
-		*str = '\0';
-		return str;
-  
+ 
+  - The Keyboard and ArduinoKeyboardLayouts libraries have been combined into 
+    Keyboard-master-multilingual, which is available here:
+    https://github.com/seawarrior181/PasswordPump_II/tree/master/Libraries
+    Install that library instead of the Keyboard and ArduinoKeyboardLayouts
+    libraries.
+ 
   Burning The Firmware    
   ====================    
 	From the Arduino IDE:
+    0) In arduino\libraries\Keyboard-master-multilingual, copy the .cpp file
+       that corresponds with your keyboard's language to Keyboard.cpp.  
+       US-Keyboard.cpp is the default.
 		1) Under Tools do the following:  
 			- Set the Board: "Adafruit ItsyBitsy M4 (SAMD51)".  
 			- Cache: “Enabled”
@@ -786,16 +790,15 @@
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-//#define __German__                                                            // Turn this on if you're using a German keyboard
 //#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__		 	  			        																				// Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__  		      	 																					    // Turn this on for Adafruit ItsyBitsy M0
+#define __SAMD51__		  			        																				  // Turn this on for Adafruit ItsyBitsy M4
+//#define __SAMD21__  	  	      	 																					  // Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
-#define F_CPU                     120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
+  #define F_CPU                   120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
 #endif
 #ifdef __SAMD21__
-#define F_CPU                     48000000UL                                    // micro-controller clock speed, max clock speed of ItsyBitsy M0 is 48MHz 
+  #define F_CPU                   48000000UL                                    // micro-controller clock speed, max clock speed of ItsyBitsy M0 is 48MHz 
 #endif
 //#define SLOW_SPI
 #define DEBUG_ENABLED             0
@@ -805,11 +808,7 @@
 #include <avr/interrupt.h>
 #include <Wire.h>
 #include <Button2.h>                                                            // https://github.com/LennartHennigs/Button2 for the button on the rotary encoder 
-#ifdef __German__
-  #include <Keyboard_DE.h>
-#else
-  #include <Keyboard.h>                                                         // https://github.com/arduino-libraries/Keyboard for simulating a USB keyboard and sending output to it 
-#endif
+#include <Keyboard.h>                                                           // https://github.com/arduino-libraries/Keyboard
 #include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
 #include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
 #include <Adafruit_SSD1306.h>                                                   // https://github.com/adafruit/Adafruit_SSD1306 for SSD1306 monochrome 128x64 and 128x32 OLEDs  
@@ -852,11 +851,11 @@
 
 #define BAUD_RATE                 115200                                        //  Baud rate for the Serial monitor, best for 16MHz (was 38400)
 #ifdef __LEFTY__
-#define ROTARY_PIN1               7                                             // Pin for ItsyBitsy SAMD
-#define ROTARY_PIN2               9                                             //   "                               
+  #define ROTARY_PIN1             7                                             // Pin for ItsyBitsy SAMD
+  #define ROTARY_PIN2             9                                             //   "                               
 #else
-#define ROTARY_PIN1               9                                             // Pin for ItsyBitsy SAMD
-#define ROTARY_PIN2               7                                             //   "                               
+  #define ROTARY_PIN1             9                                             // Pin for ItsyBitsy SAMD
+  #define ROTARY_PIN2             7                                             //   "                               
 #endif
 #define BUTTON_PIN                12                                            //   "                              
 
@@ -874,12 +873,11 @@
 #define RANDOM_PIN                A0                                            // this pin must float; it's used to generate the seed for the random number generator
 #define RANDOM_PIN2								A1																						// this pin must float; it's used to generate the seed for the random number generator
 
-//#define UNUSED_PIN1               A1
 #ifdef __SAMD21__
-#define UNUSED_PIN2               A4
+  #define UNUSED_PIN2             A4
 #endif
 #ifdef __SAMD51__
-#define UNUSED_PIN2               A2
+  #define UNUSED_PIN2             A2
 #endif
 #define UNUSED_PIN3               A3
 #define UNUSED_PIN4               A5
@@ -1735,7 +1733,6 @@ void setup() {                                                                  
   pinMode(ROTARY_PIN1, INPUT_PULLUP);
   pinMode(ROTARY_PIN2, INPUT_PULLUP);
   
-  //pinMode(UNUSED_PIN1, OUTPUT);digitalWrite(UNUSED_PIN1, LOW);                // set all unused pins as output and set them low (0.0v)
   pinMode(UNUSED_PIN2, OUTPUT);digitalWrite(UNUSED_PIN2, LOW);
   pinMode(UNUSED_PIN3, OUTPUT);digitalWrite(UNUSED_PIN3, LOW);
   pinMode(UNUSED_PIN4, OUTPUT);digitalWrite(UNUSED_PIN4, LOW);
