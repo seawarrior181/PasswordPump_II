@@ -239,6 +239,10 @@
     % - concerned there isn't enough memory left to implement
     x = implemented but not tested  
     * - implemented and tested
+  - Implement a password complexity check for generated passwords that matches
+    the complexity of passwords generated via PasswordPumpGUI.  It's currently
+    possible to generate a password on the device that doesn't pass complexity
+    rules.
   - Make it work over bluetooth
   - Make the size of the generated password configurable.
   - Somehow signal to the user when entering the master password for the first 
@@ -648,7 +652,7 @@
   =====================
   - c:\python3\python C:\temp\Software\PassPumpGUI_v2_0.py
   
-  Menu Navigation                                                               // TODO: update the states here...
+  Menu Navigation
   ===============
   Master Password                  
   Find Favorite
@@ -791,8 +795,8 @@
   ==============================================================================
 //- Includes/Defines                                                            */
 //#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__		  			        																				  // Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__  	  	      	 																					  // Turn this on for Adafruit ItsyBitsy M0
+//#define __SAMD51__		    		        																			  // Turn this on for Adafruit ItsyBitsy M4
+#define __SAMD21__  	          	 								  													  // Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -1051,8 +1055,8 @@
 #define EVENT_SEARCH_FAVORITES    30
 #define EVENT_SHOW_FAVORITES_MENU 31
 #define EVENT_SHOW_GROUP_DEF_MENU 32
-                                                                                // Not using an enum here to save memory.  TODO: states are not really mutually
-//- States                                                                      // exclusive so we could save a byte by just numbering these sequentially.
+                                                                                // Not using an enum here to save memory.  
+//- States                                                                      
 
 #define STATE_ENTER_MASTER        1                                             // entering the master password
 #define STATE_SHOW_MAIN_MENU      2                                             // showing the main menu                              
@@ -1429,10 +1433,10 @@ const uint8_t HSVlights[61] =
 212, 217, 221, 225, 229, 234, 238, 242, 246, 251, 255};
 
 #define LEN_ALL_CHARS             88
-#define DEFAULT_ALPHA_EDIT_POS    34                                            // allChars is sort of unnecessary TODO: eliminate allChars?
+#define DEFAULT_ALPHA_EDIT_POS    34                                            
 #define DEFAULT_STYLE_EDIT_POS    24
 
-const char allChars[LEN_ALL_CHARS] =                                            // used to edit text via rotary encoder (164 bytes)
+const char allChars[LEN_ALL_CHARS] =                                            // used to edit text via rotary encoder (88 bytes w/ null terminator)
 " ?><:';}{][+_)(*%$#!=-.@ 0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"; 
 #define POS_Y_N_CONFIRM           14                                            // position of Y and N for the confirm menu item
 const char confirmChars[3] = "NY";                                              // used to select N(o) or Y(es) via rotary encoder to confirm a destructive action
@@ -1569,7 +1573,7 @@ void SwitchRotatePosition(uint8_t pos);
 void FactoryReset(void);
 void buttonReleasedHandler(Button2& btn);
 void deleteAccount(uint8_t position);
-void setUUID(char *password, uint8_t size, uint8_t appendNullTerm);
+void generatePassword(char *password, uint8_t size, uint8_t appendNullTerm);
 void sendAccount(void);
 void sendUsername(void);
 void sendWebSite(void);
@@ -2376,7 +2380,7 @@ void ProcessEvent() {                                                           
               encrypt32Bytes(buffer, oldPassword);                              // encrypt it before you write it
               eeprom_write_bytes(GET_ADDR_OLD_PASS(acctPosition), buffer, PASSWORD_SIZE);// write the current password to old password in EEprom
             }            
-            setUUID(password, PASSWORD_SIZE - 1, true);                         // put a UUID in the password char array, - 1 accomodates null terminator
+            generatePassword(password, PASSWORD_SIZE - 1, true);                // put a UUID in the password char array, - 1 accomodates null terminator
             BlankLine2();
             machineState = STATE_EDIT_PASSWORD;                                 // pretend we're entering the password
             event = EVENT_LONG_CLICK;                                           // and trigger long click to write the password to eeprom.
@@ -4001,8 +4005,8 @@ void deleteAccount(uint8_t position) {
 
 //- UUID & Salt Generation
 
-void setUUID(char *uuid, uint8_t size, uint8_t appendNullTerm) {
-  //DebugLN("setUUID()");
+void generatePassword(char *uuid, uint8_t size, uint8_t appendNullTerm) {
+  //DebugLN("generatePassword()");
 
   for (uint8_t i = 0; i < (size - 1); i++) {
     uuid[i] = random(33,126);                                                   // maybe we should use allChars here instead? We're generating PWs w/ chars that we can't input...
@@ -4141,11 +4145,13 @@ void sendUsernameAndPassword() {
   while (usernameChar[i++] != NULL_TERM) {
     Keyboard.write(usernameChar[i - 1]);                                        // seems to be a problem only with single character user names.
   }
-  if ((strcmp(style, "0") == 0              ) ||                                // 0 = Return (default) 1 = Tab
-      (style[0] == (char) INITIAL_MEMORY_STATE_CHAR)   ) {                      // this should make <CR> the default
+  if (strcmp(style, "0") == 0) {                                                // 0 = Return (default) 1 = Tab
     Keyboard.println("");                                                       // send <CR> through the keyboard
-  } else {
+  } else if (strcmp(style, "1") == 0) {
     Keyboard.press(TAB_KEY);                                                    // if style isn't default or "0" then send <TAB>
+    Keyboard.release(TAB_KEY);
+  } else if (style[0] == (char) INITIAL_MEMORY_STATE_CHAR) {
+    Keyboard.press(TAB_KEY);                                                    // Make <TAB> the default
     Keyboard.release(TAB_KEY);
   }
   delayNoBlock(UN_PW_DELAY);

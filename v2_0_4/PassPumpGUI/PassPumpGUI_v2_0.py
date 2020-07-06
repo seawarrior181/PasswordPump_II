@@ -114,7 +114,7 @@ window = Tk()
 window.title("PasswordPump Edit Credentials v2.0.4")
 
 if (platform.system() == "Windows"):                                           # e.g. Windows10
-    window.geometry('400x555')
+    window.geometry('400x560')
 elif (platform.system() == "Darwin"):                                          # Macintosh
     window.geometry('580x600')
 elif (platform.system() == "Linux"):                                           # e.g. Ubuntu
@@ -412,6 +412,7 @@ def clickedPass():
     directions = """Updated password."""
     updateDirections(directions)
     window.update()
+    passesComplexityCheck = passwordComplexityCheck(aResPass)
 
 def clickedOldPassParam(txt_old_pass_param):
     clickedOldPass()
@@ -437,7 +438,7 @@ def clickedStyle():
     global position
     resStyle = cbStyle.current()
     if ((resStyle != 0) and (resStyle != 1)):                                  # style must be 0 or 1
-        resStyle = 0;                                                          # default is 0
+        resStyle = 1;                                                          # default is 1
     c.send("pyUpdateStyle", calcAcctPositionSend(position), resStyle)
     response = c.receive()
     #print(response)
@@ -560,7 +561,7 @@ def clickedPrevious():
         selection = items[0]
         OnEntryUpNoEvent()
         lb.activate(selection)                                                 # has no effect
-        updateDirections("Navigated to previous record.")
+        #updateDirections("Navigated to previous record.")
 
 def clickedNext():
     global position
@@ -579,7 +580,7 @@ def clickedNext():
         selection = items[0]
         OnEntryDownNoEvent()
         lb.activate(selection)                                                 # has no effect
-        updateDirections("Navigated to next record.")
+        #updateDirections("Navigated to next record.")
 
 def loadListBox():                                                             # TODO: reorganize the logic in this function
     window.config(cursor="watch")                                              # TODO: this is not working
@@ -871,6 +872,7 @@ def getRecord():
         password = ""
     txt_pass.delete(0,END)
     txt_pass.insert(0,password)
+    passesComplexityCheck = passwordComplexityCheck(password)
 
     c.send("pyReadOldPassword", calcAcctPositionSend(position))
     try:
@@ -888,10 +890,10 @@ def getRecord():
         response = c.receive()
         #print(response)
         style_list = response[1]
-        style = style_list[0]
+        style = int(style_list[0])
     except UnicodeDecodeError:
-        style = ""
-    cbStyle.set(style)
+        style = 1
+    cbStyle.current(style)
 
     c.send("pyReadURL", calcAcctPositionSend(position))
     try:
@@ -1272,16 +1274,16 @@ def ExportFile():
                     try:
                         response = c.receive()
                         style_list = response[1]
-                        style = stripBadChars(style_list[0])
+                        style = int(stripBadChars(style_list[0]))
                     except UnicodeDecodeError as e:
                         updateDirections("UnicodeDecodeError in pyReadStyle; " + str(e))
-                        style = 0
+                        style = 1
                     except ValueError as ve:
                         updateDirections("ValueError in pyReadStyle; " + str(ve))
-                        style = 0
+                        style = 1
                     except Exception as e:
                         updateDirections("Exception in pyReadStyle; " + str(e))
-                        style = 0
+                        style = 1
 
                     c.send("pyReadGroup", calcAcctPositionSend(position))
                     try:
@@ -1402,7 +1404,10 @@ def generatePassword():
         txt_old_pass.insert(END, previousPass)
         txt_old_pass.focus()
     characters = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%*()?-_=+:;{}[]" # These chars are not generated on the PasswordPump:  , " @ ` \ & ~ | \\ ^ /
-    password = "".join(choice(characters) for x in range(31))
+    while True:                                                                # emulate a do while loop in python
+        password = "".join(choice(characters) for x in range(31))              # generate passwords until one passes
+        if passwordComplexityCheck(password):                                  # the complexity check.
+            break
     txt_pass.delete(0, END)
     txt_pass.insert(END, password)
     txt_pass.focus()                                                           # to save the old password
@@ -1413,9 +1418,60 @@ def checkIfPowned():
     if (len(currentPass) != 0):
         pownedCnt = powned.check(currentPass);
         if (pownedCnt):
-            tkinter.messagebox.showinfo('Bad News', 'This password has been seen '+ str(pownedCnt) +' times before.  Do not use it.');
+            tkinter.messagebox.showinfo('Bad News', 'This password has been seen '+ str(pownedCnt) +' times before.  Do not use it.')
+            updateDirections("This password has been recovered in a data breach.  Do not use it.")
         else:
-            tkinter.messagebox.showinfo('Good News', 'This password has not been recovered in any data breaches.');
+            tkinter.messagebox.showinfo('Good News', 'This password has not been recovered in any data breaches.')
+            updateDirections("This password has not been recovered in any data breach.")
+        window.update();
+
+
+# Function to validate the password
+def passwordComplexityCheck(passwd):
+    # !#$%*()-_+={}[]:;.<>?@
+    specialSym = ['!','#','$','%','*','(',')','-','_','+','=','{','}','[',']',':',';','.','<','>','?','@']
+    # ,"`\/&~|^
+    badSym = [',','"','`','\\','/','&','~','|','^']
+    val = True
+    rejectReason = 'This password is unacceptable: \r\n'
+
+    if len(passwd) > 31:
+        rejectReason += 'The password length should be not be greater than 31. \r\n'
+        val = False
+
+    if len(passwd) < 10:
+        rejectReason += 'The password length should be at least 10. \r\n'
+        val = False
+
+    if not any(char.isdigit() for char in passwd):
+        rejectReason += 'The password should have at least one numeral. \r\n'
+        val = False
+
+    if not any(char.isupper() for char in passwd):
+        rejectReason += 'The password should have at least one uppercase letter. \r\n'
+        val = False
+
+    if not any(char.islower() for char in passwd):
+        rejectReason += 'The password should have at least one lowercase letter. \r\n'
+        val = False
+
+    if  any(char in badSym for char in passwd):
+        rejectReason += 'The password has a forbidden symbol: ,"`\/&~|^ \r\n'
+        val = False
+
+    if not any(char in specialSym for char in passwd):
+        rejectReason += 'The password should have at least one of these symbols: !#$%*()-_+={}[]:;.<>?'
+        val = False
+
+    if not val:
+        updateDirections(rejectReason)
+        txt_pass.config({"foreground": "red"})
+    else:
+        updateDirections('This is a 600 year password; it passes complexity validation.')
+        txt_pass.config({"foreground": "black"})
+
+    window.update()
+    return val
 
 def flipPassword():
     global showPassword
@@ -1640,8 +1696,12 @@ menubar.entryconfig('File', state='disabled')
 menubar.entryconfig('Backup/Restore', state='disabled')
 menubar.entryconfig('Settings', state='disabled')
 
-styles = ["0 - Return","1 - Tab"]
-cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
+#styles = ["0 - Return","1 - Tab"]
+#cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
+cbStyle = Combobox(window, justify=LEFT, width=37)
+cbStyle['values'] = ('Return',
+                     'Tab')
+cbStyle.current(1)
 cbStyle.grid(column=2, row=7)
 cbStyle.bind('<<ComboboxSelected>>', on_style_select)
 
