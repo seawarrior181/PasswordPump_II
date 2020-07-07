@@ -23,7 +23,7 @@
 # - If an account name contains a comma, and you visit the field, after
 #   exiting the GUI and reloading all of the accounts, the comma has changed
 #   into a hashtag and all of the remaining fields are blank.
-# - Change the 0 / 1 for Tab and Return to just Tab and Return.  Select tab
+# * Change the 0 / 1 for Tab and Return to just Tab and Return.  Select tab
 #   as the default.
 # * If input focus is on the password field, and you select Insert, then
 #   navigate to the Account field, the password field of the account you
@@ -188,7 +188,7 @@ def clickedOpen():
                                               int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
         arduinoAttached = 1
     except serial.serialutil.SerialException:
-        updateDirections("Error when attaching to PasswordPump.  Device not found. Power cycle the PasswordPump and try again.")
+        updateDirections("Error when attaching to\r\nPasswordPump.  Device not\n\rfound. Power cycle the\n\rPasswordPump and try again.")
 
     global commands
     commands = [["kAcknowledge","b"],                                          # List of command names (and formats for their associated arguments). These must
@@ -262,7 +262,7 @@ def clickedOpen():
         global head
         head = calcAcctPositionReceive(response_list[0])
     except Exception as e:
-        updateDirections("Exception encountered reading return value from pyReadHead; " + str(e))
+        updateDirections("Exception encountered reading\r\nreturn value from pyReadHead:\r\n" + str(e))
         head = 0
     global position
     position = head
@@ -275,7 +275,7 @@ def clickedOpen():
         response_list = response[1]
         acctCount = calcAcctPositionReceive(response_list[0])
     except TypeError as te:
-        updateDirections("TypeError encountered in clickedOpen(); " + str(te))
+        updateDirections("TypeError encountered in clickedOpen():\r\n" + str(te))
         acctCount = 0
     if (acctCount > 0):
         loadListBox()
@@ -365,9 +365,9 @@ def clickedAcct():
                 getRecord()
                 updateDirections("Updated account name.")
         except ValueError as e:
-            updateDirections("Value error encountered in clickedAcct; " + str(e))
+            updateDirections("Value error encountered in\r\nclickedAcct:\r\n" + str(e))
         except Exception as ex:
-            updateDirections("Exception encountered in clickedAcct; " + str(ex))
+            updateDirections("Exception encountered in\r\nclickedAcct:\r\n" + str(ex))
     else:
         updateDirections("Empty account name discarded.")
     window.config(cursor="")
@@ -539,7 +539,7 @@ def clickedClose():
             response_list = response[1]
             acctCount = calcAcctPositionReceive(response_list[0])              # not used
         except Exception as e:
-            updateDirections("There was an error closing the application; " + str(e))
+            updateDirections("There was an error closing the\r\napplication:\r\n" + str(e))
     sys.exit(1)
 
 def clickedPrevious():
@@ -555,7 +555,7 @@ def clickedPrevious():
     position = calcAcctPositionReceive(response_list[0])
     if position == 255:
         position = last_position
-        updateDirections("Reached the beginning of the list.")
+        updateDirections("Reached the beginning of the\r\nlist.")
     else:
         items = lb.curselection()
         selection = items[0]
@@ -574,7 +574,7 @@ def clickedNext():
     position = calcAcctPositionReceive(response_list[0])                       # used when we call OnEntryDownNoEvent->OnEntryDown->clickedLoad->getRecord
     if position == 255:
         position = last_position
-        updateDirections("Reached the end of the list")
+        updateDirections("Reached the end of the list.")
     else:
         items = lb.curselection()                                              # Gets a list of the currently selected alternatives.
         selection = items[0]
@@ -604,13 +604,13 @@ def loadListBox():                                                             #
                 accountName_list = response[1]
                 accountName = accountName_list[0]
             except UnicodeDecodeError as e:
-                updateDirections("UnicodeDecodeError in pyReadAccountName; " + str(e))
+                updateDirections("UnicodeDecodeError in\r\npyReadAccountName:\r\n" + str(e))
                 accountName = "UnicodeDecodeError"
             except ValueError as ve:
-                updateDirections("ValueError in pyReadAccountName; " + str(ve))
+                updateDirections("ValueError in\r\npyReadAccountName:\r\n" + str(ve))
                 accountName = "ValueError"
             except Exception as e:
-                updateDirections("Exception in pyReadAccountName; " + str(e))
+                updateDirections("Exception in\r\npyReadAccountName:\r\n" + str(e))
                 accountName = "Exception"
             accountDict[accountName] = position
             lb.insert(END, accountName)                                        # Load the listbox
@@ -620,19 +620,19 @@ def loadListBox():                                                             #
                 response_list = response[1]
                 position = calcAcctPositionReceive(response_list[0])
             except ValueError as ve:
-                updateDirections("Error in pyGetNextPos; " + str(ve))
+                updateDirections("Error in pyGetNextPos:\r\n" + str(ve))
                 raise ve
             except Exception as e:
-                updateDirections("Exception in pyGetNextPos; " + str(e))
+                updateDirections("Exception in pyGetNextPos:\r\n" + str(e))
                 raise e
         position = head
         window.config(cursor="")
         window.update()
     except ValueError as ve:
-        updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
+        updateDirections("ValueError in pyReadHead,\r\npyReadAccountName or\r\npyGetNextPos:\r\n" + str(ve))
         head = 0
     except Exception as e:
-        updateDirections("Exception in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(e))
+        updateDirections("Exception in pyReadHead,\r\npyReadAccountName or\r\npyGetNextPos:\r\n" + str(e))
         head = 0
 
 def ReadGroupNames():
@@ -680,13 +680,13 @@ def ReadGroupNames():
         groupName7 = groupName_list[0]
 
     except UnicodeDecodeError as e:
-        updateDirections("UnicodeDecodeError in pyReadGroup1Name; " + str(e))
+        updateDirections("UnicodeDecodeError in\r\npyReadGroup1Name:\r\n" + str(e))
         groupName1 = "UnicodeDecodeError"
     except ValueError as ve:
-        updateDirections("ValueError in pyReadGroupName; " + str(ve))
+        updateDirections("ValueError in\r\npyReadGroupName:\r\n" + str(ve))
         groupName1 = "ValueError"
     except Exception as e:
-        updateDirections("Exception in pyReadGroupName; " + str(e))
+        updateDirections("Exception in\r\npyReadGroupName:\r\n" + str(e))
         groupName1 = "Exception"
 
 
@@ -803,14 +803,14 @@ def clickedShowPassword():
         #print(response)
         response_list = response[1]
         unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
-        updateDirections("Turned on password viewing on the PasswordPump.")
+        updateDirections("Turned on password viewing on\r\nthe PasswordPump.")
     else:
         c.send("pyShowPasswords", 0)
         response = c.receive()
         #print(response)
         response_list = response[1]
         unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
-        updateDirections("Turned off password viewing on the PasswordPump.")
+        updateDirections("Turned off password viewing on\r\nthe PasswordPump.")
 
 def clickedDecoyPassword():
     yes = tkinter.messagebox.askyesno("Decoy Password", "Do you want to enable the decoy password feature?")
@@ -820,14 +820,14 @@ def clickedDecoyPassword():
         #print(response)
         response_list = response[1]
         unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
-        updateDirections("Enabled the decoy password feature on the PasswordPump")
+        updateDirections("Enabled the decoy password\r\nfeature on the PasswordPump")
     else:
         c.send("pyDecoyPassword", 0)
         response = c.receive()
         #print(response)
         response_list = response[1]
         unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
-        updateDirections("Disabled the decoy password feature on the PasswordPump")
+        updateDirections("Disabled the decoy password\r\nfeature on the PasswordPump")
 
 def getRecord():
     global position
@@ -1433,41 +1433,41 @@ def passwordComplexityCheck(passwd):
     # ,"`\/&~|^
     badSym = [',','"','`','\\','/','&','~','|','^']
     val = True
-    rejectReason = 'This password is unacceptable: \r\n'
+    rejectReason = 'Password fails complexity\r\ncheck:\r\n'
 
     if len(passwd) > 31:
-        rejectReason += 'The password length should be not be greater than 31. \r\n'
+        rejectReason += 'The password length should be\r\nnot be greater than 31.\r\n'
         val = False
 
     if len(passwd) < 10:
-        rejectReason += 'The password length should be at least 10. \r\n'
+        rejectReason += 'The password length should be\r\nat least 10.\r\n'
         val = False
 
     if not any(char.isdigit() for char in passwd):
-        rejectReason += 'The password should have at least one numeral. \r\n'
+        rejectReason += 'The password should have at\r\nleast one numeral.\r\n'
         val = False
 
     if not any(char.isupper() for char in passwd):
-        rejectReason += 'The password should have at least one uppercase letter. \r\n'
+        rejectReason += 'The password should have at\r\nleast one uppercase letter.\r\n'
         val = False
 
     if not any(char.islower() for char in passwd):
-        rejectReason += 'The password should have at least one lowercase letter. \r\n'
+        rejectReason += 'The password should have at\r\nleast one lowercase letter.\r\n'
         val = False
 
     if  any(char in badSym for char in passwd):
-        rejectReason += 'The password has a forbidden symbol: ,"`\/&~|^ \r\n'
+        rejectReason += 'The password has a forbidden\r\nsymbol: ,"`\/&~|^ \r\n'
         val = False
 
     if not any(char in specialSym for char in passwd):
-        rejectReason += 'The password should have at least one of these symbols: !#$%*()-_+={}[]:;.<>?'
+        rejectReason += 'The password should have at\r\nleast one of these symbols:\r\n!#$%*()-_+={}[]:;.<>?'
         val = False
 
     if not val:
         updateDirections(rejectReason)
         txt_pass.config({"foreground": "red"})
     else:
-        updateDirections('This is a 600 year password; it passes complexity validation.')
+        updateDirections('Password passes complexity\r\nvalidation.')
         txt_pass.config({"foreground": "black"})
 
     window.update()
@@ -1800,7 +1800,6 @@ txt_dir.delete('1.0', END)
 directions = """Select Edit with Computer on
 the PasswordPump. After 
 selecting the port click on
-the Open Port button to open
 the Open Port button to open
 the port for the PasswordPump."""
 txt_dir.insert(END, directions)
