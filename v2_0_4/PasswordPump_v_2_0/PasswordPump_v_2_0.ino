@@ -434,13 +434,6 @@
   =========
 	- https://github.com/LennartHennigs/Button2 				For the button on the 
 																											rotary encoder 
-	-	https://github.com/arduino-libraries/Keyboard 		For simulating a USB 
-																											keyboard and sending 
-																											output to it 
-  - https://github.com/Necr0tizing/ArduinoKeyboardLayouts
-                                                      Contains the keyboard
-                                                      layouts for alternate 
-                                                      keyboards.
 	-	https://rweather.github.io/arduinolibs/index.html For encrypting 
 																											credentials and for 
 																											hashing the master 
@@ -457,19 +450,21 @@
   =====================
 	-	Changed Adafruit_SSD1306::begin in Adafruit_SSD1306.cpp to suppress display
     of the Adafruit splash screen on the SSD1306 display.
- 
-  - The Keyboard and ArduinoKeyboardLayouts libraries have been combined into 
-    Keyboard-master-multilingual, which is available here:
-    https://github.com/seawarrior181/PasswordPump_II/tree/master/Libraries
-    Install that library instead of the Keyboard and ArduinoKeyboardLayouts
-    libraries.
- 
+  - It's necessary to make an edit to the Arduino-CmdMessenger library so that 
+    it will compile.  On line 492 of 
+    ...\arduino\libraries\Arduino-CmdMessenger-master\CmdMessenger.cpp, change 
+
+      return '\0';
+
+        to
+
+      char *str;
+      *str = '\0';
+      return str;
+
   Burning The Firmware    
   ====================    
 	From the Arduino IDE:
-    0) In arduino\libraries\Keyboard-master-multilingual, copy the .cpp file
-       that corresponds with your keyboard's language to Keyboard.cpp.  
-       US-Keyboard.cpp is the default.
 		1) Under Tools do the following:  
 			- Set the Board: "Adafruit ItsyBitsy M4 (SAMD51)".  
 			- Cache: “Enabled”
@@ -741,6 +736,16 @@
 			Edit Group 6
 			Edit Group 7
     Change Master Psswrd
+    Keyboard Language
+      Czech
+      Danish
+      Finnish
+      French
+      German
+      Norwegian
+      Spanish
+      Swedish
+      United States
   Factory Reset [confirm]   
 
   Error Codes  TODO: add more error codes
@@ -796,7 +801,7 @@
   ==============================================================================
 //- Includes/Defines                                                            */
 //#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__    	    	          					  												    // Turn this on for Adafruit ItsyBitsy M4
+#define __SAMD51__      	              					  												    // Turn this on for Adafruit ItsyBitsy M4
 //#define __SAMD21__             	 							  	  													// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
@@ -813,7 +818,7 @@
 #include <avr/interrupt.h>
 #include <Wire.h>
 #include <Button2.h>                                                            // https://github.com/LennartHennigs/Button2 for the button on the rotary encoder 
-#include "Keyboard.h"                                                           // https://github.com/arduino-libraries/Keyboard
+#include "Keyboard.h"                                                           
 #include "CzechKeyboard.h"                                                      
 #include "DanishKeyboard.h"                                     
 #include "SwedishKeyboard.h"                                     
