@@ -84,6 +84,8 @@
     happen.
   - When entering an account name 29 chars long via keyboard, nothing gets 
     entered.
+  - You can only select a new keyboard language once, the second time will 
+    freeze the MCU.  Just press the reset button to work around.
   ! In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
@@ -801,7 +803,7 @@
   ==============================================================================
 //- Includes/Defines                                                            */
 //#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__      	              					  												    // Turn this on for Adafruit ItsyBitsy M4
+#define __SAMD51__    	                					  												    // Turn this on for Adafruit ItsyBitsy M4
 //#define __SAMD21__             	 							  	  													// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__

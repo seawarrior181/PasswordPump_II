@@ -77,21 +77,21 @@ static const uint8_t  _asciimapGerman[128]  =
 	0x00,             // US 
 
 	0x2c,		   //  ' '
-	0x1e | SHIFT,	   // !
-	0x1f | SHIFT,	   // "
+	0x1e|SHIFT,	   // !
+	0x1f|SHIFT,	   // "
 	0x31,		   // #
-	0x21 | SHIFT,    // $
-	0x22 | SHIFT,    // %
-	0x23 | SHIFT,    // &
-	0x31 | SHIFT,    // '
-	0x25 | SHIFT,    // (
-	0x26 | SHIFT,    // )
-	0x30 | SHIFT,    // *
+	0x21|SHIFT,    // $
+	0x22|SHIFT,    // %
+	0x23|SHIFT,    // &
+	0x31|SHIFT,    // '
+	0x25|SHIFT,    // (
+	0x26|SHIFT,    // )
+	0x30|SHIFT,    // *
 	0x30,		// +
 	0x36,          // ,
 	0x38,          // -
 	0x37,          // .
-	0x24 | SHIFT,    // /
+	0x24|SHIFT,    // /
 	0x27,          // 0
 	0x1e,          // 1
 	0x1f,          // 2
@@ -102,13 +102,13 @@ static const uint8_t  _asciimapGerman[128]  =
 	0x24,          // 7
 	0x25,          // 8
 	0x26,          // 9
-	0x37 | SHIFT,      // :
-	0x36 | SHIFT,          // ;
-	0x64,			      // < !unused, done in workaround!
+	0x37|SHIFT,      // :
+	0x36|SHIFT,          // ;
+	0x64,		      // <
 	0x27|SHIFT,          // =
-	0x64|SHIFT,      // >		!unused, done in workaround!
+	0x64|SHIFT,      // >
 	0x2d|SHIFT,      // ?
-	0x14|ALTGR,      // @
+	0x14,      // @
 	0x04|SHIFT,      // A
 	0x05|SHIFT,      // B
 	0x06|SHIFT,      // C
@@ -135,9 +135,9 @@ static const uint8_t  _asciimapGerman[128]  =
 	0x1b|SHIFT,      // X
 	0x1d|SHIFT,      // Y
 	0x1c|SHIFT,      // Z
-	0x25|ALTGR,          // [
-	0x2d|ALTGR,          // bslash
-	0x26|ALTGR,          // ]
+	0x25,          // [
+	0x2d,          // bslash
+	0x26,          // ]
 	0x35,		    // ^
 	0x38|SHIFT,    // _
 	0x2e|SHIFT,          // `
@@ -147,7 +147,7 @@ static const uint8_t  _asciimapGerman[128]  =
 	0x07,          // d
 	0x08,          // e
 	0x09,          // f
-	0x64,          // g
+	0x0a,          // g
 	0x0b,          // h
 	0x0c,          // i
 	0x0d,          // j
@@ -167,10 +167,10 @@ static const uint8_t  _asciimapGerman[128]  =
 	0x1b,          // x
 	0x1d,          // y
 	0x1c,          // z
-	0x24|ALTGR,    // {	!output instead of < without workaround (hid-code 0x64)
-	0x64|ALTGR,    // | !unused, done in workaround!
-	0x27|ALTGR,    // }
-	0x30|ALTGR,    // ~
+	0x2f,    // {
+	0x2c,    // |
+	0x2e,    // }
+	0x30,    // ~
 	0		// DEL
 };
 
