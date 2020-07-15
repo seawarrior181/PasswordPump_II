@@ -790,13 +790,14 @@
   042 - Invalid position when returning to settings menu
 	043 - Invalid group number when customizing groups
   044 - Invalid category number when customizing groups from PasswordPumpGUI
+  045 - Invalid keyboard language specified
 
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
 //#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__		    		        																			    // Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__  	          	 								  													// Turn this on for Adafruit ItsyBitsy M0
+#define __SAMD51__    	  		          					  												    // Turn this on for Adafruit ItsyBitsy M4
+//#define __SAMD21__             	 							  	  													// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -812,7 +813,16 @@
 #include <avr/interrupt.h>
 #include <Wire.h>
 #include <Button2.h>                                                            // https://github.com/LennartHennigs/Button2 for the button on the rotary encoder 
-#include <Keyboard.h>                                                           // https://github.com/arduino-libraries/Keyboard
+#include "Keyboard.h"                                                           // https://github.com/arduino-libraries/Keyboard
+#include "CzechKeyboard.h"                                                      
+#include "DanishKeyboard.h"                                     
+#include "SwedishKeyboard.h"                                     
+#include "NorwegianKeyboard.h"                                     
+#include "FinnishKeyboard.h"                                                    
+#include "FrenchKeyboard.h"                                                     
+#include "GermanKeyboard.h"                                                     
+#include "SpanishKeyboard.h"                                                    
+#include "USKeyboard.h"                                                         
 #include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
 #include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
 #include <Adafruit_SSD1306.h>                                                   // https://github.com/adafruit/Adafruit_SSD1306 for SSD1306 monochrome 128x64 and 128x32 OLEDs  
@@ -834,6 +844,7 @@
 #define getKeyboardFlag           read_eeprom_byte(GET_ADDR_KEYBOARD_FLAG)
 #define getRGBLEDInt              read_eeprom_byte(GET_ADDR_RGB_LED_INT)
 #define getLogoutTimeout          read_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT)
+#define getKeyboardType           read_eeprom_byte(GET_ADDR_KEYBOARD_TYPE)
 #define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)    // The number of login attempts before we factory reset
 #define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
 #define getGroupStatus						read_eeprom_byte(GET_ADDR_CATEGORY_1)
@@ -1001,6 +1012,7 @@
 #define LOGIN_ATTEMPTS_NUM_SIZE   0x0001                                        // 1 byte
 #define DECOY_PW_SIZE             0x0010                                        // 1 byte
 #define CATEGORY_SIZE             0x000A																				// 10 bytes (there are 7 of these)
+#define KEYBOARD_TYPE_SIZE        0x0001                                        // 1 byte
 //------------------------------------------------------------------------------
 #define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (53 total, rounding up to 256)
 //==============================================================================// 65536 - 256 = 32512/256 = 255 CREDS_ACCOMIDATED
@@ -1017,6 +1029,7 @@
 #define GET_ADDR_LOGOUT_TIMEOUT   (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE) // store the setting for the automatic logout timeout
 #define GET_ADDR_LOGIN_ATTEM_NUM  (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE) // store the setting for the EEProm part number
 #define GET_ADDR_DECOY_PW         (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE) // store the setting for the decoy password setting
+#define GET_ADDR_KEYBOARD_TYPE    (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE) // store the setting for the keyboard type setting
 #define GET_ADDR_CATEGORY_1				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 1) // place the categories on the second to last page on EEprom
 #define GET_ADDR_CATEGORY_2				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 2)
 #define GET_ADDR_CATEGORY_3				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 3)
@@ -1055,6 +1068,7 @@
 #define EVENT_SEARCH_FAVORITES    30
 #define EVENT_SHOW_FAVORITES_MENU 31
 #define EVENT_SHOW_GROUP_DEF_MENU 32
+#define EVENT_SHOW_KEYBOARD_MENU  33
                                                                                 // Not using an enum here to save memory.  
 //- States                                                                      
 
@@ -1106,6 +1120,7 @@
 #define STATE_EDIT_GROUP_5				46
 #define STATE_EDIT_GROUP_6				47
 #define STATE_EDIT_GROUP_7				48
+#define STATE_MENU_KEYBOARD       49
 
 //- I2C Address
 
@@ -1201,7 +1216,7 @@ const char * const enterMenu[] =  {              "Edit Account Name",           
 #define SAVE_OLD_PASSWORD         7
 
 #define SETTINGS_MENU_NUMBER      3
-#define SETTINGS_MENU_ELEMENTS    8                                             // the number of selections in the menu for changing settings
+#define SETTINGS_MENU_ELEMENTS    9                                             // the number of selections in the menu for changing settings
 //char   settingsMenu[SETTINGS_MENU_ELEMENTS+1][DISPLAY_BUFFER_SIZE-1] =
 char *settingsMenu[] =
                                       {          "Keyboard",                    // flag that determines if the input by keyboard feature is on or off
@@ -1212,6 +1227,7 @@ char *settingsMenu[] =
                                                  "Login Attempts",              // the number of login attempts allowed before a factory reset occurs
 																								 "Rename Groups",								// allows the user to rename the group categories
                                                  "Change Master Psswrd",				// Change the master password
+                                                 "Keyboard Language",           // Change the keyboard language
                                                  ""                           };
 
 #define SETTINGS_SET_KEYBOARD     0                                             //
@@ -1222,6 +1238,7 @@ char *settingsMenu[] =
 #define SETTINGS_SET_LOGIN_ATTEM  5
 #define SETTINGS_GROUP_DEFINITION 6
 #define SETTINGS_CHANGE_MASTER    7
+#define SETTINGS_KEYBOARD_LANG    8
 
 #define LOGOUT_TIMEOUT_MENU_NUMBER    4
 #define LOGOUT_TIMEOUT_MENU_ELEMENTS  7
@@ -1354,6 +1371,28 @@ const char * const fileMenu[] = {                "Backup EEprom",               
 #define FILE_IMPORT_CP_CSV        4
 #define FILE_IMPORT_KEEPASS_CSV   5
 
+#define KEYBOARD_MENU_NUMBER      11
+#define KEYBOARD_MENU_ELEMENTS    9
+const char * const keyboardMenu[] = {            "Czech",
+                                                 "Danish",
+                                                 "Finnish",
+                                                 "French",
+                                                 "German",
+                                                 "Norwegian",
+                                                 "Spanish",      
+                                                 "Swedish",
+                                                 "United States",
+                                                 ""                           };
+                                                  
+#define KEYBOARD_CZECH            0
+#define KEYBOARD_DANISH           1
+#define KEYBOARD_FINNISH          2
+#define KEYBOARD_FRENCH           3
+#define KEYBOARD_GERMAN           4
+#define KEYBOARD_NORWEGIAN        5
+#define KEYBOARD_SPANISH          6
+#define KEYBOARD_SWEDISH          7
+#define KEYBOARD_US               8
 
 #define SCREEN_WIDTH              128                                           // OLED display width, in pixels
 #define SCREEN_HEIGHT             32                                            // OLED display height, in pixels
@@ -1425,6 +1464,9 @@ boolean oledDim   = false;                                                      
 //uint8_t green = 0;
 //uint8_t blue = 0;
 uint16_t angle = 0;
+
+uint8_t keyboardType;
+uint8_t originalKeyboardType;
 
 const uint8_t HSVlights[61] = 
 {0, 4, 8, 13, 17, 21, 25, 30, 34, 38, 42, 47, 51, 55, 59, 64, 68, 72, 76,
@@ -1718,6 +1760,8 @@ void OnGetNextFreePos();
 void OnDeleteAccount();
 void initializeAllGroupCategories();																						// sets all group categories to their default values
 
+Keyboard_ Keyboard;
+
 //- Main Program Control
 
 void setup() {                                                                  // runs first when the device is powered on
@@ -1774,7 +1818,6 @@ void setup() {                                                                  
   //oled.setFont(Adafruit5x7);                                                  // Nice but a bit small.  Can get 3 lines of output.
   //oled.setFont(Adafruit5x7);                                                  // Nice but a bit small.  Can get 3 lines of output.
   ShowSplashScreen();
-  
   DisableInterrupts();                                                          // turn off global interrupts, initially set to true
   initSPI();
 
@@ -1830,6 +1873,44 @@ void setup() {                                                                  
 	}
 	readGroupCategories();																												// set the group categories from EEprom
 	loadGroupMenu();  															   												  	// load the group categories into the group menu
+
+  keyboardType = getKeyboardType;
+	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {																// ...and if not initialize them
+    keyboardType = KEYBOARD_US;
+		writeKeyboardType();
+	}
+  switch(keyboardType) {
+     case KEYBOARD_CZECH:
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      break;
+     case KEYBOARD_DANISH:
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      break;
+     case KEYBOARD_FINNISH:
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      break;
+     case KEYBOARD_FRENCH:
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      break;
+     case KEYBOARD_GERMAN:
+      Keyboard.InitKeyboard(_asciimapGerman, _hidReportDescriptorGerman);
+      break;
+     case KEYBOARD_NORWEGIAN:
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      break;
+     case KEYBOARD_SPANISH:
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      break;
+     case KEYBOARD_SWEDISH:
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      break;
+     case KEYBOARD_US:
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      break;
+    default:
+      DisplayToError("045");
+      break;
+  }
 	
   lastActivityTime = millis();                                                  // establish the start time for when the device is powered up
   authenticated = false;                                                        // we're not authenticated yet!
@@ -2018,6 +2099,11 @@ void ProcessEvent() {                                                           
         position++;
         MenuDown(currentMenu);
       }
+    } else if (STATE_MENU_KEYBOARD        == machineState) {									  // event == EVENT_ROTATE_CW
+      if (position < KEYBOARD_MENU_ELEMENTS - 1) {                        
+        position++;
+        MenuDown(currentMenu);
+      }
     } else if (STATE_MENU_RGB_INTENSITY   == machineState) {									  // event == EVENT_ROTATE_CW
       if (position < RGB_INTENSITY_MENU_ELEMENTS - 1) {                         
         position++;
@@ -2137,7 +2223,8 @@ void ProcessEvent() {                                                           
       ShowMenu(position, currentMenu);
     } else if ((STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
-               (STATE_MENU_LOGOUT_TIMEOUT == machineState)   ) {                // EVENT_ROTATE_CC
+               (STATE_MENU_LOGOUT_TIMEOUT == machineState) ||
+               (STATE_MENU_KEYBOARD       == machineState)) {                   // EVENT_ROTATE_CC
       if (position > 0) {
         position--;
         MenuUp(currentMenu);
@@ -2578,7 +2665,8 @@ void ProcessEvent() {                                                           
                (STATE_DECOY_ON_OFF_MENU   == machineState) ||
                (STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
-               (STATE_MENU_LOGOUT_TIMEOUT == machineState)  ) {
+               (STATE_MENU_LOGOUT_TIMEOUT == machineState) ||
+               (STATE_MENU_KEYBOARD       == machineState)) {
       switch (machineState) {                                                   // TODO: this is a weird way to do this... fix it.
         case STATE_KEY_ON_OFF_MENU:
           keyboardFlag = position;
@@ -2670,6 +2758,70 @@ void ProcessEvent() {                                                           
           }
           writeLogoutTimeout();
           DisplayToStatus("Timeout Saved");
+          break;
+        case STATE_MENU_KEYBOARD:
+            originalKeyboardType = keyboardType;
+            switch (position) {
+            case KEYBOARD_CZECH:
+              keyboardType = KEYBOARD_CZECH;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapCzech, _hidReportDescriptorCzech);
+              }
+              break;
+            case KEYBOARD_DANISH:
+              keyboardType = KEYBOARD_DANISH;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapDanish, _hidReportDescriptorDanish);
+              }
+              break;
+            case KEYBOARD_FINNISH:
+              keyboardType = KEYBOARD_FINNISH;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapFinnish, _hidReportDescriptorFinnish);
+              }
+              break;
+            case KEYBOARD_FRENCH:
+              keyboardType = KEYBOARD_FRENCH;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapFrench, _hidReportDescriptorFrench);
+              }
+              break;
+            case KEYBOARD_GERMAN:
+              keyboardType = KEYBOARD_GERMAN;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapGerman, _hidReportDescriptorGerman);
+              }
+              break;
+            case KEYBOARD_NORWEGIAN:
+              keyboardType = KEYBOARD_NORWEGIAN;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapNorwegian, _hidReportDescriptorNorwegian);
+              }
+              break;
+            case KEYBOARD_SPANISH:
+              keyboardType = KEYBOARD_SPANISH;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapSpanish, _hidReportDescriptorSpanish);
+              }
+              break;
+            case KEYBOARD_SWEDISH:
+              keyboardType = KEYBOARD_SWEDISH;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapSwedish, _hidReportDescriptorSwedish);
+              }
+              break;
+            case KEYBOARD_US:
+              keyboardType = KEYBOARD_US;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+              }
+              break;
+            default:
+              DisplayToError("045");
+              break;
+          }
+          writeKeyboardType();
+          DisplayToStatus("Keyboard Saved.");
           break;
         default:
           DisplayToError("ERR: 001");
@@ -2821,6 +2973,10 @@ void ProcessEvent() {                                                           
         case SETTINGS_SET_LOGIN_ATTEM:
           machineState = STATE_MENU_LOGIN_ATTEM;
           event = EVENT_SHOW_LG_ATTEM_MENU;
+          break;
+        case SETTINGS_KEYBOARD_LANG:
+          machineState = STATE_MENU_KEYBOARD;
+          event = EVENT_SHOW_KEYBOARD_MENU;
           break;
         default:
           DisplayToError("ERR: 005");
@@ -3032,31 +3188,31 @@ void ProcessEvent() {                                                           
 							(STATE_SEARCH_CUSTOM    == machineState)) {                         // EVENT_LONG_CLICK
 			switch (machineState) {
 				case STATE_SEARCH_FAVORITES:
-					position = 0;
+					position = GROUP_FAVORITES;
 					break;
 				case STATE_SEARCH_WORK:
-					position = 1;
+					position = GROUP_WORK;
 					break;
 				case STATE_SEARCH_PERSONAL:
-					position = 2;
+					position = GROUP_PERSONAL;
 					break;
 				case STATE_SEARCH_HOME:
-					position = 3;
+					position = GROUP_HOME;
 					break;
 				case STATE_SEARCH_SCHOOL:
-					position = 4;
+					position = GROUP_SCHOOL;
 					break;
 				case STATE_SEARCH_FINANCIAL:
-					position = 5;
+					position = GROUP_FINANCIAL;
 					break;
 				case STATE_SEARCH_MAIL:
-					position = 6;
+					position = GROUP_MAIL;
 					break;
 				case STATE_SEARCH_CUSTOM:
-					position = 7;
+					position = GROUP_CUSTOM;
 					break;
 				default:
-					position = 0;
+					position = GROUP_FAVORITES;
 					DisplayToError("ERR: 040");
 					break;
 			}
@@ -3067,29 +3223,33 @@ void ProcessEvent() {                                                           
                (STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
 							 (STATE_MENU_DEFINE_GROUPS  == machineState) ||
-               (STATE_MENU_LOGOUT_TIMEOUT == machineState)    ){
+               (STATE_MENU_LOGOUT_TIMEOUT == machineState) ||
+               (STATE_MENU_KEYBOARD       == machineState)) {
       switch (machineState) {
         case STATE_KEY_ON_OFF_MENU:
-          position = 0;
+          position = SETTINGS_SET_KEYBOARD;
           break;
         case STATE_SHOW_PW_ON_OFF_MENU:
-          position = 1;
+          position = SETTINGS_SET_SHOW_PW;
           break;
         case STATE_DECOY_ON_OFF_MENU:
-          position = 2;
+          position = SETTINGS_SET_DECOY;
           break;
         case STATE_MENU_RGB_INTENSITY:
-          position = 3;
+          position = SETTINGS_SET_RGB_INT;
           break;
         case STATE_MENU_LOGOUT_TIMEOUT:
-          position = 4;
+          position = SETTINGS_SET_TIMEOUT;
           break;
         case STATE_MENU_LOGIN_ATTEM:
-          position = 5;
+          position = SETTINGS_SET_LOGIN_ATTEM;
           break;
 				case STATE_MENU_DEFINE_GROUPS:
-					position = 6;
+					position = SETTINGS_GROUP_DEFINITION;
 					break;
+        case STATE_MENU_KEYBOARD:
+          position = SETTINGS_KEYBOARD_LANG;
+          break;
         default:
           position = 0;
           DisplayToError("ERR: 042");
@@ -3195,7 +3355,8 @@ void ProcessEvent() {                                                           
     memcpy(currentMenu, settingsMenu, arraySize);
     elements = SETTINGS_MENU_ELEMENTS;
     machineState = STATE_MENU_SETTINGS;
-    if (position < 0 || position > (SETTINGS_MENU_ELEMENTS - 1)) position = 0;  // for safety
+    //if (position < 0 || position > (SETTINGS_MENU_ELEMENTS - 1)) position = 0;// for safety
+    position = 0;                                                               // set focus on the first menu element.
     ShowMenu(position, currentMenu,"      Settings      ");
     event = EVENT_NONE;
 
@@ -3249,19 +3410,19 @@ void ProcessEvent() {                                                           
     elements = RGB_INTENSITY_MENU_ELEMENTS;
     switch(RGBLEDIntensity) {
       case RGB_LED_HIGH:
-        position = 0;
+        position = RGB_INTENSITY_HIGH;
         break;
       case RGB_LED_MEDIUM:
-        position = 1;
+        position = RGB_INTENSITY_MED;
         break;
       case RGB_LED_LOW:
-        position = 2;
+        position = RGB_INTENSITY_LOW;
         break;
       case RGB_LED_OFF:
-        position = 3;
+        position = RGB_INTENSITY_OFF;
         break;
       default:
-        position = 0;
+        position = RGB_INTENSITY_MED;
         DisplayToError("ERR: 016");
         break;
     }
@@ -3291,28 +3452,28 @@ void ProcessEvent() {                                                           
     elements = LOGOUT_TIMEOUT_MENU_ELEMENTS;
     switch(logoutTimeout) {
       case LOGOUT_TIMEOUT_VAL_30:
-        position = 0;
+        position = LOGOUT_TIMEOUT_30;
         break;
       case LOGOUT_TIMEOUT_VAL_60:
-        position = 1;
+        position = LOGOUT_TIMEOUT_60;
         break;
       case LOGOUT_TIMEOUT_VAL_90:
-        position = 2;
+        position = LOGOUT_TIMEOUT_90;
         break;
       case LOGOUT_TIMEOUT_VAL_120:
-        position = 3;
+        position = LOGOUT_TIMEOUT_120;
         break;
       case LOGOUT_TIMEOUT_VAL_240:
-        position = 4;
+        position = LOGOUT_TIMEOUT_240;
         break;
       case LOGOUT_TIMEOUT_VAL_1:
-        position = 5;
+        position = LOGOUT_TIMEOUT_1;
         break;
       case LOGOUT_TIMEOUT_VAL_0:
-        position = 6;
+        position = LOGOUT_TIMEOUT_0;
         break;
       default:
-        position = 0;
+        position = LOGOUT_TIMEOUT_60;
         DisplayToError("ERR: 018");
         break;
     }
@@ -3329,23 +3490,67 @@ void ProcessEvent() {                                                           
     elements = LOGIN_ATTEMPTS_MENU_ELEMENTS;
     switch (loginAttempts) {
       case ATTEMPTS_3:
-        position = 0;
+        position = LOGIN_ATTEMPTS_3;
         break;
       case ATTEMPTS_5:
-        position = 1;
+        position = LOGIN_ATTEMPTS_5;
         break;
       case ATTEMPTS_10:
-        position = 2;
+        position = LOGIN_ATTEMPTS_10;
         break;
       case ATTEMPTS_25:
-        position = 3;
+        position = LOGIN_ATTEMPTS_25;
         break;
       default:
-        position = 0;
+        position = LOGIN_ATTEMPTS_10;
         DisplayToError("ERR: 017");
         break;
     }
     ShowMenu(position, currentMenu, "   Login Attempts   ");  
+    event = EVENT_NONE;
+
+  } else if (event == EVENT_SHOW_KEYBOARD_MENU) {
+    menuNumber = KEYBOARD_MENU_NUMBER;
+    int arraySize = 0;
+    for (uint8_t i = 0; i < MENU_SIZE; i++) {
+      arraySize += sizeof(keyboardMenu[i]);
+    }
+    memcpy(currentMenu, keyboardMenu, arraySize);
+    elements = KEYBOARD_MENU_ELEMENTS;
+    switch (keyboardType) {
+      case KEYBOARD_CZECH:
+        position = KEYBOARD_CZECH;
+        break;
+      case KEYBOARD_DANISH:
+        position = KEYBOARD_DANISH;
+        break;
+      case KEYBOARD_FINNISH:
+        position = KEYBOARD_FINNISH;
+        break;
+      case KEYBOARD_FRENCH:
+        position = KEYBOARD_FRENCH;
+        break;
+      case KEYBOARD_GERMAN:
+        position = KEYBOARD_GERMAN;
+        break;
+      case KEYBOARD_NORWEGIAN:
+        position = KEYBOARD_NORWEGIAN;
+        break;
+      case KEYBOARD_SPANISH:
+        position = KEYBOARD_SPANISH;
+        break;
+      case KEYBOARD_SWEDISH:
+        position = KEYBOARD_SWEDISH;
+        break;
+      case KEYBOARD_US:
+        position = KEYBOARD_US;
+        break;
+      default:
+        position = KEYBOARD_US;
+        DisplayToError("ERR: 045");
+        break;
+    }
+    ShowMenu(position, currentMenu, "   Keyboard Type    ");  
     event = EVENT_NONE;
 
   } else if (event == EVENT_CHANGE_MASTER) {
@@ -3466,6 +3671,11 @@ void PopulateGlobals() {
     loginAttempts = ATTEMPTS_DEFAULT;
     writeLoginAttempts();
   }
+
+  keyboardType = getKeyboardType;
+	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {															// ...and if not initialize them
+		writeKeyboardType();
+	}
 
   headPosition = getListHeadPosition();                                         // read the head of the doubly linked list that sorts by account name
   //DebugMetric("headPosition: ",headPosition);
@@ -4226,6 +4436,46 @@ void sendAll() {                                                                
 }
 */
 
+// void KeyboardBegin() {
+  // Keyboard.begin();
+// }
+
+// void KeyboardWrite(char c) {
+  // Keyboard.write(c);
+// }
+
+// void KeyboardPrintln(char *s) {
+  // Keyboard.println(s);
+// }
+
+// void KeyboardPrintln(char c) {
+  // Keyboard.println(c);
+// }
+
+// void KeyboardEnd() {
+  // Keyboard.end();
+// }
+
+// void KeyboardPrint(char c) {
+  // Keyboard.print(c);
+// }
+
+// void KeyboardPrint(char *s) {
+  // Keyboard.print(s);
+// }
+
+// void KeyboardPress(char c) {
+  // Keyboard.press(c);
+// }
+
+// void KeyboardReleaseAll() {
+  // Keyboard.releaseAll();
+// }
+
+// void KeyboardRelease(char c) {
+  // Keyboard.release(c);
+// }
+
 //- Display Control & Menu Navigation
 
 void DisplayToMenu(char* lineToPrint) {
@@ -4257,7 +4507,7 @@ void DisplayToError(char* lineToPrint) {
   line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
 	oled.invertDisplay(true);
   DisplayBuffer();
-  delayNoBlock(ONE_SECOND * 2);
+  //delayNoBlock(ONE_SECOND * 2);
 	oled.invertDisplay(false);
 }
 
@@ -4839,6 +5089,11 @@ void writeRGBLEDIntensity() {
 void writeLogoutTimeout() {
   //DebugLN("writeLogoutTimeout()");
   write_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT, logoutTimeout);
+}
+
+void writeKeyboardType() {
+  //DebugLN("writeKeyboardType()");
+  write_eeprom_byte(GET_ADDR_KEYBOARD_TYPE, keyboardType);
 }
 
 void writeLoginAttempts() {
