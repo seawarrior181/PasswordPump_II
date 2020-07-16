@@ -6,6 +6,7 @@ The purpose of this repository on GitHub is to disseminate software for and info
 
 # Change Log
 unreleased v2.0.4 
+  * Fixed a problem with navigating back to the correct main menu element on long click.
   * Fixed the Style dropdown in PasswordPumpGUI to show the inter username / password character's name instead of the value stored behind the scenes.
   * Added a check in PasswordPumpGUI for password complexity.  Informational only.
   * For those willing to recompile the code, limited support for Czech, Danish, Swedish, Norwegian, Finnish, French, German or Spanish keyboards.  US is the default.  See the Known Defects section of the Users Guide for more information about this functionality.
