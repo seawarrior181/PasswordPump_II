@@ -2398,6 +2398,7 @@ void ProcessEvent() {                                                           
           //break;
         case SETTINGS:                                                          // show the settings menu
           event = EVENT_SHOW_SETTINGS_MENU;
+          position = SETTINGS_SET_KEYBOARD;
           break;
         case FACTORY_RESET:                                                     // Reset
           event = EVENT_RESET;
@@ -3121,6 +3122,7 @@ void ProcessEvent() {                                                           
         event = EVENT_SHOW_MAIN_MENU;
         BlankLine2();
         BlankLine3();
+        position = ADD_ACCOUNT;
       }
     } else if (STATE_SEND_CREDS_MENU == machineState){                          // EVENT_LONG_CLICK
 			switch (groupFilter) {
@@ -3157,11 +3159,11 @@ void ProcessEvent() {                                                           
 				switchToFindAcctMenu();
 				break;
 			}
-			BlankLine3();                                                         // wipes out the name of the account 
-    } else if (STATE_FIND_ACCOUNT == machineState){                             // long click after selecting an account
-      event = EVENT_SHOW_MAIN_MENU;
-      BlankLine2();
-      BlankLine3();
+			BlankLine3();                                                             // wipes out the name of the account 
+//  } else if (STATE_FIND_ACCOUNT == machineState){                             // long click after selecting an account
+//    event = EVENT_SHOW_MAIN_MENU;
+//    BlankLine2();
+//    BlankLine3();
     } else if ((STATE_CONFIRM_BACK_EEPROM   == machineState) ||                 // EVENT_LONG_CLICK
                (STATE_CONFIRM_RESTORE       == machineState) ||
                //(STATE_CONFIRM_FIX_CORRUPT == machineState) ||
@@ -3175,6 +3177,7 @@ void ProcessEvent() {                                                           
       BlankLine3();
     } else if (STATE_MENU_SETTINGS == machineState) {                           // EVENT_LONG_CLICK
       event = EVENT_SHOW_MAIN_MENU;                                             // if in the settings menu return to the main menu
+      position = SETTINGS;
       BlankLine2();
       BlankLine3();
     } else if (STATE_MENU_FIND_BY_GROUP == machineState) {                      // EVENT_LONG_CLICK
@@ -3258,7 +3261,7 @@ void ProcessEvent() {                                                           
           position = SETTINGS_KEYBOARD_LANG;
           break;
         default:
-          position = 0;
+          position = SETTINGS_SET_KEYBOARD;
           DisplayToError("ERR: 042");
           break;
       }
@@ -3313,12 +3316,36 @@ void ProcessEvent() {                                                           
 															EDIT_GROUP_7,
 															GET_ADDR_CATEGORY_7					);
       BlankLine3();
-    } else if (STATE_MENU_FILE == machineState) {                               // EVENT_LONG_CLICK
-      event = EVENT_SHOW_MAIN_MENU;                                             // if any other state show main menu (e.g just after EVENT_RESET)
+//  } else if (STATE_MENU_FILE == machineState) {                               // EVENT_LONG_CLICK
+//    event = EVENT_SHOW_MAIN_MENU;                                             // if any other state show main menu (e.g just after EVENT_RESET)
+//    position = FILE_MENU_SEL;
     } else {                                                                    
       event = EVENT_SHOW_MAIN_MENU;                                             // if any other state show main menu (e.g just after EVENT_RESET)
       BlankLine2();
       BlankLine3();
+      switch (machineState) {
+        case STATE_SEARCH_FAVORITES:
+          position = FIND_FAVORITE;
+          break;
+        case STATE_FIND_ACCOUNT:
+          position = FIND_ACCOUNT;
+          break;
+        case STATE_MENU_GROUPS:
+          position = FIND_BY_GROUP;
+          break;
+        case STATE_FEED_SERIAL_DATA:
+          position = EDIT_VIA_COMPUTER;
+          break;
+        case STATE_MENU_FILE:
+          position = FILE_MENU_SEL;
+          break;
+        case STATE_MENU_SETTINGS:
+          position = SETTINGS;
+          break;
+        default:
+          position = FIND_FAVORITE;
+          break;
+      }
     }
 
   } else if (event == EVENT_SHOW_MAIN_MENU) {                                   // show the main menu
@@ -3330,9 +3357,7 @@ void ProcessEvent() {                                                           
     memcpy(currentMenu, mainMenu, arraySize);
     elements = MAIN_MENU_ELEMENTS;
     machineState = STATE_SHOW_MAIN_MENU;
-    if (authenticated) {
-      position = FIND_FAVORITE; 
-    } else {
+    if (!authenticated) {
       position = ENTER_MASTER_PASSWORD;
     }
     ShowMenu(position, currentMenu, "        Main        ");
@@ -3362,8 +3387,8 @@ void ProcessEvent() {                                                           
     memcpy(currentMenu, settingsMenu, arraySize);
     elements = SETTINGS_MENU_ELEMENTS;
     machineState = STATE_MENU_SETTINGS;
-    //if (position < 0 || position > (SETTINGS_MENU_ELEMENTS - 1)) position = 0;// for safety
-    position = 0;                                                               // set focus on the first menu element.
+    if (position < 0 || position > (SETTINGS_MENU_ELEMENTS - 1)) position = 0;  // for safety
+    //position = 0;                                                             // set focus on the first menu element.
     ShowMenu(position, currentMenu,"      Settings      ");
     event = EVENT_NONE;
 
