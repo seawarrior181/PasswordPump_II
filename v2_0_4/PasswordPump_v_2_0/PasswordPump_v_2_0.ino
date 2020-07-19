@@ -3195,7 +3195,7 @@ void ProcessEvent() {                                                           
 							(STATE_SEARCH_SCHOOL    == machineState) ||    
 							(STATE_SEARCH_FINANCIAL == machineState) ||    
 							(STATE_SEARCH_MAIL      == machineState) ||    
-							(STATE_SEARCH_CUSTOM    == machineState)) {                         // EVENT_LONG_CLICK
+							(STATE_SEARCH_CUSTOM    == machineState)) {                       // EVENT_LONG_CLICK
 			switch (machineState) {
 				case STATE_SEARCH_FAVORITES:
 					position = GROUP_FAVORITES;
@@ -3323,7 +3323,7 @@ void ProcessEvent() {                                                           
       event = EVENT_SHOW_MAIN_MENU;                                             // if any other state show main menu (e.g just after EVENT_RESET)
       BlankLine2();
       BlankLine3();
-      switch (machineState) {
+      switch (machineState) {                                                   // set positon so that you navigate back to the menu item from which you came
         case STATE_SEARCH_FAVORITES:
           position = FIND_FAVORITE;
           break;
@@ -4539,7 +4539,7 @@ void DisplayToError(char* lineToPrint) {
   line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
 	oled.invertDisplay(true);
   DisplayBuffer();
-  //delayNoBlock(ONE_SECOND * 2);
+  delayNoBlock(ONE_SECOND * 2);
 	oled.invertDisplay(false);
 }
 
