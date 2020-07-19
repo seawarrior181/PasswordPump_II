@@ -1,15 +1,16 @@
 /*
   Keyboard.cpp
 
+  Adapted for the PasswordPump: Copyright (c) 2020, Daniel Murphy
   Copyright (c) 2015, Arduino LLC
   Original code (pre-library): Copyright (c) 2011, Peter Barrett
 
-  This library is free software; you can redistribute it and/or
+  This file is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
   version 2.1 of the License, or (at your option) any later version.
 
-  This library is distributed in the hope that it will be useful,
+  This file is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Lesser General Public License for more details.
@@ -23,9 +24,8 @@
 
 #if defined(_USING_HID)
 
-//================================================================================
-//================================================================================
-//	Keyboard
+                                                                                //================================================================================
+                                                                                //	Keyboard
 
 uint8_t _hidReportDescriptor[47] ;
 uint8_t _asciimap[128] ;
@@ -64,32 +64,32 @@ void Keyboard_::sendReport(KeyReport* keys)
 
 uint8_t USBPutChar(uint8_t c);
 
-// press() adds the specified key (printing, non-printing, or modifier)
-// to the persistent key report and sends the report.  Because of the way 
-// USB HID works, the host acts like the key remains pressed until we 
-// call release(), releaseAll(), or otherwise clear the report and resend.
+                                                                                // press() adds the specified key (printing, non-printing, or modifier)
+                                                                                // to the persistent key report and sends the report.  Because of the way 
+                                                                                // USB HID works, the host acts like the key remains pressed until we 
+                                                                                // call release(), releaseAll(), or otherwise clear the report and resend.
 size_t Keyboard_::press(uint8_t k) 
 {
 	uint8_t i;
-	if (k >= 136) {			// it's a non-printing key (not a modifier)
+	if (k >= 136) {			                                                          // it's a non-printing key (not a modifier)
 		k = k - 136;
-	} else if (k >= 128) {	// it's a modifier key
+	} else if (k >= 128) {	                                                      // it's a modifier key
 		_keyReport.modifiers |= (1<<(k-128));
 		k = 0;
-	} else {				// it's a printing key
+	} else {				                                                              // it's a printing key
     k = _asciimap[k];
 		if (!k) {
 			setWriteError();
 			return 0;
 		}
-		if (k & 0x80) {						// it's a capital letter or other character reached with shift
-			_keyReport.modifiers |= 0x02;	// the left shift modifier
+		if (k & 0x80) {						                                                  // it's a capital letter or other character reached with shift
+			_keyReport.modifiers |= 0x02;	                                            // the left shift modifier
 			k &= 0x7F;
 		}
 	}
 	
-	// Add k to the key report only if it's not already present
-	// and if there is an empty slot.
+                                                                                // Add k to the key report only if it's not already present
+                                                                                // and if there is an empty slot.
 	if (_keyReport.keys[0] != k && _keyReport.keys[1] != k && 
 		_keyReport.keys[2] != k && _keyReport.keys[3] != k &&
 		_keyReport.keys[4] != k && _keyReport.keys[5] != k) {
@@ -109,30 +109,30 @@ size_t Keyboard_::press(uint8_t k)
 	return 1;
 }
 
-// release() takes the specified key out of the persistent key report and
-// sends the report.  This tells the OS the key is no longer pressed and that
-// it shouldn't be repeated any more.
+                                                                                // release() takes the specified key out of the persistent key report and
+                                                                                // sends the report.  This tells the OS the key is no longer pressed and that
+                                                                                // it shouldn't be repeated any more.
 size_t Keyboard_::release(uint8_t k) 
 {
 	uint8_t i;
-	if (k >= 136) {			// it's a non-printing key (not a modifier)
+	if (k >= 136) {			                                                          // it's a non-printing key (not a modifier)
 		k = k - 136;
-	} else if (k >= 128) {	// it's a modifier key
+	} else if (k >= 128) {	                                                      // it's a modifier key
 		_keyReport.modifiers &= ~(1<<(k-128));
 		k = 0;
-	} else {				// it's a printing key
+	} else {				                                                              // it's a printing key
   	k = _asciimap[k];
 		if (!k) {
 			return 0;
 		}
-		if (k & 0x80) {							// it's a capital letter or other character reached with shift
-			_keyReport.modifiers &= ~(0x02);	// the left shift modifier
+		if (k & 0x80) {							                                                // it's a capital letter or other character reached with shift
+			_keyReport.modifiers &= ~(0x02);	                                        // the left shift modifier
 			k &= 0x7F;
 		}
 	}
 	
-	// Test the key report to see if k is present.  Clear it if it exists.
-	// Check all positions in case the key is present more than once (which it shouldn't be)
+                                                                                // Test the key report to see if k is present.  Clear it if it exists.
+                                                                                // Check all positions in case the key is present more than once (which it shouldn't be)
 	for (i=0; i<6; i++) {
 		if (0 != k && _keyReport.keys[i] == k) {
 			_keyReport.keys[i] = 0x00;
@@ -157,9 +157,9 @@ void Keyboard_::releaseAll(void)
 
 size_t Keyboard_::write(uint8_t c)
 {
-	uint8_t p = press(c);  // Keydown
-	release(c);            // Keyup
-	return p;              // just return the result of press() since release() almost always returns 1
+	uint8_t p = press(c);                                                         // Keydown
+	release(c);                                                                   // Keyup
+	return p;                                                                     // just return the result of press() since release() almost always returns 1
 }
 
 size_t Keyboard_::write(const uint8_t *buffer, size_t size) {
@@ -177,7 +177,7 @@ size_t Keyboard_::write(const uint8_t *buffer, size_t size) {
 	return n;
 }
 
-//Keyboard_ Keyboard;
+                                                                                //Keyboard_ Keyboard;
 
 #endif
 
