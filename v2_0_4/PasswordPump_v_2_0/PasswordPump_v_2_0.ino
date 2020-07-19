@@ -4395,6 +4395,9 @@ void sendUsernameAndPassword() {
   } else if (style[0] == (char) INITIAL_MEMORY_STATE_CHAR) {
     Keyboard.press(TAB_KEY);                                                    // Make <TAB> the default
     Keyboard.release(TAB_KEY);
+  } else {
+    Keyboard.press(TAB_KEY);                                                    // if style isn't default or "0" then send <TAB>
+    Keyboard.release(TAB_KEY);
   }
   delayNoBlock(UN_PW_DELAY);
   Keyboard.println(passwordChar);                                               // type the password through the keyboard
