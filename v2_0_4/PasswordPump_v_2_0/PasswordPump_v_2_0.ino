@@ -1381,7 +1381,7 @@ const char * const fileMenu[] = {                "Backup EEprom",               
 #define FILE_IMPORT_KEEPASS_CSV   5
 
 #define KEYBOARD_MENU_NUMBER      11
-#define KEYBOARD_MENU_ELEMENTS    9
+#define KEYBOARD_MENU_ELEMENTS    10
 const char * const keyboardMenu[] = {            "Czech",
                                                  "Danish",
                                                  "Finnish",
@@ -1886,7 +1886,7 @@ void setup() {                                                                  
 	loadGroupMenu();  															   												  	// load the group categories into the group menu
 
   keyboardType = getKeyboardType;
-	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {																// ...and if not initialize them
+	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {															// ...and if not initialize them
     keyboardType = KEYBOARD_US;
 		writeKeyboardType();
 	}
