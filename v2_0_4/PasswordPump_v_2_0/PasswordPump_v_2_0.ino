@@ -747,6 +747,7 @@
       Norwegian
       Spanish
       Swedish
+      United Kingdom
       United States
   Factory Reset [confirm]   
 
@@ -802,8 +803,8 @@
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-//#define __LEFTY__							    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__                       					  												    // Turn this on for Adafruit ItsyBitsy M4
+//#define __LEFTY__		   				    																						// Turn this on if you have a "lefty" rotary encoder
+#define __SAMD51__                      					  												    // Turn this on for Adafruit ItsyBitsy M4
 //#define __SAMD21__             	 							  	  													// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
@@ -823,12 +824,13 @@
 #include "Keyboard.h"                                                           
 #include "CzechKeyboard.h"                                                      
 #include "DanishKeyboard.h"                                     
-#include "SwedishKeyboard.h"                                     
-#include "NorwegianKeyboard.h"                                     
 #include "FinnishKeyboard.h"                                                    
 #include "FrenchKeyboard.h"                                                     
 #include "GermanKeyboard.h"                                                     
+#include "NorwegianKeyboard.h"                                     
 #include "SpanishKeyboard.h"                                                    
+#include "SwedishKeyboard.h"                                     
+#include "UKKeyboard.h"                                                         
 #include "USKeyboard.h"                                                         
 #include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
 #include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
@@ -1388,6 +1390,7 @@ const char * const keyboardMenu[] = {            "Czech",
                                                  "Norwegian",
                                                  "Spanish",      
                                                  "Swedish",
+                                                 "United Kingdom",
                                                  "United States",
                                                  ""                           };
                                                   
@@ -1399,7 +1402,8 @@ const char * const keyboardMenu[] = {            "Czech",
 #define KEYBOARD_NORWEGIAN        5
 #define KEYBOARD_SPANISH          6
 #define KEYBOARD_SWEDISH          7
-#define KEYBOARD_US               8
+#define KEYBOARD_UK               8
+#define KEYBOARD_US               9
 
 #define SCREEN_WIDTH              128                                           // OLED display width, in pixels
 #define SCREEN_HEIGHT             32                                            // OLED display height, in pixels
@@ -1910,6 +1914,9 @@ void setup() {                                                                  
       break;
      case KEYBOARD_SWEDISH:
       Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      break;
+     case KEYBOARD_UK:
+      Keyboard.InitKeyboard(_asciimapUK, _hidReportDescriptorUK);
       break;
      case KEYBOARD_US:
       Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
@@ -2818,6 +2825,12 @@ void ProcessEvent() {                                                           
                 Keyboard.InitKeyboard(_asciimapSwedish, _hidReportDescriptorSwedish);
               }
               break;
+            case KEYBOARD_UK:
+              keyboardType = KEYBOARD_UK;
+              if (keyboardType != originalKeyboardType) {
+                Keyboard.InitKeyboard(_asciimapUK, _hidReportDescriptorUK);
+              }
+              break;
             case KEYBOARD_US:
               keyboardType = KEYBOARD_US;
               if (keyboardType != originalKeyboardType) {
@@ -3573,6 +3586,9 @@ void ProcessEvent() {                                                           
         break;
       case KEYBOARD_SWEDISH:
         position = KEYBOARD_SWEDISH;
+        break;
+      case KEYBOARD_UK:
+        position = KEYBOARD_UK;
         break;
       case KEYBOARD_US:
         position = KEYBOARD_US;
