@@ -3,7 +3,7 @@
  
   Project Name: PasswordPump 2.0, a better password manager
   Author:       Daniel J. Murphy
-  Version:      2.0.4
+  Version:      2.0.5
   Date:         2019/07/26 - 2020/06/14
   Language:     Arduino C++
   Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
@@ -3768,7 +3768,7 @@ void ScrollPasswordPump(void) {
   oled.setTextSize(1);                                                          // Draw 2X-scale text
   oled.setTextColor(WHITE);
   oled.setCursor(0, LINE_2_POS);
-  oled.println(F("PasswordPump  v2.0.4"));
+  oled.println(F("PasswordPump  v2.0.5"));
   oled.display();                                                               // Show initial text
   oled.startscrollright(0x00, 0x0F);
   delay(3000);
@@ -4292,7 +4292,7 @@ void InitializeGlobals() {
 }
 
 void ShowSplashScreen() {
-    strcpy(line1DispBuff,"PasswordPump  v2.0.4");
+    strcpy(line1DispBuff,"PasswordPump  v2.0.5");
     strcpy(line2DispBuff, __DATE__);
     strcpy(line3DispBuff,"(c)2020 Dan Murphy ");
     DisplayBuffer();

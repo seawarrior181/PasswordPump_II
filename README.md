@@ -5,7 +5,10 @@ This is v2.0 of the PasswordPump, a USB device that manages credentials for up t
 The purpose of this repository on GitHub is to disseminate software for and information about the PasswordPump v2.0.  See the Password Pump II Users Guide.pdf and https://5volts.org for details.  
 
 # Change Log
-unreleased v2.0.4 
+unreleased v2.0.5
+
+2020-07-22 v2.0.4 
+  * Made the encoder type configurable; i.e. to handle 'lefty' encoders w/o the precompiler directive.
   * Fixed a problem with the way PasswordPumpGUI handled style when it's set to 255 (the default before it's written to EEprom).
   * Added support for Czech, Danish, Swedish, Norwegian, Finnish, French, German and Spanish keyboards.  US is the default.  See the Known Defects section of the Users Guide for more information about this functionality.
   * Fixed a problem with navigating back to the correct main menu elements on long click.
