@@ -803,7 +803,7 @@
 
   The Program 
   ==============================================================================
-//- Includes/Defines                                                            */
+//- Includes/Defines                                                             */
 //#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4
 #define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0
 
