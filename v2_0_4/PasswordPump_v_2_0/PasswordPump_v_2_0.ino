@@ -384,8 +384,8 @@
 		__SAMD21__.
 	- If, after building your PasswordPump, you notice that the rotary encoder is
 	  advancing through the alphabet when you turn the encoder counter-clockwise
-		then you can reverse this behavior by uncommenting the __LEFTY__ 
-		pre-compiler directive.
+		then you can reverse this behavior by selecting 'Lefty' in 
+    Settings->Encoder Type.
 
   Contributors
   ============
@@ -799,13 +799,13 @@
 	043 - Invalid group number when customizing groups
   044 - Invalid category number when customizing groups from PasswordPumpGUI
   045 - Invalid keyboard language specified
+  046 - Invalid encoder type specified
 
   The Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-//#define __LEFTY__		   				    																						// Turn this on if you have a "lefty" rotary encoder
-#define __SAMD51__                      					  												    // Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__             	 							  	  													// Turn this on for Adafruit ItsyBitsy M0
+#define __SAMD51__                    			   		  												    // Turn this on for Adafruit ItsyBitsy M4
+//#define __SAMD21__               	 						  	  													// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -854,6 +854,7 @@
 #define getRGBLEDInt              read_eeprom_byte(GET_ADDR_RGB_LED_INT)
 #define getLogoutTimeout          read_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT)
 #define getKeyboardType           read_eeprom_byte(GET_ADDR_KEYBOARD_TYPE)
+#define getEncoderType            read_eeprom_byte(GET_ADDR_ENCODER_TYPE)
 #define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)    // The number of login attempts before we factory reset
 #define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
 #define getGroupStatus						read_eeprom_byte(GET_ADDR_CATEGORY_1)
@@ -874,13 +875,6 @@
 //- Defines
 
 #define BAUD_RATE                 115200                                        //  Baud rate for the Serial monitor, best for 16MHz (was 38400)
-#ifdef __LEFTY__
-  #define ROTARY_PIN1             7                                             // Pin for ItsyBitsy SAMD
-  #define ROTARY_PIN2             9                                             //   "                               
-#else
-  #define ROTARY_PIN1             9                                             // Pin for ItsyBitsy SAMD
-  #define ROTARY_PIN2             7                                             //   "                               
-#endif
 #define BUTTON_PIN                12                                            //   "                              
 
 #define RED_PIN                   5                                             // Pin locations for the RGB LED, must be PWM capable 
@@ -1022,6 +1016,7 @@
 #define DECOY_PW_SIZE             0x0010                                        // 1 byte
 #define CATEGORY_SIZE             0x000A																				// 10 bytes (there are 7 of these)
 #define KEYBOARD_TYPE_SIZE        0x0001                                        // 1 byte
+#define ENCODER_TYPE_SIZE         0X0001                                        // 1 byte
 //------------------------------------------------------------------------------
 #define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (53 total, rounding up to 256)
 //==============================================================================// 65536 - 256 = 32512/256 = 255 CREDS_ACCOMIDATED
@@ -1039,6 +1034,7 @@
 #define GET_ADDR_LOGIN_ATTEM_NUM  (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE) // store the setting for the EEProm part number
 #define GET_ADDR_DECOY_PW         (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE) // store the setting for the decoy password setting
 #define GET_ADDR_KEYBOARD_TYPE    (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE) // store the setting for the keyboard type setting
+#define GET_ADDR_ENCODER_TYPE     (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE) // store the setting for the keyboard type setting
 #define GET_ADDR_CATEGORY_1				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 1) // place the categories on the second to last page on EEprom
 #define GET_ADDR_CATEGORY_2				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 2)
 #define GET_ADDR_CATEGORY_3				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 3)
@@ -1078,6 +1074,7 @@
 #define EVENT_SHOW_FAVORITES_MENU 31
 #define EVENT_SHOW_GROUP_DEF_MENU 32
 #define EVENT_SHOW_KEYBOARD_MENU  33
+#define EVENT_SHOW_ENCODER_MENU   34
                                                                                 // Not using an enum here to save memory.  
 //- States                                                                      
 
@@ -1130,6 +1127,7 @@
 #define STATE_EDIT_GROUP_6				47
 #define STATE_EDIT_GROUP_7				48
 #define STATE_MENU_KEYBOARD       49
+#define STATE_MENU_ENCODER        50
 
 //- I2C Address
 
@@ -1225,7 +1223,7 @@ const char * const enterMenu[] =  {              "Edit Account Name",           
 #define SAVE_OLD_PASSWORD         7
 
 #define SETTINGS_MENU_NUMBER      3
-#define SETTINGS_MENU_ELEMENTS    9                                             // the number of selections in the menu for changing settings
+#define SETTINGS_MENU_ELEMENTS    10                                             // the number of selections in the menu for changing settings
 //char   settingsMenu[SETTINGS_MENU_ELEMENTS+1][DISPLAY_BUFFER_SIZE-1] =
 char *settingsMenu[] =
                                       {          "Keyboard",                    // flag that determines if the input by keyboard feature is on or off
@@ -1237,6 +1235,7 @@ char *settingsMenu[] =
 																								 "Rename Groups",								// allows the user to rename the group categories
                                                  "Change Master Psswrd",				// Change the master password
                                                  "Keyboard Language",           // Change the keyboard language
+                                                 "Encoder Type",                // Change the encoder type
                                                  ""                           };
 
 #define SETTINGS_SET_KEYBOARD     0                                             //
@@ -1248,6 +1247,7 @@ char *settingsMenu[] =
 #define SETTINGS_GROUP_DEFINITION 6
 #define SETTINGS_CHANGE_MASTER    7
 #define SETTINGS_KEYBOARD_LANG    8
+#define SETTINGS_ENCODER_TYPE     9
 
 #define LOGOUT_TIMEOUT_MENU_NUMBER    4
 #define LOGOUT_TIMEOUT_MENU_ELEMENTS  7
@@ -1405,6 +1405,14 @@ const char * const keyboardMenu[] = {            "Czech",
 #define KEYBOARD_UK               8
 #define KEYBOARD_US               9
 
+#define ENCODER_MENU_NUMBER       12
+#define ENCODER_MENU_ELEMENTS     2
+const char * const encoderMenu[] = {             "Normal",
+                                                 "Lefty",
+                                                 ""                           };
+#define ENCODER_NORMAL            0
+#define ENCODER_LEFTY             1
+
 #define SCREEN_WIDTH              128                                           // OLED display width, in pixels
 #define SCREEN_HEIGHT             32                                            // OLED display height, in pixels
 #define OLED_RESET                -1                                            // Reset pin # (or -1 if sharing ItsyBitsy reset pin)
@@ -1478,6 +1486,9 @@ uint16_t angle = 0;
 
 uint8_t keyboardType;
 uint8_t originalKeyboardType;
+uint8_t encoderType;
+uint8_t rotaryPin1  = 9;
+uint8_t rotaryPin2  = 7;
 
 const uint8_t HSVlights[61] = 
 {0, 4, 8, 13, 17, 21, 25, 30, 34, 38, 42, 47, 51, 55, 59, 64, 68, 72, 76,
@@ -1789,8 +1800,8 @@ void setup() {                                                                  
   pinMode(BLUE_PIN,   OUTPUT);                                                  // "
 	pinMode(SET_OUT_PIN,OUTPUT);																									// Pin that will receive PWM output from GREEN_PIN
 
-  pinMode(ROTARY_PIN1, INPUT_PULLUP);
-  pinMode(ROTARY_PIN2, INPUT_PULLUP);
+  pinMode(rotaryPin1, INPUT_PULLUP);
+  pinMode(rotaryPin2, INPUT_PULLUP);
   
   pinMode(UNUSED_PIN2, OUTPUT);digitalWrite(UNUSED_PIN2, LOW);
   pinMode(UNUSED_PIN3, OUTPUT);digitalWrite(UNUSED_PIN3, LOW);
@@ -1885,6 +1896,29 @@ void setup() {                                                                  
 	readGroupCategories();																												// set the group categories from EEprom
 	loadGroupMenu();  															   												  	// load the group categories into the group menu
 
+  encoderType = getEncoderType;
+  if (encoderType == INITIAL_MEMORY_STATE_BYTE) {
+    encoderType = ENCODER_NORMAL;
+    writeEncoderType();
+  }
+
+  
+  switch (encoderType) {
+    case ENCODER_NORMAL:
+      rotaryPin1 = 9;
+      rotaryPin2 = 7;
+      break;
+    case ENCODER_LEFTY:
+      rotaryPin1 = 7;
+      rotaryPin2 = 9;
+      break;
+    default:
+      rotaryPin1 = 9;
+      rotaryPin2 = 7;
+      DisplayToError("046");
+      break;
+  }
+
   keyboardType = getKeyboardType;
 	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {															// ...and if not initialize them
     keyboardType = KEYBOARD_US;
@@ -1951,8 +1985,8 @@ void loop() {                                                                   
 
 void pollEncoder() {
   change = 0;
-  curModeA = digitalRead(ROTARY_PIN1);                                          // compare the four possible states to figure out what has happened
-  curModeB = digitalRead(ROTARY_PIN2);                                          // then increment/decrement the current encoder's position
+  curModeA = digitalRead(rotaryPin1);                                          // compare the four possible states to figure out what has happened
+  curModeB = digitalRead(rotaryPin2);                                          // then increment/decrement the current encoder's position
   if (curModeA != lastModeA) {
     if (curModeA == LOW) {
       if (curModeB == LOW) {
@@ -2118,6 +2152,11 @@ void ProcessEvent() {                                                           
         position++;
         MenuDown(currentMenu);
       }
+    } else if (STATE_MENU_ENCODER         == machineState) {									  // event == EVENT_ROTATE_CW
+      if (position < ENCODER_MENU_ELEMENTS - 1) {                        
+        position++;
+        MenuDown(currentMenu);
+      }
     } else if (STATE_MENU_RGB_INTENSITY   == machineState) {									  // event == EVENT_ROTATE_CW
       if (position < RGB_INTENSITY_MENU_ELEMENTS - 1) {                         
         position++;
@@ -2238,7 +2277,8 @@ void ProcessEvent() {                                                           
     } else if ((STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState) ||
-               (STATE_MENU_KEYBOARD       == machineState)) {                   // EVENT_ROTATE_CC
+               (STATE_MENU_KEYBOARD       == machineState) ||
+               (STATE_MENU_ENCODER        == machineState)) {                   // EVENT_ROTATE_CC
       if (position > 0) {
         position--;
         MenuUp(currentMenu);
@@ -2681,7 +2721,8 @@ void ProcessEvent() {                                                           
                (STATE_MENU_LOGIN_ATTEM    == machineState) ||
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState) ||
-               (STATE_MENU_KEYBOARD       == machineState)) {
+               (STATE_MENU_KEYBOARD       == machineState) ||
+               (STATE_MENU_ENCODER        == machineState)) {
       switch (machineState) {                                                   // TODO: this is a weird way to do this... fix it.
         case STATE_KEY_ON_OFF_MENU:
           keyboardFlag = position;
@@ -2844,6 +2885,28 @@ void ProcessEvent() {                                                           
           writeKeyboardType();
           DisplayToStatus("Keyboard Saved.");
           break;
+        case STATE_MENU_ENCODER:
+          switch (position) {
+            case ENCODER_NORMAL:
+              encoderType = ENCODER_NORMAL;
+              rotaryPin1 = 9;
+              rotaryPin2 = 7;
+              break;
+            case ENCODER_LEFTY:
+              encoderType = ENCODER_LEFTY;
+              rotaryPin1 = 7;
+              rotaryPin2 = 9;
+              break;
+            default:
+              encoderType = ENCODER_NORMAL;
+              rotaryPin1 = 9;
+              rotaryPin2 = 7;
+              DisplayToError("046");
+              break;
+          }
+          writeEncoderType();
+          DisplayToStatus("Encoder Saved.");
+          break;
         default:
           DisplayToError("ERR: 001");
           break;
@@ -2998,6 +3061,10 @@ void ProcessEvent() {                                                           
         case SETTINGS_KEYBOARD_LANG:
           machineState = STATE_MENU_KEYBOARD;
           event = EVENT_SHOW_KEYBOARD_MENU;
+          break;
+        case SETTINGS_ENCODER_TYPE:
+          machineState = STATE_MENU_ENCODER;
+          event = EVENT_SHOW_ENCODER_MENU;
           break;
         default:
           DisplayToError("ERR: 005");
@@ -3247,7 +3314,8 @@ void ProcessEvent() {                                                           
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
 							 (STATE_MENU_DEFINE_GROUPS  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState) ||
-               (STATE_MENU_KEYBOARD       == machineState)) {
+               (STATE_MENU_KEYBOARD       == machineState) ||
+               (STATE_MENU_ENCODER        == machineState)) {
       switch (machineState) {
         case STATE_KEY_ON_OFF_MENU:
           position = SETTINGS_SET_KEYBOARD;
@@ -3272,6 +3340,9 @@ void ProcessEvent() {                                                           
 					break;
         case STATE_MENU_KEYBOARD:
           position = SETTINGS_KEYBOARD_LANG;
+          break;
+        case STATE_MENU_ENCODER:
+          position = SETTINGS_ENCODER_TYPE;
           break;
         default:
           position = SETTINGS_SET_KEYBOARD;
@@ -3599,6 +3670,29 @@ void ProcessEvent() {                                                           
         break;
     }
     ShowMenu(position, currentMenu, "   Keyboard Type    ");  
+    event = EVENT_NONE;
+
+  } else if (event == EVENT_SHOW_ENCODER_MENU) {
+    menuNumber = ENCODER_MENU_NUMBER;
+    int arraySize = 0;
+    for (uint8_t i = 0; i < MENU_SIZE; i++) {
+      arraySize += sizeof(encoderMenu[i]);
+    }
+    memcpy(currentMenu, encoderMenu, arraySize);
+    elements = ENCODER_MENU_ELEMENTS;
+    switch (encoderType) {
+      case ENCODER_NORMAL:
+        position = ENCODER_NORMAL;
+        break;
+      case ENCODER_LEFTY:
+        position = ENCODER_LEFTY;
+        break;
+      default:
+        position = ENCODER_NORMAL;
+        DisplayToError("ERR: 046");
+        break;
+    }
+    ShowMenu(position, currentMenu, "   Encoder Type    ");  
     event = EVENT_NONE;
 
   } else if (event == EVENT_CHANGE_MASTER) {
@@ -5145,6 +5239,11 @@ void writeLogoutTimeout() {
 void writeKeyboardType() {
   //DebugLN("writeKeyboardType()");
   write_eeprom_byte(GET_ADDR_KEYBOARD_TYPE, keyboardType);
+}
+
+void writeEncoderType() {
+  //DebugLN("writeEncoderType()");
+  write_eeprom_byte(GET_ADDR_ENCODER_TYPE, encoderType);
 }
 
 void writeLoginAttempts() {
