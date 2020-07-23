@@ -1018,7 +1018,7 @@
 #define KEYBOARD_TYPE_SIZE        0x0001                                        // 1 byte
 #define ENCODER_TYPE_SIZE         0X0001                                        // 1 byte
 //------------------------------------------------------------------------------
-#define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (53 total, rounding up to 256)
+#define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (101 total, rounding up to 256)
 //==============================================================================// 65536 - 256 = 32512/256 = 255 CREDS_ACCOMIDATED
 
 #define GET_ADDR_SETTINGS         (MAX_AVAIL_ADDR - SETTINGS_TOTAL_SIZE)        // use the last page for storing the settings.
@@ -1926,28 +1926,28 @@ void setup() {                                                                  
 	}
   switch(keyboardType) {
      case KEYBOARD_CZECH:
-      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      Keyboard.InitKeyboard(_asciimapCzech, _hidReportDescriptorCzech);
       break;
      case KEYBOARD_DANISH:
-      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      Keyboard.InitKeyboard(_asciimapDanish, _hidReportDescriptorDanish);
       break;
      case KEYBOARD_FINNISH:
-      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      Keyboard.InitKeyboard(_asciimapFinnish, _hidReportDescriptorFinnish);
       break;
      case KEYBOARD_FRENCH:
-      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      Keyboard.InitKeyboard(_asciimapFrench, _hidReportDescriptorFrench);
       break;
      case KEYBOARD_GERMAN:
       Keyboard.InitKeyboard(_asciimapGerman, _hidReportDescriptorGerman);
       break;
      case KEYBOARD_NORWEGIAN:
-      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      Keyboard.InitKeyboard(_asciimapNorwegian, _hidReportDescriptorNorwegian);
       break;
      case KEYBOARD_SPANISH:
-      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      Keyboard.InitKeyboard(_asciimapSpanish, _hidReportDescriptorSpanish);
       break;
      case KEYBOARD_SWEDISH:
-      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      Keyboard.InitKeyboard(_asciimapSwedish, _hidReportDescriptorSwedish);
       break;
      case KEYBOARD_UK:
       Keyboard.InitKeyboard(_asciimapUK, _hidReportDescriptorUK);
@@ -1956,6 +1956,9 @@ void setup() {                                                                  
       Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
       break;
     default:
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+      keyboardType = KEYBOARD_US;
+      writeKeyboardType();
       DisplayToError("045");
       break;
   }
@@ -3666,6 +3669,7 @@ void ProcessEvent() {                                                           
         break;
       default:
         position = KEYBOARD_US;
+        keyboardType = KEYBOARD_US;
         DisplayToError("ERR: 045");
         break;
     }
@@ -3816,6 +3820,7 @@ void PopulateGlobals() {
 
   keyboardType = getKeyboardType;
 	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {															// ...and if not initialize them
+    keyboardType = KEYBOARD_US;
 		writeKeyboardType();
 	}
 
