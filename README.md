@@ -7,7 +7,7 @@ The purpose of this repository on GitHub is to disseminate software for and info
 # Change Log
 unreleased v2.0.5
 
-2020-07-23 v2.0.4 
+2020-07-24 v2.0.4 
   * Made the encoder type configurable; i.e. to handle 'lefty' encoders w/o the precompiler directive.
   * Fixed a problem with the way PasswordPumpGUI handled style when it's set to 255 (the default before it's written to EEprom).
   * Added support for Czech, Danish, Swedish, Norwegian, Finnish, French, German and Spanish keyboards.  US is the default.  See the Known Defects section of the Users Guide for more information about this functionality.

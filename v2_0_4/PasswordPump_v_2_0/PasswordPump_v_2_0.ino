@@ -4,7 +4,7 @@
   Project Name: PasswordPump 2.0, a better password manager
   Author:       Daniel J. Murphy
   Version:      2.0.4
-  Date:         2019/07/26 - 2020/06/14
+  Date:         2019/07/26 - 2020/07/24
   Language:     Arduino C++
   Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit Cortex M0+ or ATSAMD51J19 32-bit Cortex M4
