@@ -371,7 +371,7 @@
   
   Suggestions
   ===========
-  - Best viewed in an editor w/ 160 columns, most comments are at column 80
+  - Best viewed in an editor w/ 160 columns, most comments start at column 81 
   - Please submit defects you find so I can improve the quality of the program
     and learn more about embedded programming.  dan-murphy@comcast.net
   - For anyone unfamiliar w/ Arduino when the device is powered on first setup() 
@@ -385,7 +385,7 @@
 	- If, after building your PasswordPump, you notice that the rotary encoder is
 	  advancing through the alphabet when you turn the encoder counter-clockwise
 		then you can reverse this behavior by selecting 'Lefty' in 
-    Settings->Encoder Type.
+    Settings->Encoder Type.  This state survives power cycling.
 
   Contributors
   ============
@@ -488,6 +488,10 @@
 		1) cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.8.0-48-gb176eee
 		2) bossac -i -d --port=COM67 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.bin -R 
 		3) Verify that the upload was successful
+    4) Note that the offset is 0x2000 for the ItsyBitsy M0.  Otherwise you risk
+       bricking the MCU, in which case you will need to ship the unit back to 
+       me for fixing or desolder the display and follow the instructions here: 
+       https://learn.adafruit.com/how-to-program-samd-bootloaders
 
   Drivers
   =======
@@ -7378,5 +7382,13 @@ void loop2() {
   aes_cbc_decrypt(cipherout, clearout, sizeof(inmsg), ive);
   Serial.print("memcmp "); Serial.println(memcmp(inmsg, clearout, sizeof(inmsg)));
   delay(3000);
+}
+
+// Free RAM
+
+extern "C" char *sbrk(int i);
+int FreeRam () {
+char stack_dummy = 0;
+return &stack_dummy - sbrk(0);
 }
 */
