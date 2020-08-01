@@ -804,12 +804,14 @@
   044 - Invalid category number when customizing groups from PasswordPumpGUI
   045 - Invalid keyboard language specified
   046 - Invalid encoder type specified
+  047 - Invalid font specified
+  048 - Invalid orientation specified
 
   The Program 
   ==============================================================================
 //- Includes/Defines                                                             */
-#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4
-//#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0
+//#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4
+#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -838,7 +840,8 @@
 #include "USKeyboard.h"                                                         
 #include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
 #include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
-#include <Adafruit_SSD1306.h>                                                   // https://github.com/adafruit/Adafruit_SSD1306 for SSD1306 monochrome 128x64 and 128x32 OLEDs  
+#include <SSD1306Ascii.h>
+#include <SSD1306AsciiWire.h>
 #include <Adafruit_SPIFlash.h>                                                  // https://github.com/adafruit/Adafruit_SPIFlash
 #include <CmdMessenger.h>																												// https://github.com/thijse/Arduino-CmdMessenger 
 
@@ -859,6 +862,8 @@
 #define getLogoutTimeout          read_eeprom_byte(GET_ADDR_LOGOUT_TIMEOUT)
 #define getKeyboardType           read_eeprom_byte(GET_ADDR_KEYBOARD_TYPE)
 #define getEncoderType            read_eeprom_byte(GET_ADDR_ENCODER_TYPE)
+#define getFont                   read_eeprom_byte(GET_ADDR_FONT)
+#define getOrientation            read_eeprom_byte(GET_ADDR_ORIENTATION)
 #define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)    // The number of login attempts before we factory reset
 #define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
 #define getGroupStatus						read_eeprom_byte(GET_ADDR_CATEGORY_1)
@@ -1021,6 +1026,8 @@
 #define CATEGORY_SIZE             0x000A																				// 10 bytes (there are 7 of these)
 #define KEYBOARD_TYPE_SIZE        0x0001                                        // 1 byte
 #define ENCODER_TYPE_SIZE         0X0001                                        // 1 byte
+#define FONT_SIZE                 0x0001                                        // 1 byte, designates the desired font
+#define ORIENTATION_SIZE          0x0001                                        // 1 byte, screen orientation, lefty (0) or righty (1)
 //------------------------------------------------------------------------------
 #define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (101 total, rounding up to 256)
 //==============================================================================// 65536 - 256 = 32512/256 = 255 CREDS_ACCOMIDATED
@@ -1039,6 +1046,8 @@
 #define GET_ADDR_DECOY_PW         (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE) // store the setting for the decoy password setting
 #define GET_ADDR_KEYBOARD_TYPE    (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE) // store the setting for the keyboard type setting
 #define GET_ADDR_ENCODER_TYPE     (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE) // store the setting for the keyboard type setting
+#define GET_ADDR_FONT             (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE) // store the setting for the font setting
+#define GET_ADDR_ORIENTATION      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE + FONT_SIZE) // store the setting for the orientation setting
 #define GET_ADDR_CATEGORY_1				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 1) // place the categories on the second to last page on EEprom
 #define GET_ADDR_CATEGORY_2				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 2)
 #define GET_ADDR_CATEGORY_3				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 3)
@@ -1079,6 +1088,8 @@
 #define EVENT_SHOW_GROUP_DEF_MENU 32
 #define EVENT_SHOW_KEYBOARD_MENU  33
 #define EVENT_SHOW_ENCODER_MENU   34
+#define EVENT_SHOW_FONT_MENU      35
+#define EVENT_SHOW_ORIENT_MENU    36
                                                                                 // Not using an enum here to save memory.  
 //- States                                                                      
 
@@ -1132,6 +1143,8 @@
 #define STATE_EDIT_GROUP_7				48
 #define STATE_MENU_KEYBOARD       49
 #define STATE_MENU_ENCODER        50
+#define STATE_MENU_FONT           51
+#define STATE_MENU_ORIENT         52
 
 //- I2C Address
 
@@ -1149,13 +1162,13 @@
 #define KBD_MENU_O_POS            10                                            // where to append "FF" or "N" on the "Keyboard O" menu item in settings
 #define SH_PW_MENU_O_POS          15                                            // where to append "FF" or "N" on the  "Show Password O" menu item in settings
 #define SH_DC_MENU_O_POS          16                                            // where to append "FF" or "N" on the "Decoy Password O" menu item in settings
-#define MENU_SIZE                 10                                            // selections in the menu
+#define MENU_SIZE                 12                                            // selections in the menu
 
 #define MAIN_MENU_NUMBER          0
 #define MAIN_MENU_ELEMENTS        10                                            // number of selections in the main menu
                                                                             
 char * mainMenu[] =               {              "Master Password",             // menu picks appear only on the top line
-                                                 "Find Favorite",               // find favorite credentials
+                                                 "Find Favorites",              // find favorite credentials
                                                  "Find All Accounts",           // after an account is found send user sendMenu 
                                                  "Find by Group",               // search accounts by a particular group
                                                  "Edit with Computer",          // edit credentials with the python UI
@@ -1227,7 +1240,7 @@ const char * const enterMenu[] =  {              "Edit Account Name",           
 #define SAVE_OLD_PASSWORD         7
 
 #define SETTINGS_MENU_NUMBER      3
-#define SETTINGS_MENU_ELEMENTS    10                                             // the number of selections in the menu for changing settings
+#define SETTINGS_MENU_ELEMENTS    12                                             // the number of selections in the menu for changing settings
 //char   settingsMenu[SETTINGS_MENU_ELEMENTS+1][DISPLAY_BUFFER_SIZE-1] =
 char *settingsMenu[] =
                                       {          "Keyboard",                    // flag that determines if the input by keyboard feature is on or off
@@ -1240,6 +1253,8 @@ char *settingsMenu[] =
                                                  "Change Master Psswrd",				// Change the master password
                                                  "Keyboard Language",           // Change the keyboard language
                                                  "Encoder Type",                // Change the encoder type
+                                                 "Font",                        // Change the font
+                                                 "Orientation",                 // Change display orientation
                                                  ""                           };
 
 #define SETTINGS_SET_KEYBOARD     0                                             //
@@ -1252,6 +1267,8 @@ char *settingsMenu[] =
 #define SETTINGS_CHANGE_MASTER    7
 #define SETTINGS_KEYBOARD_LANG    8
 #define SETTINGS_ENCODER_TYPE     9
+#define SETTINGS_FONT             10
+#define SETTINGS_ORIENTATION      11
 
 #define LOGOUT_TIMEOUT_MENU_NUMBER    4
 #define LOGOUT_TIMEOUT_MENU_ELEMENTS  7
@@ -1417,6 +1434,38 @@ const char * const encoderMenu[] = {             "Normal",
 #define ENCODER_NORMAL            0
 #define ENCODER_LEFTY             1
 
+#define FONT_MENU_NUMBER          13
+#define FONT_MENU_ELEMENTS        10
+const char * const fontMenu[] = {                "Arial14",
+                                                 "Arial_bold_14",
+                                                 "Callibri10",
+                                                 "fixednums8x16",
+                                                 "TimesNewRoman13",
+                                                 "Adafruit5x7",
+                                                 "font5x7 ",
+                                                 "lcd5x7 ",
+                                                 "Stang5x7 ",
+                                                 "System5x7 ",
+                                                 ""                           };
+#define FONT_ARIAL14              0
+#define FONT_ARIAL_BOLD_14        1
+#define FONT_CALLIBRI10           2
+#define FONT_FIXEDNUMS8X16        3
+#define FONT_TIMESNEWROMAN13      4
+#define FONT_ADAFRUIT5X7          5
+#define FONT_FONT5X7              6
+#define FONT_LCD5X7               7
+#define FONT_STANG5X7             8
+#define FONT_SYSTEM5X7            9
+
+#define ORIENT_MENU_NUMBER        14
+#define ORIENT_MENU_ELEMENTS      2
+const char * const orientMenu[] = {              "Lefty",
+                                                 "Righty",
+                                                 ""                           };
+#define ORIENT_LEFTY              0
+#define ORIENT_RIGHTY             1
+
 #define SCREEN_WIDTH              128                                           // OLED display width, in pixels
 #define SCREEN_HEIGHT             32                                            // OLED display height, in pixels
 #define OLED_RESET                -1                                            // Reset pin # (or -1 if sharing ItsyBitsy reset pin)
@@ -1491,6 +1540,8 @@ uint16_t angle = 0;
 uint8_t keyboardType;
 uint8_t originalKeyboardType;
 uint8_t encoderType;
+uint8_t font;
+uint8_t orientation;
 uint8_t rotaryPin1  = 9;
 uint8_t rotaryPin2  = 7;
 
@@ -1513,9 +1564,9 @@ char line1DispBuff[DISPLAY_BUFFER_SIZE];                                        
 char line2DispBuff[DISPLAY_BUFFER_SIZE];                                        // used to buffer output of line 2 for the led display
 char line3DispBuff[DISPLAY_BUFFER_SIZE];                                        // used to buffer output of line 3 for the led display
 
-#define LINE_1_POS                 0
-#define LINE_2_POS                12
-#define LINE_3_POS                24
+#define LINE_1_POS                0
+#define LINE_2_POS                1
+#define LINE_3_POS                2
 
 const char spaceFilled[] = "                    ";                              // 20 chars long 
 
@@ -1613,7 +1664,9 @@ AESSmall256 aes;                                                                
                                                                                 // MASTER_PASSWORD_SIZE = 32 when in use.
 
 Button2 encoderButton = Button2(BUTTON_PIN);                                    // the button on the rotary encoder.
-Adafruit_SSD1306 oled((uint8_t) SCREEN_WIDTH, (uint8_t) SCREEN_HEIGHT, (TwoWire *) &Wire, (int8_t) OLED_RESET, (uint32_t) KHZ_4000, (uint32_t) KHZ_100);
+
+SSD1306AsciiWire oled;                                                          // for the SSD1306 display
+
 /*
 #if defined(__SAMD51__) || defined(NRF52840_XXAA)
   Adafruit_FlashTransport_QSPI flashTransport(PIN_QSPI_SCK, PIN_QSPI_CS, PIN_QSPI_IO0, PIN_QSPI_IO1, PIN_QSPI_IO2, PIN_QSPI_IO3);
@@ -1818,32 +1871,13 @@ void setup() {                                                                  
   
   encoderButton.setReleasedHandler(buttonReleasedHandler);                      // fires when button is released
 
-  //pinMode(RANDOM_PIN, INPUT);                                                 // used to seed the random number generator, this pin MUST float
-  //randomSeed(analogRead(RANDOM_PIN));                                           // seed the random number generator
   randomSeed(micros() * micros() ^ analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator
 
-  if(!oled.begin(SSD1306_SWITCHCAPVCC, SSD1306_I2C_ADDR)) {                     // Address 0x3C for 128x32
-    DebugLN("ERR: 000 SSD1306 allocation failed");
-    for(;;);                                                                    // Don't proceed, loop forever
-  }
-                                                                                // Show initial display buffer contents on the screen --
-                                                                                // the library initializes this with an Adafruit splash screen.
+  Wire.begin();
+  Wire.setClock(KHZ_4000);
+  oled.begin(&Adafruit128x32, SSD1306_I2C_ADDR);
   DimDisplay(false);
-  oled.display();
-  oled.clearDisplay();
-  oled.setTextSize(1);                                                          // Draw 1X-scale text
-  oled.setTextColor(WHITE);
-  oled.setCursor(0, 0);
-  oled.cp437(true);                                                             // Use full 256 char 'Code Page 437' font
-  //oled.invertDisplay(true);
-	
-  //oled.setFont(TimesNewRoman13);                                              // perfect, slightly smaller than Arial14
-  //oled.setFont(Arial14);                                                      // perfect but it's trueType so could be an issue
-  //oled.setFont(fixednums8x16);                                                // Doesn't work, blank screen
-  //oled.setFont(Arial_bold_14);                                                // Nice but a bit too big
-  //oled.setFont(Adafruit5x7);                                                  // Nice but a bit small.  Can get 3 lines of output.
-  //oled.setFont(Adafruit5x7);                                                  // Nice but a bit small.  Can get 3 lines of output.
-  ShowSplashScreen();
+
   DisableInterrupts();                                                          // turn off global interrupts, initially set to true
   initSPI();
 
@@ -1906,7 +1940,6 @@ void setup() {                                                                  
     writeEncoderType();
   }
 
-  
   switch (encoderType) {
     case ENCODER_NORMAL:
       rotaryPin1 = 9;
@@ -1919,10 +1952,75 @@ void setup() {                                                                  
     default:
       rotaryPin1 = 9;
       rotaryPin2 = 7;
-      DisplayToError("046");
+      DisplayToError("ERR: 046");
       break;
   }
 
+  font = getFont;
+  if (font == INITIAL_MEMORY_STATE_BYTE) {
+    font = FONT_ARIAL14;
+    writeEncoderType();
+  }
+
+  switch(font) {
+    case FONT_ARIAL14:
+      oled.setFont(Arial14);
+      break;
+    case FONT_ARIAL_BOLD_14:
+      oled.setFont(Arial_bold_14);
+      break;
+    case FONT_CALLIBRI10:
+      oled.setFont(Callibri10);
+      break;
+    case FONT_FIXEDNUMS8X16:
+      oled.setFont(fixednums8x16);
+      break;
+    case FONT_TIMESNEWROMAN13:
+      oled.setFont(TimesNewRoman13);
+      break;
+    case FONT_ADAFRUIT5X7:
+      oled.setFont(Adafruit5x7);
+      break;
+    case FONT_FONT5X7:
+      oled.setFont(font5x7);
+      break;
+    case FONT_LCD5X7:
+      oled.setFont(lcd5x7);
+      break;
+    case FONT_STANG5X7:
+      oled.setFont(Stang5x7);
+      break;
+    case FONT_SYSTEM5X7:
+      oled.setFont(System5x7);
+      break;
+    default:
+      oled.setFont(Arial14);
+      DisplayToError("ERR: 047");
+  }
+  
+  
+  orientation = getOrientation;
+  if (orientation == INITIAL_MEMORY_STATE_BYTE) {
+    orientation = ORIENT_LEFTY;
+    writeOrientation();
+  }
+
+  switch (orientation) {
+    case ORIENT_LEFTY:
+      oled.displayRemap(false);
+      break;
+    case ORIENT_RIGHTY:
+      oled.displayRemap(true);
+      break;
+    default:
+      oled.displayRemap(false);
+      DisplayToError("ERR: 048");
+      break;
+  }
+
+  oled.clear();
+  ShowSplashScreen();
+  
   keyboardType = getKeyboardType;
 	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {															// ...and if not initialize them
     keyboardType = KEYBOARD_US;
@@ -2164,6 +2262,16 @@ void ProcessEvent() {                                                           
         position++;
         MenuDown(currentMenu);
       }
+    } else if (STATE_MENU_FONT         == machineState) {									      // event == EVENT_ROTATE_CW
+      if (position < FONT_MENU_ELEMENTS - 1) {                        
+        position++;
+        MenuDown(currentMenu);
+      }
+    } else if (STATE_MENU_ORIENT         == machineState) {									    // event == EVENT_ROTATE_CW
+      if (position < ORIENT_MENU_ELEMENTS - 1) {                        
+        position++;
+        MenuDown(currentMenu);
+      }
     } else if (STATE_MENU_RGB_INTENSITY   == machineState) {									  // event == EVENT_ROTATE_CW
       if (position < RGB_INTENSITY_MENU_ELEMENTS - 1) {                         
         position++;
@@ -2285,7 +2393,9 @@ void ProcessEvent() {                                                           
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState) ||
                (STATE_MENU_KEYBOARD       == machineState) ||
-               (STATE_MENU_ENCODER        == machineState)) {                   // EVENT_ROTATE_CC
+               (STATE_MENU_ENCODER        == machineState) ||
+               (STATE_MENU_FONT           == machineState) ||
+               (STATE_MENU_ORIENT         == machineState)) {                   // EVENT_ROTATE_CC
       if (position > 0) {
         position--;
         MenuUp(currentMenu);
@@ -2729,7 +2839,9 @@ void ProcessEvent() {                                                           
                (STATE_MENU_RGB_INTENSITY  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState) ||
                (STATE_MENU_KEYBOARD       == machineState) ||
-               (STATE_MENU_ENCODER        == machineState)) {
+               (STATE_MENU_ENCODER        == machineState) ||
+               (STATE_MENU_FONT           == machineState) ||
+               (STATE_MENU_ORIENT         == machineState)) {
       switch (machineState) {                                                   // TODO: this is a weird way to do this... fix it.
         case STATE_KEY_ON_OFF_MENU:
           keyboardFlag = position;
@@ -2908,11 +3020,81 @@ void ProcessEvent() {                                                           
               encoderType = ENCODER_NORMAL;
               rotaryPin1 = 9;
               rotaryPin2 = 7;
-              DisplayToError("046");
+              DisplayToError("ERR: 046");
               break;
           }
           writeEncoderType();
           DisplayToStatus("Encoder Saved.");
+          break;
+        case STATE_MENU_FONT:
+          switch (position) {
+            case FONT_ARIAL14:
+              font = FONT_ARIAL14;
+              oled.setFont(Arial14);
+              break;
+            case FONT_ARIAL_BOLD_14:
+              font = FONT_ARIAL_BOLD_14;
+              oled.setFont(Arial_bold_14);
+              break;
+            case FONT_CALLIBRI10:
+              font = FONT_CALLIBRI10;
+              oled.setFont(Callibri10);
+              break;
+            case FONT_FIXEDNUMS8X16:
+              font = FONT_FIXEDNUMS8X16;
+              oled.setFont(fixednums8x16);
+              break;
+            case FONT_TIMESNEWROMAN13:
+              font = FONT_TIMESNEWROMAN13;
+              oled.setFont(TimesNewRoman13);
+              break;
+            case FONT_ADAFRUIT5X7:
+              font = FONT_ADAFRUIT5X7;
+              oled.setFont(Adafruit5x7);
+              break;
+            case FONT_FONT5X7:
+              font = FONT_FONT5X7;
+              oled.setFont(font5x7);
+              break;
+            case FONT_LCD5X7:
+              font = FONT_LCD5X7;
+              oled.setFont(lcd5x7);
+              break;
+            case FONT_STANG5X7:
+              font = FONT_STANG5X7;
+              oled.setFont(Stang5x7);
+              break;
+            case FONT_SYSTEM5X7:
+              font = FONT_SYSTEM5X7;
+              oled.setFont(System5x7);
+              break;
+            default:
+              font = FONT_ARIAL14;
+              oled.setFont(Arial14);
+              DisplayToError("ERR: 047");
+              break;
+          }
+          writeFont();
+          DisplayToStatus("Font Saved.");
+          break;
+        case STATE_MENU_ORIENT:
+          switch (position) {
+            case ORIENT_LEFTY:
+              orientation = ORIENT_LEFTY;
+              oled.displayRemap(false);
+              break;
+            case ORIENT_RIGHTY:
+              orientation = ORIENT_RIGHTY;
+              oled.displayRemap(true);
+              break;
+            default:
+              orientation = ORIENT_LEFTY;
+              oled.displayRemap(false);
+              DisplayToError("ERR: 048");
+              break;
+          }
+          writeOrientation();
+          DisplayToStatus("Orientation Saved.");
           break;
         default:
           DisplayToError("ERR: 001");
@@ -2979,7 +3161,7 @@ void ProcessEvent() {                                                           
         line3DispBuff[enterPosition] = '*';
       }
       line3DispBuff[enterPosition + 1] = NULL_TERM;                             // push the null terminator out ahead of the last char in the string
-      DisplayBuffer();
+      DisplayBuffer3();
       if (enterPosition < DISPLAY_BUFFER_SIZE) enterPosition++;                 // don't increment enterPosition beyond the space that's allocated for the associated array
       event = EVENT_NONE;
     } else if (STATE_CHANGE_MASTER == machineState) {                           // EVENT_SINGLE_CLICK
@@ -2991,7 +3173,7 @@ void ProcessEvent() {                                                           
         line3DispBuff[enterPosition] = '*';
       }
       line3DispBuff[enterPosition + 1] = NULL_TERM;                             // push the null terminator out ahead of the last char in the string
-      DisplayBuffer();
+      DisplayBuffer3();
       if (enterPosition < DISPLAY_BUFFER_SIZE) enterPosition++;                 // don't increment enterPosition beyond the space that's allocated for the associated array
       event = EVENT_NONE;
     } else if (STATE_CONFIRM_BACK_EEPROM == machineState) {                     // EVENT_SINGLE_CLICK
@@ -3073,6 +3255,14 @@ void ProcessEvent() {                                                           
           machineState = STATE_MENU_ENCODER;
           event = EVENT_SHOW_ENCODER_MENU;
           break;
+        case SETTINGS_FONT:
+          machineState = STATE_MENU_FONT;
+          event = EVENT_SHOW_FONT_MENU;
+          break;
+        case SETTINGS_ORIENTATION:
+          machineState = STATE_MENU_ORIENT;
+          event = EVENT_SHOW_ORIENT_MENU;
+          break;
         default:
           DisplayToError("ERR: 005");
           break;
@@ -3135,7 +3325,7 @@ void ProcessEvent() {                                                           
           itoa(loginFailures, buffer, 10);                                      // convert login failures to a string and put it in buffer.
           strcpy(line3DispBuff, buffer);
           strcat(line3DispBuff, " failure(s)");
-          DisplayBuffer();
+          DisplayBuffer3();
           event = EVENT_NONE;
         }
       }
@@ -3322,7 +3512,9 @@ void ProcessEvent() {                                                           
 							 (STATE_MENU_DEFINE_GROUPS  == machineState) ||
                (STATE_MENU_LOGOUT_TIMEOUT == machineState) ||
                (STATE_MENU_KEYBOARD       == machineState) ||
-               (STATE_MENU_ENCODER        == machineState)) {
+               (STATE_MENU_ENCODER        == machineState) ||
+               (STATE_MENU_FONT           == machineState) ||
+               (STATE_MENU_ORIENT         == machineState)) {
       switch (machineState) {
         case STATE_KEY_ON_OFF_MENU:
           position = SETTINGS_SET_KEYBOARD;
@@ -3350,6 +3542,12 @@ void ProcessEvent() {                                                           
           break;
         case STATE_MENU_ENCODER:
           position = SETTINGS_ENCODER_TYPE;
+          break;
+        case STATE_MENU_FONT:
+          position = SETTINGS_FONT;
+          break;
+        case STATE_MENU_ORIENT:
+          position = SETTINGS_ORIENTATION;
           break;
         default:
           position = SETTINGS_SET_KEYBOARD;
@@ -3703,6 +3901,30 @@ void ProcessEvent() {                                                           
     ShowMenu(position, currentMenu, "   Encoder Type    ");  
     event = EVENT_NONE;
 
+  } else if (event == EVENT_SHOW_FONT_MENU) {
+    menuNumber = FONT_MENU_NUMBER;
+    int arraySize = 0;
+    for (uint8_t i = 0; i < MENU_SIZE; i++) {
+      arraySize += sizeof(fontMenu[i]);
+    }
+    memcpy(currentMenu, fontMenu, arraySize);
+    elements = FONT_MENU_ELEMENTS;
+    position = font;
+    ShowMenu(position, currentMenu, "        Font        ");  
+    event = EVENT_NONE;
+
+  } else if (event == EVENT_SHOW_ORIENT_MENU) {
+    menuNumber = ORIENT_MENU_NUMBER;
+    int arraySize = 0;
+    for (uint8_t i = 0; i < MENU_SIZE; i++) {
+      arraySize += sizeof(orientMenu[i]);
+    }
+    memcpy(currentMenu, orientMenu, arraySize);
+    elements = ORIENT_MENU_ELEMENTS;
+    position = orientation;
+    ShowMenu(position, currentMenu, "    Orientation     ");  
+    event = EVENT_NONE;
+
   } else if (event == EVENT_CHANGE_MASTER) {
     machineState = STATE_CHANGE_MASTER;
     position = DEFAULT_ALPHA_EDIT_POS;                                          // puts the position of the rotary encoder over 'A' for quicker password  entry                     
@@ -3763,24 +3985,17 @@ void ProcessEvent() {                                                           
 
 void DimDisplay(boolean dim) {
   if (dim) {
-    oled.dim(true);
+//  oled.dim(true);
     oledDim = true;
   } else {
-    oled.dim(false);
+//  oled.dim(false);
     oledDim = false;
   }
 }
 
 void ScrollPasswordPump(void) {
-  oled.clearDisplay();
-  oled.setTextSize(1);                                                          // Draw 2X-scale text
-  oled.setTextColor(WHITE);
-  oled.setCursor(0, LINE_2_POS);
-  oled.println(F("PasswordPump  v2.0.5"));
-  oled.display();                                                               // Show initial text
-  oled.startscrollright(0x00, 0x0F);
-  delay(3000);
-  oled.stopscroll();
+  oled.clear();
+  oled.println("PasswordPump  v2.0.5");
 }
 
 void setupStateEnterMasterPassword() {
@@ -3906,7 +4121,7 @@ void enterAttributeChar(char *attribute, uint8_t passwordFlag) {
       line3DispBuff[enterPosition] = allChars[position];
     }
     line3DispBuff[enterPosition + 1] = NULL_TERM;                               // push the null terminator out ahead of the last char in the string
-    DisplayBuffer();
+    DisplayBuffer3();
     if ((enterPosition + 1) < (DISPLAY_BUFFER_SIZE - 1)) enterPosition++;       // don't increment enterPosition beyond the space that's allocated for the associated array
   } else {
     attribute[enterPosition - 1]      = NULL_TERM;                              // blank out the previously entered character
@@ -3915,7 +4130,7 @@ void enterAttributeChar(char *attribute, uint8_t passwordFlag) {
     line3DispBuff[enterPosition - 1]  = NULL_TERM;                              // blank out the previously entered character
     line3DispBuff[enterPosition]      = NULL_TERM;                              // blank out the presently entered character, «, which is never shown
     line3DispBuff[enterPosition + 1]  = NULL_TERM;                              // blank out the next entered character (for good measure)
-    DisplayBuffer();
+    DisplayBuffer3();
     enterPosition--;                                                            // decrement enterPosition so we can re-enter the last character
   }
   event = EVENT_NONE;
@@ -4635,32 +4850,32 @@ void sendAll() {                                                                
 void DisplayToMenu(char* lineToPrint) {
   strncpy(line1DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
   line1DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
-  DisplayBuffer();
+  DisplayBuffer1();
 }
 
 void DisplayToItem(char* lineToPrint) {
   strncpy(line2DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
   line2DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
-  DisplayBuffer();
+  DisplayBuffer2();
 }
 
 void DisplayToEdit(char* lineToPrint) {
   strncpy(line3DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
   line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
-  DisplayBuffer();
+  DisplayBuffer3();
 }
 
 void DisplayToStatus(char* lineToPrint) {
   strncpy(line3DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
   line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
-  DisplayBuffer();
+  DisplayBuffer3();
 }
 
 void DisplayToError(char* lineToPrint) {
   strncpy(line3DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
   line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
 	oled.invertDisplay(true);
-  DisplayBuffer();
+  DisplayBuffer3();
   delayNoBlock(ONE_SECOND * 2);
 	oled.invertDisplay(false);
 }
@@ -4668,41 +4883,63 @@ void DisplayToError(char* lineToPrint) {
 void DisplayToDebug(char* lineToPrint) {
   strncpy(line3DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
   line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
-  DisplayBuffer();
+  DisplayBuffer3();
 }
 
 void BlankLine1() {
   //DebugLN("BlankLine1()");
   strncpy(line1DispBuff,spaceFilled,DISPLAY_BUFFER_SIZE);
   line1DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
-  DisplayBuffer();
+  DisplayBuffer1();
 }
 
 void BlankLine2() {
   //DebugLN("BlankLine2()");
   strncpy(line2DispBuff,spaceFilled,DISPLAY_BUFFER_SIZE);
   line2DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
-  DisplayBuffer();
+  DisplayBuffer2();
 }
 
 void BlankLine3() {
   //DebugLN("BlankLine3()");
   strncpy(line3DispBuff,spaceFilled,DISPLAY_BUFFER_SIZE);
   line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
-  DisplayBuffer();
+  DisplayBuffer3();
 }
 
 void DisplayBuffer() {
   //DebugLN("DisplayBuffer()");
-  oled.clearDisplay();
-  oled.setCursor(0,LINE_1_POS);                                                 // x, y
-  oled.println(line1DispBuff);
-  oled.setCursor(0,LINE_2_POS);                                                 // x, y
-  oled.println(line2DispBuff);
-  oled.setCursor(0,LINE_3_POS);                                                 // x, y
+  oled.clear();                                                                 // Clear all pixels in the buffer in the memory, and then use the sendBuffer function to display the buffer "Buffer" on the screen to clear the screen.
+  oled.setCursor(0,LINE_1_POS);
+  oled.print(line1DispBuff);
+  oled.setCursor(0,LINE_2_POS);
+  oled.print(line2DispBuff);
+  oled.setCursor(0,LINE_3_POS);
   oled.print(line3DispBuff);
-  oled.display();
-  
+}
+
+void DisplayBuffer1() {
+  //DebugLN("DisplayBuffer1()");
+  oled.setCursor(0,LINE_1_POS);
+  oled.clearToEOL();
+  oled.setCursor(0,LINE_1_POS);
+  oled.print(line1DispBuff);
+}
+
+void DisplayBuffer2() {
+  //DebugLN("DisplayBuffer2()");
+  oled.setCursor(0,LINE_2_POS);
+  oled.clearToEOL();
+  oled.setCursor(0,LINE_2_POS);
+  oled.print(line2DispBuff);
+}
+
+void DisplayBuffer3() {
+  //DebugLN("DisplayBuffer3()");
+  oled.setCursor(0,LINE_3_POS);
+  oled.clearToEOL();
+  oled.setCursor(0,LINE_3_POS);
+  oled.print(line3DispBuff);
 }
 
 void ShowMenu(uint8_t position, char **menu, char *menuName) {
@@ -4740,7 +4977,6 @@ void ShowChar(char charToShow, uint8_t  pos) {
   charToPrint[1] = NULL_TERM;
   oled.setCursor((NO_LED_LIB_CHAR_WIDTH_PIX * pos) + FIXED_CHAR_SPACING,LINE_3_POS);
   oled.print(charToPrint);
-  oled.display();
 }
 
 //- RGB LED
@@ -5253,6 +5489,16 @@ void writeKeyboardType() {
 void writeEncoderType() {
   //DebugLN("writeEncoderType()");
   write_eeprom_byte(GET_ADDR_ENCODER_TYPE, encoderType);
+}
+
+void writeFont() {
+  //DebugLN("writeFont()");
+  write_eeprom_byte(GET_ADDR_FONT, font);
+}
+
+void writeOrientation() {
+  //DebugLN("writeOrientation()");
+  write_eeprom_byte(GET_ADDR_ORIENTATION, orientation);
 }
 
 void writeLoginAttempts() {
