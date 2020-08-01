@@ -1442,10 +1442,10 @@ const char * const fontMenu[] = {                "Arial14",
                                                  "fixednums8x16",
                                                  "TimesNewRoman13",
                                                  "Adafruit5x7",
-                                                 "font5x7 ",
-                                                 "lcd5x7 ",
-                                                 "Stang5x7 ",
-                                                 "System5x7 ",
+                                                 "font5x7",
+                                                 "lcd5x7",
+                                                 "Stang5x7",
+                                                 "System5x7",
                                                  ""                           };
 #define FONT_ARIAL14              0
 #define FONT_ARIAL_BOLD_14        1
