@@ -8,6 +8,9 @@ The purpose of this repository on GitHub is to disseminate software for and info
 unreleased v2.0.5
   * Added a feature in settings whereby you can remap the orientation of the PasswordPump's text so that you can use it with the rotary encoder on the left (default) or the right.
   * Added the ability in settings to select from a variety of fonts for the PasswordPump's display.
+  * Fixed several issues with menu navigation; selecting 'N' and not being returned to the top of the main menu, long clicking and the screen not clearing.
+  * Removed the font fixednums8x16 which wasn't working, resulting in losing all creds.
+  * Changed the default font.
 
 2020-07-24 v2.0.4 
   * Made the encoder type configurable; i.e. to handle 'lefty' encoders w/o the precompiler directive.

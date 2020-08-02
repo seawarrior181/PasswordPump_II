@@ -1439,11 +1439,11 @@ const char * const encoderMenu[] = {             "Normal",
 #define ENCODER_LEFTY             1
 
 #define FONT_MENU_NUMBER          13
-#define FONT_MENU_ELEMENTS        10
-const char * const fontMenu[] = {                "Arial14",
+#define FONT_MENU_ELEMENTS         9
+const char * const fontMenu[] = {                "Arial14",                     //
                                                  "Arial_bold_14",
                                                  "Callibri10",
-                                                 "fixednums8x16",
+//                                               "fixednums8x16",               // broke
                                                  "TimesNewRoman13",
                                                  "Adafruit5x7",
                                                  "font5x7",
@@ -1454,13 +1454,13 @@ const char * const fontMenu[] = {                "Arial14",
 #define FONT_ARIAL14              0
 #define FONT_ARIAL_BOLD_14        1
 #define FONT_CALLIBRI10           2
-#define FONT_FIXEDNUMS8X16        3
-#define FONT_TIMESNEWROMAN13      4
-#define FONT_ADAFRUIT5X7          5
-#define FONT_FONT5X7              6
-#define FONT_LCD5X7               7
-#define FONT_STANG5X7             8
-#define FONT_SYSTEM5X7            9
+//#define FONT_FIXEDNUMS8X16      3
+#define FONT_TIMESNEWROMAN13      3
+#define FONT_ADAFRUIT5X7          4
+#define FONT_FONT5X7              5
+#define FONT_LCD5X7               6
+#define FONT_STANG5X7             7
+#define FONT_SYSTEM5X7            8
 
 #define ORIENT_MENU_NUMBER        14
 #define ORIENT_MENU_ELEMENTS      2
@@ -1962,7 +1962,7 @@ void setup() {                                                                  
 
   font = getFont;
   if (font == INITIAL_MEMORY_STATE_BYTE) {
-    font = FONT_ARIAL14;
+    font = FONT_SYSTEM5X7;
     writeEncoderType();
   }
 
@@ -1976,9 +1976,9 @@ void setup() {                                                                  
     case FONT_CALLIBRI10:
       oled.setFont(Callibri10);
       break;
-    case FONT_FIXEDNUMS8X16:
-      oled.setFont(fixednums8x16);
-      break;
+//    case FONT_FIXEDNUMS8X16:
+//      oled.setFont(fixednums8x16);
+//      break;
     case FONT_TIMESNEWROMAN13:
       oled.setFont(TimesNewRoman13);
       break;
@@ -1998,7 +1998,7 @@ void setup() {                                                                  
       oled.setFont(System5x7);
       break;
     default:
-      oled.setFont(Arial14);
+      oled.setFont(System5x7);
       DisplayToError("ERR: 047");
   }
   
@@ -3044,10 +3044,10 @@ void ProcessEvent() {                                                           
               font = FONT_CALLIBRI10;
               oled.setFont(Callibri10);
               break;
-            case FONT_FIXEDNUMS8X16:
-              font = FONT_FIXEDNUMS8X16;
-              oled.setFont(fixednums8x16);
-              break;
+//            case FONT_FIXEDNUMS8X16:
+//              font = FONT_FIXEDNUMS8X16;
+//              oled.setFont(fixednums8x16);
+//              break;
             case FONT_TIMESNEWROMAN13:
               font = FONT_TIMESNEWROMAN13;
               oled.setFont(TimesNewRoman13);
@@ -3184,11 +3184,13 @@ void ProcessEvent() {                                                           
       if (confirmChars[position] == 'Y') {
         CopyEEPromToBackup();
       }
+      position = FIND_FAVORITE;
       event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_CONFIRM_RESTORE == machineState) {                         // EVENT_SINGLE_CLICK
       if (confirmChars[position] == 'Y') {
         RestoreEEPromBackup();
       }
+      position = FIND_FAVORITE;
       event = EVENT_SHOW_MAIN_MENU;
     //} else if (STATE_CONFIRM_FIX_CORRUPT == machineState) {
       //if (confirmChars[position] == 'Y') {
@@ -3198,6 +3200,9 @@ void ProcessEvent() {                                                           
     } else if (STATE_CONFIRM_RESET == machineState) {                           // EVENT_SINGLE_CLICK
       if (confirmChars[position] == 'Y') {
         FactoryReset();
+      } else {
+        position = FIND_FAVORITE;
+        event = EVENT_SHOW_MAIN_MENU;
       }
     } else if (STATE_CONFIRM_DEL_ACCT == machineState) {                        // EVENT_SINGLE_CLICK
       if (confirmChars[position] == 'Y') {
@@ -3653,6 +3658,7 @@ void ProcessEvent() {                                                           
     if (!authenticated) {
       position = ENTER_MASTER_PASSWORD;
     }
+    oled.clear();
     ShowMenu(position, currentMenu, "        Main        ");
     event = EVENT_NONE;
 
