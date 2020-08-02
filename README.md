@@ -6,7 +6,7 @@ The purpose of this repository on GitHub is to disseminate software for and info
 
 # Change Log
 unreleased v2.0.5
-  * Added a feature in settings whereby you can invert the PasswordPump's text so that you can use it with the rotary encoder on the left (default) or the right.
+  * Added a feature in settings whereby you can remap the orientation of the PasswordPump's text so that you can use it with the rotary encoder on the left (default) or the right.
   * Added the ability in settings to select from a variety of fonts for the PasswordPump's display.
 
 2020-07-24 v2.0.4 

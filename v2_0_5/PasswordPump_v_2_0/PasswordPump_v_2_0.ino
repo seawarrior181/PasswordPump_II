@@ -440,8 +440,12 @@
 																											credentials and for 
 																											hashing the master 
 																											password 
-	-	https://github.com/adafruit/Adafruit_SSD1306 			For SSD1306 monochrome 
-																											128x64 and 128x32 OLEDs  
+  - https://github.com/greiman/SSD1306Ascii           SSD1306Ascii is an 
+                                                      unbuffered character only 
+                                                      library for small OLED 
+                                                      displays like the Adafruit
+                                                      1.3" and 0.96" Monochrome 
+                                                      displays.
 	-	https://github.com/adafruit/Adafruit_SPIFlash			For FAT filesystems on 
 																											SPI flash chips
 	- https://github.com/thijse/Arduino-CmdMessenger 		A messaging library for 
@@ -840,8 +844,8 @@
 #include "USKeyboard.h"                                                         
 #include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
 #include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
-#include <SSD1306Ascii.h>
-#include <SSD1306AsciiWire.h>
+#include <SSD1306Ascii.h>                                                       // https://github.com/greiman/SSD1306Ascii
+#include <SSD1306AsciiWire.h>                                                   // https://github.com/greiman/SSD1306Ascii
 #include <Adafruit_SPIFlash.h>                                                  // https://github.com/adafruit/Adafruit_SPIFlash
 #include <CmdMessenger.h>																												// https://github.com/thijse/Arduino-CmdMessenger 
 
