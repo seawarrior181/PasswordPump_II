@@ -1,11 +1,12 @@
-/*
-  PasswordPump_v_2_0.ino
- 
-  Project Name: PasswordPump 2.0, a better password manager
-  Author:       Daniel J. Murphy
+/* ___                              _ ___                 
+  | _ \__ _ _______ __ _____ _ _ __| | _ \_  _ _ __  _ __ 
+  |  _/ _` (_-<_-< V  V / _ \ '_/ _` |  _/ || | '  \| '_ \
+  |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
+  Author:       Daniel J. Murphy                    |_| 
+  File:         PasswordPump_v_2_0.ino
   Version:      2.0.5
   Date:         2019/07/26 - 2020/06/14
-  Language:     Arduino C++
+  Language:     Arduino IDE, C++
   Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit Cortex M0+ or ATSAMD51J19 32-bit Cortex M4
   Memory:       256KB Flash and 32 KB RAM or 512KB Flash and 192KB RAM
@@ -24,6 +25,23 @@
     facilitate  the use of really strong 31 character UUID like passwords on all
     accounts.
 	
+  Device Program Files
+  ====================
+  CzechKeyboard.h
+  DanishKeyboard.h
+  FinnishKeyboard.h
+  FrenchKeyboard.h
+  GermanKeyboard.h
+  Keyboard.cpp
+  Keyboard.h
+  KeyboardTop.h
+  NorwegianKeyboard.h
+  PasswordPump_v_2_0.ino
+  SpanishKeyboard.h
+  SwedishKeyboard.h
+  UKKeyboard.h
+  USKeyboard.h
+  
   Documentation
   =============
   For more information about this project visit 
@@ -37,28 +55,30 @@
 
   Features
   ========
-  - Authenticate with 16 character master password
+  - Authenticate to device with 16 character master password
   - Search for accounts
-    - Send user name and password as if typed in keyboard
-    - Add account name, user name, password (generated or not), url, old 
-      password
-    - Edit existing user name, password, URL, style (inter-username/password
-      character, <Return> or <Tab>)
-    - Delete account
-    - Generate password
-    - Store old password
+  - Send user name and password to computer as if typed in via keyboard
+  - Add account name, user name, password (generated or not), url, old 
+    password
+  - Edit existing user name, password, old password, groups/categories, URL, 
+    style (inter-username/password character, <Return> or <Tab>)
+  - Delete account
+  - Generate password
+  - Store old password
   - Data entry via rotary encoder or keyboard and serial monitor, or via client
     Python program running in Windows.
   - Accounts added in alphabetical order
   - Store up to 253 sets of credentials
   - Backup all accounts to a second encrypted external EEprom
-  - Logout / de-authenticate via menu
+  - Logout / de-authenticate / lock computer via menu
   - Factory reset via menu (when authenticated)
   - Configurable password display on or off
   - Configurable failed login count factory reset (3, 5, 10, 25)
   - Configurable automatic logout after count of minutes (30, 60, 90, 120, 240,
     1, Never)
   - Configurable RGB LED intensity (high, medium, low, off)
+  - Configurable font
+  - Configurable display orientation (rotary encoder on the left or the right)
   - All passwords (except master password) are encrypted w/ AES-256; master 
     password is hashed w/ SHA-256.
   - Change master password
@@ -69,8 +89,9 @@
     (Favorites, Work, Personal, Home, School, Financial, Mail, Custom)
   - Decoy password feature that automatically factory resets the device if
     entered (e.g. while the user is under duress)
-  - Supports use of several international keyboards (re-compilation may be
-    required).
+  - Supports use of several international keyboards.
+  - Check if password is pwned/appeard in a data breach (in Python GUI)
+  - Check for password complexity (in Python GUI)
   
   Known Defects/Issues
   ====================  
@@ -92,7 +113,7 @@
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x single character user names and passwords are not working well
-  x Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
+  * Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
     BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
   * Does not work correctly with keyboards that are not US.
 	* Issue because listHead is set to 0 before there are any elements in the 
@@ -367,7 +388,7 @@
 
   Warnings
   ========
-  - Avoid using the device under water.
+  - Avoid using the device with wet hands.
   
   Suggestions
   ===========
@@ -386,11 +407,17 @@
 	  advancing through the alphabet when you turn the encoder counter-clockwise
 		then you can reverse this behavior by selecting 'Lefty' in 
     Settings->Encoder Type.  This state survives power cycling.
+  - If you wish to change the orientation of the display to the rotary encoder,
+    (i.e. if you want to operate the encoder with your right hand) navigate to 
+    Settings->Orientation.
+  - See the Users Guide for more suggestions @ 
+    https://github.com/seawarrior181/PasswordPump_II
 
   Contributors
   ============
-  Source code has been pulled from all over the internet, it would be impossible 
-  for me to cite all contributors.
+  A lot of cargo programming was employed to build this program and Source code
+  has been pulled from all over the internet, it would be impossible for me to 
+  cite all contributors.
 
   Copyright
   =========
@@ -757,6 +784,22 @@
       Swedish
       United Kingdom
       United States
+    Encoder Type
+      Normal
+      Lefty
+    Font
+      Arial14
+      Arial_bold_14
+      Callibri10
+      TimesNewRoman13
+      Adafruit5x7
+      font5x7
+      lcd5x7
+      Stang5x7
+      System5x7
+    Orientation
+      Lefty
+      Righty
   Factory Reset [confirm]   
 
   Error Codes  TODO: add more error codes
@@ -811,7 +854,7 @@
   047 - Invalid font specified
   048 - Invalid orientation specified
 
-  The Program 
+  Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                             */
 //#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4
@@ -831,17 +874,17 @@
 #include <avr/interrupt.h>
 #include <Wire.h>
 #include <Button2.h>                                                            // https://github.com/LennartHennigs/Button2 for the button on the rotary encoder 
-#include "Keyboard.h"                                                           
-#include "CzechKeyboard.h"                                                      
-#include "DanishKeyboard.h"                                     
-#include "FinnishKeyboard.h"                                                    
-#include "FrenchKeyboard.h"                                                     
-#include "GermanKeyboard.h"                                                     
-#include "NorwegianKeyboard.h"                                     
-#include "SpanishKeyboard.h"                                                    
-#include "SwedishKeyboard.h"                                     
-#include "UKKeyboard.h"                                                         
-#include "USKeyboard.h"                                                         
+#include "Keyboard.h"                                                           // 
+#include "CzechKeyboard.h"                                                      //      
+#include "DanishKeyboard.h"                                                     // 
+#include "FinnishKeyboard.h"                                                    // 
+#include "FrenchKeyboard.h"                                                     // 
+#include "GermanKeyboard.h"                                                     // 
+#include "NorwegianKeyboard.h"                                                  // 
+#include "SpanishKeyboard.h"                                                    // 
+#include "SwedishKeyboard.h"                                                    // 
+#include "UKKeyboard.h"                                                         // 
+#include "USKeyboard.h"                                                         // The default.
 #include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
 #include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
 #include <SSD1306Ascii.h>                                                       // https://github.com/greiman/SSD1306Ascii
@@ -876,14 +919,14 @@
 //  #define Serial SERIAL_PORT_USBVIRTUAL
 //#endif
 
-#define KEEPASS_CSV               "KPEXPORT.CSV"
-#define KEEPASS_COLUMNS           5
+#define KEEPASS_CSV               "KPEXPORT.CSV"                                // this functionality was removed.
+#define KEEPASS_COLUMNS           5                                             // this functionality was removed.
 
-#define PP_CSV                    "PPEXPORT.CSV"
-#define PP_COLUMNS                5
+#define PP_CSV                    "PPEXPORT.CSV"                                // this functionality was removed.
+#define PP_COLUMNS                5                                             // this functionality was removed.
 
-#define CP_CSV                    "CPEXPORT.CSV"
-#define CP_COLUMNS                4
+#define CP_CSV                    "CPEXPORT.CSV"                                // this functionality was removed.
+#define CP_COLUMNS                4                                             // this functionality was removed.
 
 //- Defines
 
@@ -1153,13 +1196,13 @@
 //- I2C Address
 
 #define SSD1306_I2C_ADDR          0x3C                                          // Slave 128x32 OLED I2C address
-                                                                                
+
 #define MAX_IDLE_TIME             3600000UL                                     // milliseconds in an hour, time allowed before automatic logout
 #define LONG_CLICK_LENGTH         500                                           // milliseconds to hold down the rotary encoder button to trigger EVENT_LONG_CLICK
-#define UN_PW_DELAY               1000UL                                        // time in milliseconds to wait after entering user name before entering password
+#define UN_PW_DELAY               1000UL                                        // time in milliseconds to wait after sending user name before sending password
 #define SHA_ITERATIONS            1                                             // number of times to hash the master password (won't work w/ more than 1 iteration)
 #define KHZ_4000                  400000UL                                      // Speed (in Hz) for Wire transmissions in SSD1306 library calls.
-#define KHZ_100                   100000UL                                      // Speed (in Hz) for Wire transmissions following SSD1306 library calls.
+#define KHZ_100                   10000UL                                       // Speed (in Hz) for Wire transmissions following SSD1306 library calls.
 
 //- Menus (globals)
 
@@ -1170,7 +1213,7 @@
 
 #define MAIN_MENU_NUMBER          0
 #define MAIN_MENU_ELEMENTS        10                                            // number of selections in the main menu
-                                                                            
+
 char * mainMenu[] =               {              "Master Password",             // menu picks appear only on the top line
                                                  "Find Favorites",              // find favorite credentials
                                                  "Find All Accounts",           // after an account is found send user sendMenu 
@@ -1245,7 +1288,7 @@ const char * const enterMenu[] =  {              "Edit Account Name",           
 
 #define SETTINGS_MENU_NUMBER      3
 #define SETTINGS_MENU_ELEMENTS    12                                             // the number of selections in the menu for changing settings
-//char   settingsMenu[SETTINGS_MENU_ELEMENTS+1][DISPLAY_BUFFER_SIZE-1] =
+
 char *settingsMenu[] =
                                       {          "Keyboard",                    // flag that determines if the input by keyboard feature is on or off
                                                  "Show Password",               // determines if passwords are displayed or masked with asterisk
@@ -1443,7 +1486,7 @@ const char * const encoderMenu[] = {             "Normal",
 const char * const fontMenu[] = {                "Arial14",                     //
                                                  "Arial_bold_14",
                                                  "Callibri10",
-//                                               "fixednums8x16",               // broke
+//                                               "fixednums8x16",               // broke, do NOT use
                                                  "TimesNewRoman13",
                                                  "Adafruit5x7",
                                                  "font5x7",
@@ -1451,6 +1494,16 @@ const char * const fontMenu[] = {                "Arial14",                     
                                                  "Stang5x7",
                                                  "System5x7",
                                                  ""                           };
+// Some avaliable fonts if you want to experiment: (make sure you have a good
+// backup CHIP that has a working font written to GET_ADDR_FONT!  If you select
+// a font that will not display (i.e. it's too big, liked fixednums8x16) you 
+// can get locked out of your PasswordPump.  Consider yourself warned.
+// Arial14,Arial_bold_14,Callibri11,Callibri11_bold,Callibri11_italic,
+// Callibri15,Corsiva_12,fixed_bold10x15,font5x7,font8x8,Iain5x7,lcd5x7,
+// Stang5x7,System5x7,TimesNewRoman16,TimesNewRoman16_bold,
+// TimesNewRoman16_italic,utf8font10x16,Verdana12,Verdana12_bold,
+// Verdana12_italic,X11fixed7x14,X11fixed7x14B,ZevvPeep8x16
+                                               
 #define FONT_ARIAL14              0
 #define FONT_ARIAL_BOLD_14        1
 #define FONT_CALLIBRI10           2
@@ -1474,8 +1527,8 @@ const char * const orientMenu[] = {              "Lefty",
 #define SCREEN_HEIGHT             32                                            // OLED display height, in pixels
 #define OLED_RESET                -1                                            // Reset pin # (or -1 if sharing ItsyBitsy reset pin)
 
-#define MAX_LEN_CSV_LINE          500                                           // max chars in KEEPASS_CSV file
-#define MAX_CSV_FIELDS            20                                            // max fields in KEEPASS_CSV line
+#define MAX_LEN_CSV_LINE          500                                           // max chars in KEEPASS_CSV file (unused functionality)
+#define MAX_CSV_FIELDS            20                                            // max fields in KEEPASS_CSV line (unused functionality)
 
 #define SIZE_OF_DECOY_PW          2                                             // size in chars of the decoy password string
 
@@ -1498,32 +1551,31 @@ static int  maxfield = 0;                                                       
 static int  nfield   = 0;                                                       // number of fields in field[]
 static char fieldsep[] = ","; 																									// field separator chars
 static char *advquoted(char *);
-static int split(void);
-                                                                                // END CSV Processing
-
+static int split(void);                                                         // END CSV Processing
+                                                                                
 int lastModeA = LOW;                                                            // Rotary encoder states
 int lastModeB = LOW;
 int curModeA = LOW;
 int curModeB = LOW;
 int encPos = 0;
 int encPosLast = 0;
-int change = 0;                                                                 // END Rotary encoder state
+int change = 0;                                                                 // END Rotary encoder state                           
 
-long milliseconds;                                                              // time in milliseconds
-char accountName[ACCOUNT_SIZE];
+long milliseconds;                                                              // holds time in milliseconds
+char accountName[ACCOUNT_SIZE];                                                 // holds the account name
 char username[USERNAME_SIZE];                                                   // holds the user name of the current account
 char password[PASSWORD_SIZE];                                                   // holds the password of the current account
 char oldPassword[PASSWORD_SIZE];                                                // holds the previous password of the current account
 char website[WEBSITE_SIZE];                                                     // holds the URL for the credentials
 char salt[SALT_SIZE];                                                           // holds the salt for each set of credentials
 char style[STYLE_SIZE];                                                         // holds the style of the current account (<TAB> or <CR> between send user name and password)
-char groupCategory_1[CATEGORY_SIZE];
-char groupCategory_2[CATEGORY_SIZE];
-char groupCategory_3[CATEGORY_SIZE];
-char groupCategory_4[CATEGORY_SIZE];
-char groupCategory_5[CATEGORY_SIZE];
-char groupCategory_6[CATEGORY_SIZE];
-char groupCategory_7[CATEGORY_SIZE];
+char groupCategory_1[CATEGORY_SIZE];                                            // the name of group category 1
+char groupCategory_2[CATEGORY_SIZE];                                            // the name of group category 2
+char groupCategory_3[CATEGORY_SIZE];                                            // the name of group category 3
+char groupCategory_4[CATEGORY_SIZE];                                            // the name of group category 4
+char groupCategory_5[CATEGORY_SIZE];                                            // the name of group category 5
+char groupCategory_6[CATEGORY_SIZE];                                            // the name of group category 6
+char groupCategory_7[CATEGORY_SIZE];                                            // the name of group category 7
 uint8_t groups;                                                                 // to which of 8 groups does the set of credentials belongs
 
 boolean updateExistingAccount = false;                                          // indicates if we are updating an existing account
@@ -1536,9 +1588,6 @@ boolean isBlue    = false;                                                      
 
 boolean oledDim   = false;                                                      // indicates if the oled display is dimmed
 
-//uint8_t red = 0;
-//uint8_t green = 0;
-//uint8_t blue = 0;
 uint16_t angle = 0;
 
 uint8_t keyboardType;
@@ -1549,7 +1598,7 @@ uint8_t orientation;
 uint8_t rotaryPin1  = 9;
 uint8_t rotaryPin2  = 7;
 
-const uint8_t HSVlights[61] = 
+const uint8_t HSVlights[61] =                                                   // used to change the color of the RGB LED when logged out
 {0, 4, 8, 13, 17, 21, 25, 30, 34, 38, 42, 47, 51, 55, 59, 64, 68, 72, 76,
 81, 85, 89, 93, 98, 102, 106, 110, 115, 119, 123, 127, 132, 136, 140, 144,
 149, 153, 157, 161, 166, 170, 174, 178, 183, 187, 191, 195, 200, 204, 208,
@@ -1843,7 +1892,7 @@ void OnGetNextFreePos();
 void OnDeleteAccount();
 void initializeAllGroupCategories();																						// sets all group categories to their default values
 
-Keyboard_ Keyboard;
+Keyboard_ Keyboard;                                                             // define the keyboard object
 
 //- Main Program Control
 
@@ -1879,11 +1928,11 @@ void setup() {                                                                  
 
   Wire.begin();
   Wire.setClock(KHZ_4000);
-  oled.begin(&Adafruit128x32, SSD1306_I2C_ADDR);
+  oled.begin(&Adafruit128x32, SSD1306_I2C_ADDR);                                // initialize the OLED
   DimDisplay(false);
 
   DisableInterrupts();                                                          // turn off global interrupts, initially set to true
-  initSPI();
+  initSPI();                                                                    // initialize SPI
 
   if(TEST_EEPROM){                                                              // Typically this is false unless debugging
     TestEEPromWrite();
@@ -1938,7 +1987,7 @@ void setup() {                                                                  
 	readGroupCategories();																												// set the group categories from EEprom
 	loadGroupMenu();  															   												  	// load the group categories into the group menu
 
-  encoderType = getEncoderType;
+  encoderType = getEncoderType;                                                 // Setup the encoder type; normal or lefty.
   if (encoderType == INITIAL_MEMORY_STATE_BYTE) {
     encoderType = ENCODER_NORMAL;
     writeEncoderType();
@@ -1960,7 +2009,7 @@ void setup() {                                                                  
       break;
   }
 
-  font = getFont;
+  font = getFont;                                                               // Setup the Font
   if (font == INITIAL_MEMORY_STATE_BYTE) {
     font = FONT_SYSTEM5X7;
     writeEncoderType();
@@ -1976,7 +2025,7 @@ void setup() {                                                                  
     case FONT_CALLIBRI10:
       oled.setFont(Callibri10);
       break;
-//    case FONT_FIXEDNUMS8X16:
+//    case FONT_FIXEDNUMS8X16:                                                  // Never enable this font, it's broken and you'll lose your creds.
 //      oled.setFont(fixednums8x16);
 //      break;
     case FONT_TIMESNEWROMAN13:
@@ -2003,7 +2052,7 @@ void setup() {                                                                  
   }
   
   
-  orientation = getOrientation;
+  orientation = getOrientation;                                                 // Is the rotary encoder on the left or on the right?
   if (orientation == INITIAL_MEMORY_STATE_BYTE) {
     orientation = ORIENT_LEFTY;
     writeOrientation();
@@ -2025,7 +2074,7 @@ void setup() {                                                                  
   oled.clear();
   ShowSplashScreen();
   
-  keyboardType = getKeyboardType;
+  keyboardType = getKeyboardType;                                               // Setup the Keyboard Language
 	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {															// ...and if not initialize them
     keyboardType = KEYBOARD_US;
 		writeKeyboardType();
@@ -2663,43 +2712,43 @@ void ProcessEvent() {                                                           
     } else if (STATE_MENU_DEFINE_GROUPS == machineState) {                  		// EVENT_SINGLE_CLICK
       enterPosition = 0;
       switch(position) {
-        case EDIT_GROUP_1:                                              
+        case EDIT_GROUP_1:                                                      // EVENT_SINGLE_CLICK          
           DisplayToItem(groupCategory_1);
           DisplayToMenu("Edit Group 1");
           BlankLine3();
           EditAttribute(STATE_EDIT_GROUP_1, DEFAULT_ALPHA_EDIT_POS);
           break; 
-        case EDIT_GROUP_2:                                              
+        case EDIT_GROUP_2:                                                      // EVENT_SINGLE_CLICK
           DisplayToItem(groupCategory_2);
           DisplayToMenu("Edit Group 2");
           BlankLine3();
           EditAttribute(STATE_EDIT_GROUP_2, DEFAULT_ALPHA_EDIT_POS);
           break; 
-        case EDIT_GROUP_3:                                              
+        case EDIT_GROUP_3:                                                      // EVENT_SINGLE_CLICK        
           DisplayToItem(groupCategory_3);
           DisplayToMenu("Edit Group 3");
           BlankLine3();
           EditAttribute(STATE_EDIT_GROUP_3, DEFAULT_ALPHA_EDIT_POS);
           break; 
-        case EDIT_GROUP_4:                                              
+        case EDIT_GROUP_4:                                                      // EVENT_SINGLE_CLICK     
           DisplayToItem(groupCategory_4);
           DisplayToMenu("Edit Group 4");
           BlankLine3();
           EditAttribute(STATE_EDIT_GROUP_4, DEFAULT_ALPHA_EDIT_POS);
           break; 
-        case EDIT_GROUP_5:                                              
+        case EDIT_GROUP_5:                                                      // EVENT_SINGLE_CLICK        
           DisplayToItem(groupCategory_5);
           DisplayToMenu("Edit Group 5");
           BlankLine3();
           EditAttribute(STATE_EDIT_GROUP_5, DEFAULT_ALPHA_EDIT_POS);
           break; 
-        case EDIT_GROUP_6:                                              
+        case EDIT_GROUP_6:                                                      // EVENT_SINGLE_CLICK       
           DisplayToItem(groupCategory_6);
           DisplayToMenu("Edit Group 6");
           BlankLine3();
           EditAttribute(STATE_EDIT_GROUP_6, DEFAULT_ALPHA_EDIT_POS);
           break; 
-        case EDIT_GROUP_7:                                              
+        case EDIT_GROUP_7:                                                      // EVENT_SINGLE_CLICK  
           DisplayToItem(groupCategory_7);
           DisplayToMenu("Edit Group 7");
           BlankLine3();
@@ -2720,7 +2769,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus("Removed FAVORITES");
           }
           break;
-        case GROUP_WORK:
+        case GROUP_WORK:                                                        // EVENT_SINGLE_CLICK
           groups ^= WORK;
           if (WORK & groups) {
 					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
@@ -2732,7 +2781,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus(buffer);
           }
           break;
-        case GROUP_PERSONAL:
+        case GROUP_PERSONAL:                                                    // EVENT_SINGLE_CLICK
           groups ^= PERSONAL;
           if (PERSONAL & groups) {
 					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
@@ -2744,7 +2793,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus(buffer);
           }
           break;
-        case GROUP_HOME:
+        case GROUP_HOME:                                                        // EVENT_SINGLE_CLICK
           groups ^= HOME;
           if (HOME & groups) {
 					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
@@ -2756,7 +2805,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus(buffer);
           }
           break;
-        case GROUP_SCHOOL:
+        case GROUP_SCHOOL:                                                      // EVENT_SINGLE_CLICK
           groups ^= SCHOOL;
           if (SCHOOL & groups) {
 					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
@@ -2768,7 +2817,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus(buffer);
           }
           break;
-        case GROUP_FINANCIAL:
+        case GROUP_FINANCIAL:                                                   // EVENT_SINGLE_CLICK
           groups ^= FINANCIAL;
           if (FINANCIAL & groups) {
 					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
@@ -2780,7 +2829,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus(buffer);
           }
           break;
-        case GROUP_MAIL:
+        case GROUP_MAIL:                                                        // EVENT_SINGLE_CLICK
           groups ^= MAIL;
           if (MAIL & groups) {
 					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
@@ -2792,7 +2841,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus(buffer);
           }
           break;
-        case GROUP_CUSTOM:
+        case GROUP_CUSTOM:                                                      // EVENT_SINGLE_CLICK
           groups ^= CUSTOM;
           if (CUSTOM & groups) {
 					  char buffer[DISPLAY_BUFFER_SIZE] = "Added to ";
@@ -2804,7 +2853,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus(buffer);
           }
           break;
-        default:
+        default:                                                                // EVENT_SINGLE_CLICK
           DisplayToError("ERR: 025");
           break;
       }
@@ -7648,3 +7697,5 @@ char stack_dummy = 0;
 return &stack_dummy - sbrk(0);
 }
 */
+
+// .--. .- ... ... .-- --- .-. -.. .--. ..- -- .--. 
