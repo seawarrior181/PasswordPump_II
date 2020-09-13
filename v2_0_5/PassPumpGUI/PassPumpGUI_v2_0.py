@@ -4,7 +4,7 @@
 # |  _/ _` (_-<_-< V  V / _ \ '_/ _` |  _/ || | '  \| '_ \
 # |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
 # Author:       Daniel J. Murphy                    |_|
-# File:         PasswordPump_v_2_0.ino
+# File:         PassPumpGUI_v2_0.py
 # Version:      2.0.5
 # Date:         2019/07/26 - 2020/06/14
 # Language:     Python
@@ -18,13 +18,13 @@
 # Documentation
 # =============
 # For more information about this project visit
-# https://www.5volts.org/post/passwordpump-v2-0.
+#   https://www.5volts.org/post/passwordpump-v2-0.
 # To see the source code in GitHub point your browser to
-# https://github.com/seawarrior181/PasswordPump_II.
+#   https://github.com/seawarrior181/PasswordPump_II.
 # To purchase a kit visit
-# https://www.tindie.com/products/passwordpump/passwordpump-v20/
+#   https://www.tindie.com/products/passwordpump/passwordpump-v20/
 # To see a video about the project navigate to
-# https://www.youtube.com/watch?v=f4Iukt5VDUo.
+#   https://www.youtube.com/watch?v=f4Iukt5VDUo.
 #
 # Copyright
 # =========
