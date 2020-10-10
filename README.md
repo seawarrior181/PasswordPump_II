@@ -6,6 +6,8 @@ The purpose of this repository on GitHub is to disseminate software for and info
 
 # Change Log
 unreleased v2.0.5
+
+ Note: please use v2.0.4 unless you're adventurous.  
   * Added a feature in settings whereby you can remap the orientation of the PasswordPump's text so that you can use it with the rotary encoder on the left (default) or the right.
   * Added the ability in settings to select from a variety of fonts for the PasswordPump's display.
   * Fixed several issues with menu navigation; selecting 'N' and not being returned to the top of the main menu, long clicking and the screen not clearing.
