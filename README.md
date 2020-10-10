@@ -8,6 +8,7 @@ The purpose of this repository on GitHub is to disseminate software for and info
 unreleased v2.0.5
 
  Note: please use v2.0.4 unless you're adventurous.  
+  * A customer has recently reported to me that the linked list that keeps the credentials sorted by account name is becoming corrupt, which is affecting his ability to navigate through the credentials on the device via the rotary encoder or via the PasswordPumpGUI.  Toward fixing that problem I have added a menu option entitled Fix Corruption.  It is not clear to me yet how this corruption is introduced, as I am unable to reproduce the conditions under which the defect occurs in my lab.
   * Added a feature in settings whereby you can remap the orientation of the PasswordPump's text so that you can use it with the rotary encoder on the left (default) or the right.
   * Added the ability in settings to select from a variety of fonts for the PasswordPump's display.
   * Fixed several issues with menu navigation; selecting 'N' and not being returned to the top of the main menu, long clicking and the screen not clearing.
