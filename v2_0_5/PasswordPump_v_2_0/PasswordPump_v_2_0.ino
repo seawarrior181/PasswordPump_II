@@ -1117,7 +1117,7 @@
 #define EVENT_BACKUP              14                                            // copying the content of the primary external EEprom to the backup EEprom
 #define EVENT_RESTORE             15                                            // restore from the backup EEprom to the primary EEprom
 #define EVENT_BACKUP_TO_FILE      16                                            // send all credentials out through the keyboard for capture in a text editor
-//#define EVENT_FIX_CORRUPTION    17                                            // fix a corrupt linked list
+#define EVENT_FIX_CORRUPTION      17                                            // fix a corrupt linked list
 #define EVENT_DELETE_ACCT         18                                            // delete an account
 #define EVENT_IMPORT_KEEPASS_CSV  19                                            // import a csv KeePass file
 #define EVENT_SHOW_SETTINGS_MENU  20                                            // to show the settings menu
@@ -1153,7 +1153,7 @@
 #define STATE_SEND_CREDS_MENU     11                                            // showing the menu that sends credentials via keyboard     
 #define STATE_CONFIRM_BACK_EEPROM 12                                            // confirming an action                               
 #define STATE_CONFIRM_RESTORE     13                                            // confirming restore from backup EEprom              
-//#define STATE_CONFIRM_FIX_CORRUPT 14                                          // confirming fix corruption function                 
+#define STATE_CONFIRM_FIX_CORRUPT 14                                            // confirming fix corruption function                 
 #define STATE_CONFIRM_DEL_ACCT    15                                            // confirming account/credentials delete              
 #define STATE_CONFIRM_RESET       16                                            // confirming factory reset                           
 #define STATE_CONFIRM_IMP_KP_CSV  17                                            // confirming import KeePass csv file
@@ -1212,7 +1212,7 @@
 #define MENU_SIZE                 12                                            // selections in the menu
 
 #define MAIN_MENU_NUMBER          0
-#define MAIN_MENU_ELEMENTS        10                                            // number of selections in the main menu
+#define MAIN_MENU_ELEMENTS        11                                            // number of selections in the main menu
 
 char * mainMenu[] =               {              "Master Password",             // menu picks appear only on the top line
                                                  "Find Favorites",              // find favorite credentials
@@ -1222,7 +1222,7 @@ char * mainMenu[] =               {              "Master Password",             
                                                  "Add Account",
                                                  "Logout & Lock",               // locks the user out until master password is re-entered
                                                  "Backup/Restore",              // Backup, Restore a backup 
-//                                               "Fix Corruption",              // fix any corruption in the linked list
+                                                 "Fix Corruption",              // fix any corruption in the linked list
                                                  "Settings",                    // navigate to the settings menu
                                                  "Factory Reset"              };// factory reset; erases all credentials from memory
 
@@ -1234,9 +1234,9 @@ char * mainMenu[] =               {              "Master Password",             
 #define ADD_ACCOUNT               5
 #define LOGOUT                    6
 #define FILE_MENU_SEL             7
-//#define FIX_CORRUPT_LIST        7
-#define SETTINGS                  8
-#define FACTORY_RESET             9
+#define FIX_CORRUPT_LIST          8
+#define SETTINGS                  9
+#define FACTORY_RESET             10
 
 uint8_t menuNumber = MAIN_MENU_NUMBER;                                          // holds the menu number of the currently displayed menu
 uint8_t elements = MAIN_MENU_ELEMENTS;                                          // holds the number of selections in the currently displayed menu
@@ -2364,10 +2364,10 @@ void ProcessEvent() {                                                           
       }
       acctPosition = position;
       readAcctFromEEProm(acctPosition, accountName);
-      DisplayToItem(accountName);
+      DisplayToItem((char *) accountName);
     } else if ((STATE_CONFIRM_BACK_EEPROM == machineState ) || 								  // event == EVENT_ROTATE_CW
                (STATE_CONFIRM_RESTORE     == machineState ) ||
-               //(STATE_CONFIRM_FIX_CORRUPT== machineState ) ||
+               (STATE_CONFIRM_FIX_CORRUPT == machineState ) ||
                (STATE_CONFIRM_RESET       == machineState ) ||
                (STATE_CONFIRM_DEL_ACCT    == machineState ) ||
                (STATE_CONFIRM_IMP_KP_CSV  == machineState ) ||
@@ -2481,10 +2481,10 @@ void ProcessEvent() {                                                           
       }
       acctPosition = position;
       readAcctFromEEProm(acctPosition, accountName);
-      DisplayToItem(accountName);
+      DisplayToItem((char *) accountName);
     } else if ((STATE_CONFIRM_BACK_EEPROM == machineState ) || 
                (STATE_CONFIRM_RESTORE     == machineState ) ||
-               //(STATE_CONFIRM_FIX_CORRUPT == machineState ) ||
+               (STATE_CONFIRM_FIX_CORRUPT == machineState ) ||
                (STATE_CONFIRM_RESET       == machineState ) ||
                (STATE_CONFIRM_DEL_ACCT    == machineState ) ||
                (STATE_CONFIRM_IMP_KP_CSV  == machineState ) ||
@@ -2610,9 +2610,9 @@ void ProcessEvent() {                                                           
         case FILE_MENU_SEL:
           event = EVENT_SHOW_FILE_MENU;                                         // backup / restore / import files menu
           break;
-        //case FIX_CORRUPT_LIST:                                                // Fix any corruption in the linked list
-          //event = EVENT_FIX_CORRUPTION;
-          //break;
+        case FIX_CORRUPT_LIST:                                                  // Fix any corruption in the linked list
+          event = EVENT_FIX_CORRUPTION;
+          break;
         case SETTINGS:                                                          // show the settings menu
           event = EVENT_SHOW_SETTINGS_MENU;
           position = SETTINGS_SET_KEYBOARD;
@@ -2981,7 +2981,7 @@ void ProcessEvent() {                                                           
               break;
             default:
               logoutTimeout = 60;
-              DisplayToError("ERR: 011");
+              DisplayToError("ERR: 018");
               break;
           }
           writeLogoutTimeout();
@@ -3093,10 +3093,10 @@ void ProcessEvent() {                                                           
               font = FONT_CALLIBRI10;
               oled.setFont(Callibri10);
               break;
-//            case FONT_FIXEDNUMS8X16:
-//              font = FONT_FIXEDNUMS8X16;
-//              oled.setFont(fixednums8x16);
-//              break;
+//          case FONT_FIXEDNUMS8X16:
+//            font = FONT_FIXEDNUMS8X16;
+//            oled.setFont(fixednums8x16);
+//            break;
             case FONT_TIMESNEWROMAN13:
               font = FONT_TIMESNEWROMAN13;
               oled.setFont(TimesNewRoman13);
@@ -3241,11 +3241,11 @@ void ProcessEvent() {                                                           
       }
       position = FIND_FAVORITE;
       event = EVENT_SHOW_MAIN_MENU;
-    //} else if (STATE_CONFIRM_FIX_CORRUPT == machineState) {
-      //if (confirmChars[position] == 'Y') {
-      //   FixCorruptLinkedList();
-      //}
-    //event = EVENT_SHOW_MAIN_MENU;
+    } else if (STATE_CONFIRM_FIX_CORRUPT == machineState) {
+      if (confirmChars[position] == 'Y') {
+         FixCorruptLinkedList();
+      }
+      event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_CONFIRM_RESET == machineState) {                           // EVENT_SINGLE_CLICK
       if (confirmChars[position] == 'Y') {
         FactoryReset();
@@ -3263,12 +3263,12 @@ void ProcessEvent() {                                                           
     //    importKeePassCSV();
     //  }
     //  event = EVENT_SHOW_MAIN_MENU;
-    //} else if (STATE_CONFIRM_IMP_PP_CSV == machineState) {                      // EVENT_SINGLE_CLICK
+    //} else if (STATE_CONFIRM_IMP_PP_CSV == machineState) {                    // EVENT_SINGLE_CLICK
     //  if (confirmChars[position] == 'Y') {
     //    RestoreFromPPCVSFile();
     //  }
     //  event = EVENT_SHOW_MAIN_MENU;
-    //} else if (STATE_CONFIRM_IMP_CP_CSV == machineState) {                      // EVENT_SINGLE_CLICK
+    //} else if (STATE_CONFIRM_IMP_CP_CSV == machineState) {                    // EVENT_SINGLE_CLICK
     //  if (confirmChars[position] == 'Y') {
     //    ImportChromeExportFile();
     //  }
@@ -3501,7 +3501,7 @@ void ProcessEvent() {                                                           
 //    BlankLine3();
     } else if ((STATE_CONFIRM_BACK_EEPROM   == machineState) ||                 // EVENT_LONG_CLICK
                (STATE_CONFIRM_RESTORE       == machineState) ||
-               //(STATE_CONFIRM_FIX_CORRUPT == machineState) ||
+               (STATE_CONFIRM_FIX_CORRUPT   == machineState) ||
                (STATE_CONFIRM_RESET         == machineState) ||
                (STATE_CONFIRM_IMP_KP_CSV    == machineState) ||
                (STATE_CONFIRM_IMP_PP_CSV    == machineState) ||
@@ -4036,7 +4036,10 @@ void ProcessEvent() {                                                           
       event = EVENT_SHOW_MAIN_MENU;
     }
     BlankLine2();
-  
+    
+  } else if (event == EVENT_FIX_CORRUPTION) {
+    ConfirmChoice(STATE_CONFIRM_FIX_CORRUPT);
+    
   } else {
     DisplayToError("ERR: 007");
   }
@@ -6024,7 +6027,7 @@ uint8_t countAccounts() {                                                       
 
 uint8_t getNextFreeAcctPos() {                                                  // return the position of the next EEprom location for account name marked empty.
   //DebugLN("getNextFreeAcctPos()");
-  for(uint8_t acctPos = 0; acctPos < (CREDS_ACCOMIDATED - 1); acctPos++) {      // Subtract 1 from CREDS_ACCOMIDATED because CREDS_ACCOMIDATED = INITIAL_MEMORY_STATE_BYTE
+  for(uint8_t acctPos = 0; acctPos < (CREDS_ACCOMIDATED - 1); acctPos++) {      // Subtract 1 from CREDS_ACCOMIDATED because CREDS_ACCOMIDATED = INITIAL_MEMORY_STATE_BYTE<--not true anymore
       if ((read_eeprom_byte(GET_ADDR_ACCT(acctPos)) == 
            INITIAL_MEMORY_STATE_BYTE                   ) &&
           (acctPos != 124                              )) {
@@ -6073,7 +6076,7 @@ void writePointers(uint8_t accountPosition, char *accountName) {                
   //DebugMetric("4: ",prevPosition);
   readAcctFromEEProm(headPosition, acctBuf);                                    // reading the accountName for the head, decrypt
   //Debug("5: ");DebugLN(acctBuf);
-  while ((currentPosition != INITIAL_MEMORY_STATE_BYTE   ) && 
+  while ((currentPosition != INITIAL_MEMORY_STATE_BYTE   ) &&                   // loop thru the list until we find the 1st position where the passed accountName is > account name of currentPosition
          (strncmp(acctBuf, accountName, ACCOUNT_SIZE) < 0)     ) {              // if Return value < 0 then it indicates str1 is less than str2.
     prevPosition = currentPosition;                                             // save prevPosition as currentPosition because we'll eventually step over the element that's > accountPosition
     //DebugMetric("6: ",prevPosition);
@@ -6104,32 +6107,48 @@ void writePointers(uint8_t accountPosition, char *accountName) {                
     writePrevPtr(currentPosition, accountPosition);                             // write set the previous pointer of the current element to the account position
   }
 }
-/*
+
+void stompPointers(uint8_t accountPosition) {                                   // stomp on the pointers at this account position
+  //DebugLN("stompPointers()");
+  writePrevPtr(accountPosition, INITIAL_MEMORY_STATE_BYTE);
+  writeNextPtr(accountPosition, INITIAL_MEMORY_STATE_BYTE);
+  return;
+}
+
 void FixCorruptLinkedList() {                                                   // Rebuild the linked list to fix any issues with the pointers
-//  DisableInterrupts();
+  //DisableInterrupts();
   setRed();
-  DisplayLine2("Fixing corrupt");
+  DisplayToMenu("Fixing corruption");
   headPosition = 0;
+  writeListHeadPos();
   tailPosition = 0;
-  for (uint8_t pos = 0; pos <= (CREDS_ACCOMIDATED - 1); pos++) {                      // Visit every possible location for a set of creds
-    uint8_t buffer[ACCOUNT_SIZE];                                               // a buffer that will accomodate the account name
-    buffer[0] = INITIAL_MEMORY_STATE_BYTE;
-    readAcctFromEEProm(pos, buffer);                                            // get the name of the account at this position, if any
-    if (buffer[0] != INITIAL_MEMORY_STATE_BYTE) {                               // if true then creds have been written to this location
+  for (uint8_t pos = 0; pos <= (CREDS_ACCOMIDATED - 1); pos++) {                // Visit every possible location for a set of creds
+    char buffer[ACCOUNT_SIZE];                                                  // a buffer that will accomodate the account name
+    char snum[3];
+    char strToDisplay[20];
+    buffer[0] = NULL_TERM;
+    itoa(pos, snum, 10);                                                        // convert pos to a string representation
+    readAcctFromEEProm(pos, buffer);                                            // get the name of the account at this position, if any. readAcctFromEEProm sets buffer[0] = NULL_TERM if buffer[0] == (char) INITIAL_MEMORY_STATE_CHAR
+    if (buffer[0] != NULL_TERM) {                                               // if true then creds have been written to this location
       writePointers(pos, buffer);                                               // set the previous and next pointers on this set of credentials
+      strcpy(strToDisplay, "Fixed   #:");                                       // copy the string "Acct#: " to the var strToDisplay
+    } else {
+      stompPointers(pos);                                                       // set the pointers to INITIAL_MEMORY_STATE_BYTE at this position
+      strcpy(strToDisplay, "Skipped #:");                                       // copy the string "Acct#: " to the var strToDisplay
     }
+    strcat(strToDisplay, snum);                                                 // concatinate the string representation of pos to strToDisplay
+    DisplayToItem(strToDisplay);
   }
-  //writeListHeadPos();
   headPosition = getListHeadPosition();                                         // read the head of the doubly linked list that sorts by account name
   acctPosition = headPosition;
-  tailPosition = findTailPosition();                                            // find the tail of the doubly linked list that sorts by account name
-  position = 0;
+  tailPosition = findTailPosition(headPosition);                                // find the tail of the doubly linked list that sorts by account name
+  position = 1;                                                                 // make the menu position Find Accounts
   acctCount = countAccounts();                                                  // count the number of populated accounts in EEprom
   setGreen();
-  DisplayLine2("Fixed corruption");
-//  EnableInterrupts();
+  DisplayToItem("Fixed corruption");
+  //EnableInterrupts();
 }
-*/
+
 
 /*
 //- Import/Export File Functions
