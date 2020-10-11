@@ -4,10 +4,13 @@ This is v2.0 of the PasswordPump, a USB device that manages credentials for up t
 
 The purpose of this repository on GitHub is to disseminate software for and information about the PasswordPump v2.0.  See the Password Pump II Users Guide.pdf and https://5volts.org for details.  
 
+It is always wise to download the latest version of the PasswordPumpGUI when you are downloading the latest version of PasswordPump_v_2_0.ino.
+
 # Change Log
 unreleased v2.0.5
 
  Note: please use v2.0.4 unless you're adventurous.  
+  * Added the fix corrupt account list feature to the PasswordPumpGUI_v2_0.py.
   * A customer has recently reported to me that the linked list that keeps the credentials sorted by account name is becoming corrupt, which is affecting his ability to navigate through the credentials on the device via the rotary encoder or via the PasswordPumpGUI.  Toward fixing that problem I have added a menu option entitled Fix Corruption.  It is not clear to me yet how this corruption is introduced, as I am unable to reproduce the conditions under which the defect occurs in my lab.
   * Added a feature in settings whereby you can remap the orientation of the PasswordPump's text so that you can use it with the rotary encoder on the left (default) or the right.
   * Added the ability in settings to select from a variety of fonts for the PasswordPump's display.

@@ -6,7 +6,7 @@
   File:         PasswordPump_v_2_0.ino
   Version:      2.0.5
   Date:         2019/07/26 - 2020/06/14
-  Language:     Arduino IDE, C++
+  Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit Cortex M0+ or ATSAMD51J19 32-bit Cortex M4
   Memory:       256KB Flash and 32 KB RAM or 512KB Flash and 192KB RAM
@@ -113,6 +113,7 @@
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x single character user names and passwords are not working well
+  * Enabled the ability to fix a corrupt linked account list.
   * Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
     BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
   * Does not work correctly with keyboards that are not US.
@@ -892,7 +893,7 @@
 #include <Adafruit_SPIFlash.h>                                                  // https://github.com/adafruit/Adafruit_SPIFlash
 #include <CmdMessenger.h>																												// https://github.com/thijse/Arduino-CmdMessenger 
 
-#include <stdio.h>                                                              // needed for CSV file program
+//#include <stdio.h>                                                            // needed for CSV file program
 #include <string.h>                                                             //  "     "       "       "
 #include <stdlib.h>
 #include <assert.h>
@@ -1689,6 +1690,7 @@ enum                                                                            
   pyExit                ,
   pyBackup              ,
   pyFactoryReset        ,
+  pyFixCorruptLinkedList,
   pyRestore             ,
   pyGetAccountCount     ,
   pyDecoyPassword       ,
@@ -7044,6 +7046,7 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyExit                , OnExit);
   cmdMessenger.attach(pyBackup              , OnBackup);
   cmdMessenger.attach(pyFactoryReset        , OnFactoryReset);
+  cmdMessenger.attach(pyFixCorruptLinkedList, OnFixCorruptLinkedList);
   cmdMessenger.attach(pyRestore             , OnRestore);
   cmdMessenger.attach(pyGetAccountCount     , OnGetAccountCount);
   cmdMessenger.attach(pyDecoyPassword       , OnDecoyPassword);
@@ -7528,6 +7531,12 @@ void OnFactoryReset(){
   cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
   setPurple();
   Serial.end();
+}
+
+void OnFixCorruptLinkedList(){
+  FixCorruptLinkedList();
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
+  setPurple();
 }
 
 void OnRestore(){                                                               // This is called when we restore the data from EEprom secondary to EEprom primary from PasswordPumpGUI.py

@@ -86,7 +86,8 @@
 # - Rename account
 # - Settings (RGB LED Intensity, Timeout Minutes, Login Attempts)
 # - Configurable Generate Password length
-# * Custom group names (currently only editable via device)
+# * Fix corrupt account list
+# * Custom group names
 # * Settings (Show Password, Decoy Password, Change Master Password,
 #   Factory Reset)
 # * Respect the show password setting
@@ -286,6 +287,7 @@ def clickedOpen():
                 ["pyExit",""],
                 ["pyBackup",""],
                 ["pyFactoryReset",""],
+                ["pyFixCorruptLinkedList",""],
                 ["pyRestore",""],
                 ["pyGetAccountCount", ""],
                 ["pyDecoyPassword", "b"],
@@ -1033,6 +1035,27 @@ def FactoryReset():
         updateDirections("Finished the factory reset.")
         sys.exit(1)
 
+def FixCorruptLinkedList():
+    if tkinter.messagebox.askyesno("Corrupt Account List", "Fix corrupt account list? Only do this if it is necessary."):
+        window.config(cursor="watch")
+        updateDirections("Fixing corrupt account list...")
+        global selection
+        global position
+        c.send("pyFixCorruptLinkedList")
+        response = c.receive()
+        #print(response)
+        response_list = response[1]
+        position = calcAcctPositionReceive(response_list[0])                   # returns head position
+        loadListBox()                                                          # postion is set to head as a side effect
+        getRecord()                                                            # get the head record
+        lb.select_clear(selection)                                             # Removes one or more items from the selection.
+        selection = 0
+        lb.select_set(selection)
+        lb.see(selection)
+        lb.activate(selection)
+        window.config(cursor="")
+        updateDirections("Finished fixing corruption.")
+
 def RestoreEEprom():
     if tkinter.messagebox.askyesno("Restore", "Restore backup to primary EEprom?"):
         window.config(cursor="watch")
@@ -1757,6 +1780,7 @@ groupsMenu.add_command(label = groupName5, command = customizeGroup5)
 groupsMenu.add_command(label = groupName6, command = customizeGroup6)
 groupsMenu.add_command(label = groupName7, command = customizeGroup7)
 settings.add_command(label = 'Factory Reset', command = FactoryReset)
+settings.add_command(label = 'Fix corrupt account list', command = FixCorruptLinkedList)
 menubar.add_cascade(label = 'Settings', menu = settings)
 
 menubar.entryconfig('File', state='disabled')
