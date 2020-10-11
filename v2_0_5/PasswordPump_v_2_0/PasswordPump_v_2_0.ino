@@ -82,11 +82,12 @@
   - All passwords (except master password) are encrypted w/ AES-256; master 
     password is hashed w/ SHA-256.
   - Change master password
-  - Export/Import to/from PasswordPump CSV format (dumps output to an editor)
+  - Export/Import to/from PasswordPump CSV format 
   - Import KeePass exported CSV file
   - Import passwords from Chrome
-  - Associate credentials with groups for better organization; search by group
-    (Favorites, Work, Personal, Home, School, Financial, Mail, Custom)
+  - Associate credentials with custom groups for better organization; search by 
+    group. Defaults are (Favorites, Work, Personal, Home, School, Financial, 
+    Mail, Custom)
   - Decoy password feature that automatically factory resets the device if
     entered (e.g. while the user is under duress)
   - Supports use of several international keyboards.
@@ -99,6 +100,11 @@
 		! = will not fix
     x = fixed but needs testing 
     * = fixed - if a release is listed, that's the release in which it was fixed                  
+  - The linked list that manages the list of accounts is occasionally becoming 
+    corrupt. To mitigate this I added a 'Fix Corruption' feature that should 
+    address any corruption in the linked list. Exact conditions of corruption 
+    cannot be reproduced in the lab at this time.  This issue has only been 
+    reported by one customer.
   - Embedded quote in a CSV import file are not getting saved to the filed e.g.
     password.
   - When you import credentials with <CR><LF> in the account name bad things
@@ -123,9 +129,6 @@
   * It is possible to enter a duplicate account via the PasswordPump device.
   * When deleting duplicate accounts (duplicate account names) corruption is 
     introduced.
-  * The linked list is occasionally becoming corrupt. Disabled the ability to 
-    fix a corrupt linked list. Exact conditions of corruption unknown at this 
-    point.  Might be fixed.
   * Decoy password feature is not working when the decoy password is entered.
 	* 2.4.0: Via PasswordPumpGUI Insert, then <Alt><Tab> to another application.  
 		Upon returning to PasswordPumpGUI the Account Name is "Unknown".  Set focus
@@ -743,6 +746,7 @@
   Backup/Restore
     Backup EEprom [confirm]       
     Restore EEprm Backup [confirm]
+  Fix Corruption [confirm]
   Settings
     Keyboard ON/OFF                
     Show Password ON/OFF            
