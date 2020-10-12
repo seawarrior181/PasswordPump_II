@@ -1,4 +1,4 @@
-/* ___                              _ ___                 
+/* ___                              _ ___
   | _ \__ _ _______ __ _____ _ _ __| | _ \_  _ _ __  _ __ 
   |  _/ _` (_-<_-< V  V / _ \ '_/ _` |  _/ || | '  \| '_ \
   |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
@@ -1121,10 +1121,10 @@
 #define EVENT_LOGOUT              13                                            // logging out of the device
 #define EVENT_BACKUP              14                                            // copying the content of the primary external EEprom to the backup EEprom
 #define EVENT_RESTORE             15                                            // restore from the backup EEprom to the primary EEprom
-#define EVENT_BACKUP_TO_FILE      16                                            // send all credentials out through the keyboard for capture in a text editor
+//#define EVENT_BACKUP_TO_FILE    16                                            // send all credentials out through the keyboard for capture in a text editor
 #define EVENT_FIX_CORRUPTION      17                                            // fix a corrupt linked list
 #define EVENT_DELETE_ACCT         18                                            // delete an account
-#define EVENT_IMPORT_KEEPASS_CSV  19                                            // import a csv KeePass file
+//#define EVENT_IMPORT_KEEPASS_CSV19                                            // import a csv KeePass file
 #define EVENT_SHOW_SETTINGS_MENU  20                                            // to show the settings menu
 #define EVENT_SHOW_LG_ATTEM_MENU  21                                            // to show the set login attempts menu
 #define EVENT_SHOW_RGB_INT_MENU   22                                            // to show the set RGB LED intensity menu
@@ -1132,9 +1132,9 @@
 #define EVENT_SHOW_OFF_ON_MENU    24                                            // to show the off/on menu
 #define EVENT_SHOW_FIND_BY_GROUP  25
 #define EVENT_CHANGE_MASTER       26
-#define EVENT_IMPORT_PP_CSV       27                                            // import a csv PasswordPump file
+//#define EVENT_IMPORT_PP_CSV     27                                            // import a csv PasswordPump file
 #define EVENT_SHOW_FILE_MENU      28
-#define EVENT_IMPORT_CP_CSV       29
+//#define EVENT_IMPORT_CP_CSV     29
 #define EVENT_SEARCH_FAVORITES    30
 #define EVENT_SHOW_FAVORITES_MENU 31
 #define EVENT_SHOW_GROUP_DEF_MENU 32
@@ -1621,10 +1621,12 @@ const char confirmChars[3] = "NY";                                              
 char line1DispBuff[DISPLAY_BUFFER_SIZE];                                        // used to buffer output of line 1 for the led display
 char line2DispBuff[DISPLAY_BUFFER_SIZE];                                        // used to buffer output of line 2 for the led display
 char line3DispBuff[DISPLAY_BUFFER_SIZE];                                        // used to buffer output of line 3 for the led display
+char line4DispBuff[DISPLAY_BUFFER_SIZE];                                        // used to buffer output of line 4 for the led display
 
 #define LINE_1_POS                0
 #define LINE_2_POS                1
 #define LINE_3_POS                2
+#define LINE_4_POS                3
 
 const char spaceFilled[] = "                    ";                              // 20 chars long 
 
@@ -1766,10 +1768,15 @@ void DisplayToStatus(char* lineToPrint);
 void DisplayToError(char* lineToPrint);
 void DisplayToDebug(char* lineToPrint);
 void DisplayToEdit(char* lineToPrint);
+void DisplayToHelp(char* lineToPrint);
 void BlankLine1(void);
 void BlankLine2(void);
 void BlankLine3(void);
 void DisplayBuffer(void);
+void DisplayBuffer1(void);
+void DisplayBuffer2(void);
+void DisplayBuffer3(void);
+void DisplayBuffer4(void);
 void ShowMenu(uint8_t position, char **menu);
 void ShowMenu(uint8_t position, char **menu, char *menuName);
 void MenuUp(char **menu);
@@ -2137,6 +2144,8 @@ void setup() {                                                                  
   }
   memcpy(currentMenu, mainMenu, arraySize);
   elements = MAIN_MENU_ELEMENTS;
+  
+  DisplayToHelp("Click to begin.");
 
   EnableInterrupts();                                                           // Turn on global interrupts
 }
@@ -2290,6 +2299,7 @@ void ProcessEvent() {                                                           
       if (position < SEND_MENU_ELEMENTS - 1) {
         position++;
         MenuDown(currentMenu);
+        setHelpOnSendCredsMenu(position);
       }
     } else if (STATE_EDIT_CREDS_MENU == machineState){											    // event == EVENT_ROTATE_CW
       if ((position < (EDIT_MENU_ELEMENTS - 1)) && (acctCount > 0)) {           // we'll only show the edit account options when there's at least one account
@@ -2432,6 +2442,7 @@ void ProcessEvent() {                                                           
       if (position > 0) {
         position--;
         MenuUp(currentMenu);
+        setHelpOnSendCredsMenu(position);
       }
     } else if (STATE_EDIT_CREDS_MENU == machineState){
       if (position > 0) {
@@ -2551,6 +2562,7 @@ void ProcessEvent() {                                                           
               ShowMenu(FIND_FAVORITE, mainMenu, "   Find Favorite    ");
               readAcctFromEEProm(position, accountName);
               DisplayToItem((char *) accountName);
+              DisplayToHelp("Select an account.");
             }
           }
           event = EVENT_NONE;
@@ -2559,7 +2571,9 @@ void ProcessEvent() {                                                           
           if(acctCount>0) {                                                     // if acctCount is not > 0 then there are not accounts to find
             addFlag = false;
             switchToFindAcctMenu();
+            DisplayToHelp("Select an account.");
           } else {
+            BlankLine4();
             event = EVENT_NONE;
           }
           break;
@@ -2570,12 +2584,14 @@ void ProcessEvent() {                                                           
             switchFindByGroup();
           } else {
             event = EVENT_NONE;
+            BlankLine4();
           }
           break;
         case EDIT_VIA_COMPUTER:                                                 // Edit credentials via the python application
           machineState = STATE_FEED_SERIAL_DATA;
           DisplayToMenu(  " Edit via Computer ");
           DisplayToItem(  " Long Click Exits  ");
+          DisplayToHelp("Edit PasswordPumpGUI");
           EnableInterrupts();
           Serial.begin(BAUD_RATE);
           attachCommandCallbacks();
@@ -2604,10 +2620,12 @@ void ProcessEvent() {                                                           
             DisplayToItem((char *)accountName);                                 // Display the account name on the second line
             acctCount++;                                                        // add one to the count of accounts
           } else {
+            BlankLine4();
             DisplayToError("ERR: 010");
             break;
           }
           switchToEditMenu();
+          DisplayToHelp("Add the account.");
           break;
         case LOGOUT:                                                            // Logout  
           sendLockAndLogout();                                                  // Send Windows-l to computer
@@ -2644,6 +2662,7 @@ void ProcessEvent() {                                                           
                (STATE_SEARCH_MAIL          == machineState) ||
                (STATE_SEARCH_CUSTOM        == machineState)) {     
       switchToSendCredsMenu();
+      DisplayToHelp("Click to send.");
     } else if (STATE_EDIT_CREDS_MENU == machineState) {                         // EVENT_SINGLE_CLICK
       enterPosition = 0;
       switch(position) {
@@ -2652,8 +2671,10 @@ void ProcessEvent() {                                                           
             DisplayToMenu(accountName);
             DisplayToItem("Edit Account");
             BlankLine3();
+            DisplayToHelp("Enter account name.");
             EditAttribute(STATE_EDIT_ACCOUNT, DEFAULT_ALPHA_EDIT_POS);          // the account name in place doesn't work, it corrupts the linked list.
           } else {
+            BlankLine4();
             DisplayToError("No edit acct name");
             event = EVENT_NONE;
           }
@@ -2662,24 +2683,28 @@ void ProcessEvent() {                                                           
           DisplayToMenu(accountName);
           DisplayToItem("Edit User Name");
           BlankLine3();
+          DisplayToHelp("Enter user name.");
           EditAttribute(STATE_EDIT_USERNAME, DEFAULT_ALPHA_EDIT_POS);
           break; 
         case EDIT_PASSWORD:                                                     // Enter Password   
           DisplayToMenu(accountName);
           DisplayToItem("Edit Password");
           BlankLine3();
+          DisplayToHelp("Enter password.");
           EditAttribute(STATE_EDIT_PASSWORD, DEFAULT_ALPHA_EDIT_POS);
           break; 
        case EDIT_WEBSITE:                                                       // Enter URL
           DisplayToMenu(accountName);
           DisplayToItem("Edit URL");
           BlankLine3();
+          DisplayToHelp("Enter site URL.");
           EditAttribute(STATE_EDIT_WEBSITE, DEFAULT_ALPHA_EDIT_POS);
           break;
         case EDIT_STYLE:
           DisplayToMenu("0 = <RETURN>");
           DisplayToItem("1 = <TAB>");
           BlankLine3();
+          DisplayToHelp("Edit the style.");
           EditAttribute(STATE_EDIT_STYLE, DEFAULT_STYLE_EDIT_POS);
           break; 
         case EDIT_GROUPS:
@@ -2717,6 +2742,7 @@ void ProcessEvent() {                                                           
       }
     } else if (STATE_MENU_DEFINE_GROUPS == machineState) {                  		// EVENT_SINGLE_CLICK
       enterPosition = 0;
+      DisplayToHelp("Enter the group.");
       switch(position) {
         case EDIT_GROUP_1:                                                      // EVENT_SINGLE_CLICK          
           DisplayToItem(groupCategory_1);
@@ -2761,11 +2787,13 @@ void ProcessEvent() {                                                           
           EditAttribute(STATE_EDIT_GROUP_7, DEFAULT_ALPHA_EDIT_POS);
           break; 
         default:
+            BlankLine4();
             DisplayToError("ERR: 043");
             break;
       }
     } else if (STATE_MENU_FIND_BY_GROUP == machineState) {                      // EVENT_SINGLE_CLICK
       uint8_t groups = read_eeprom_byte(GET_ADDR_GROUP(acctPosition));
+      BlankLine4();
       switch (position) {
         case GROUP_FAVORITES:
           groups ^= FAVORITES;
@@ -2901,6 +2929,7 @@ void ProcessEvent() {                                                           
                (STATE_MENU_ENCODER        == machineState) ||
                (STATE_MENU_FONT           == machineState) ||
                (STATE_MENU_ORIENT         == machineState)) {
+      BlankLine4();
       switch (machineState) {                                                   // TODO: this is a weird way to do this... fix it.
         case STATE_KEY_ON_OFF_MENU:
           keyboardFlag = position;
@@ -2921,18 +2950,23 @@ void ProcessEvent() {                                                           
           switch (position) {
             case LOGIN_ATTEMPTS_3:
               loginAttempts = ATTEMPTS_3;
+              DisplayToHelp("Saved 3 attempts.");
               break;
             case LOGIN_ATTEMPTS_5:
               loginAttempts = ATTEMPTS_5;
+              DisplayToHelp("Saved 5 attempts.");
               break;
             case LOGIN_ATTEMPTS_10:
               loginAttempts = ATTEMPTS_10;
+              DisplayToHelp("Saved 10 attempts.");
               break;
             case LOGIN_ATTEMPTS_25:
               loginAttempts = ATTEMPTS_25;
+              DisplayToHelp("Saved 25 attempts.");
               break;
             default:
               loginAttempts = ATTEMPTS_DEFAULT;
+              DisplayToHelp("Saved 10 attempts.");
               DisplayToError("ERR: 009");
               break;
           }
@@ -2943,18 +2977,23 @@ void ProcessEvent() {                                                           
           switch (position) {
             case RGB_INTENSITY_HIGH:
               RGBLEDIntensity = RGB_LED_HIGH;
+              DisplayToHelp("Save HIGH intensity.");
               break;
             case RGB_INTENSITY_MED:
               RGBLEDIntensity = RGB_LED_MEDIUM;
+              DisplayToHelp("Save MED intensity.");
               break;
             case RGB_INTENSITY_LOW:
               RGBLEDIntensity = RGB_LED_LOW;
+              DisplayToHelp("Save LOW intensity.");
               break;
             case RGB_INTENSITY_OFF:
               RGBLEDIntensity = RGB_LED_OFF;
+              DisplayToHelp("Saved no RGB LED.");
               break;
             default:
               RGBLEDIntensity = RGB_LED_DEFAULT;
+              DisplayToHelp("Save MED intensity.");
               DisplayToError("ERR: 010");
               break;
           }
@@ -2966,27 +3005,35 @@ void ProcessEvent() {                                                           
           switch (position) {
             case LOGOUT_TIMEOUT_30:
               logoutTimeout = LOGOUT_TIMEOUT_VAL_30;
+              DisplayToHelp("Saved 30 min timeout");
               break;
             case LOGOUT_TIMEOUT_60:
               logoutTimeout = LOGOUT_TIMEOUT_VAL_60;
+              DisplayToHelp("Saved 60 min timeout");
               break;
             case LOGOUT_TIMEOUT_90:
               logoutTimeout = LOGOUT_TIMEOUT_VAL_90;
+              DisplayToHelp("Saved 90 min timeout");
               break;
             case LOGOUT_TIMEOUT_120:
               logoutTimeout = LOGOUT_TIMEOUT_VAL_120;
+              DisplayToHelp("Saved 2 hour timeout");
               break;
             case LOGOUT_TIMEOUT_240:
               logoutTimeout = LOGOUT_TIMEOUT_VAL_240;
+              DisplayToHelp("Saved 4 hour timeout");
               break;
             case LOGOUT_TIMEOUT_1:
               logoutTimeout = LOGOUT_TIMEOUT_VAL_1;
+              DisplayToHelp("Saved 1 min timeout");
               break;
             case LOGOUT_TIMEOUT_0:
               logoutTimeout = LOGOUT_TIMEOUT_VAL_0;
+              DisplayToHelp("Saved never logout");
               break;
             default:
               logoutTimeout = 60;
+              DisplayToHelp("Saved 60 min timeout");
               DisplayToError("ERR: 018");
               break;
           }
@@ -3000,63 +3047,74 @@ void ProcessEvent() {                                                           
               keyboardType = KEYBOARD_CZECH;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapCzech, _hidReportDescriptorCzech);
+                DisplayToHelp("Saved Czech keyboard.");
               }
               break;
             case KEYBOARD_DANISH:
               keyboardType = KEYBOARD_DANISH;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapDanish, _hidReportDescriptorDanish);
+                DisplayToHelp("Saved Danish keyboard.");
               }
               break;
             case KEYBOARD_FINNISH:
               keyboardType = KEYBOARD_FINNISH;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapFinnish, _hidReportDescriptorFinnish);
+                DisplayToHelp("Saved Finnish keybrd");
               }
               break;
             case KEYBOARD_FRENCH:
               keyboardType = KEYBOARD_FRENCH;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapFrench, _hidReportDescriptorFrench);
+                DisplayToHelp("Saved French keyboard.");
               }
               break;
             case KEYBOARD_GERMAN:
               keyboardType = KEYBOARD_GERMAN;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapGerman, _hidReportDescriptorGerman);
+                DisplayToHelp("Saved German keybrd");
               }
               break;
             case KEYBOARD_NORWEGIAN:
               keyboardType = KEYBOARD_NORWEGIAN;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapNorwegian, _hidReportDescriptorNorwegian);
+                DisplayToHelp("Saved Norwegian.");
               }
               break;
             case KEYBOARD_SPANISH:
               keyboardType = KEYBOARD_SPANISH;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapSpanish, _hidReportDescriptorSpanish);
+                DisplayToHelp("Saved Spanish keybrd");
               }
               break;
             case KEYBOARD_SWEDISH:
               keyboardType = KEYBOARD_SWEDISH;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapSwedish, _hidReportDescriptorSwedish);
+                DisplayToHelp("Saved Swedish keybrd");
               }
               break;
             case KEYBOARD_UK:
               keyboardType = KEYBOARD_UK;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapUK, _hidReportDescriptorUK);
+                DisplayToHelp("Saved UK keyboard");
               }
               break;
             case KEYBOARD_US:
               keyboardType = KEYBOARD_US;
               if (keyboardType != originalKeyboardType) {
                 Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+                DisplayToHelp("Saved US keyboard");
               }
               break;
             default:
+              BlankLine4();
               DisplayToError("045");
               break;
           }
@@ -3069,16 +3127,19 @@ void ProcessEvent() {                                                           
               encoderType = ENCODER_NORMAL;
               rotaryPin1 = 9;
               rotaryPin2 = 7;
+              DisplayToHelp("Saved normal encoder");
               break;
             case ENCODER_LEFTY:
               encoderType = ENCODER_LEFTY;
               rotaryPin1 = 7;
               rotaryPin2 = 9;
+              DisplayToHelp("Saved lefty encoder");
               break;
             default:
               encoderType = ENCODER_NORMAL;
               rotaryPin1 = 9;
               rotaryPin2 = 7;
+              DisplayToHelp("Saved normal encoder");
               DisplayToError("ERR: 046");
               break;
           }
@@ -3090,14 +3151,17 @@ void ProcessEvent() {                                                           
             case FONT_ARIAL14:
               font = FONT_ARIAL14;
               oled.setFont(Arial14);
+              DisplayToHelp("Saved Arial14.");
               break;
             case FONT_ARIAL_BOLD_14:
               font = FONT_ARIAL_BOLD_14;
               oled.setFont(Arial_bold_14);
+              DisplayToHelp("Saved Arial_bold_14.");
               break;
             case FONT_CALLIBRI10:
               font = FONT_CALLIBRI10;
               oled.setFont(Callibri10);
+              DisplayToHelp("Saved Callibri10.");
               break;
 //          case FONT_FIXEDNUMS8X16:
 //            font = FONT_FIXEDNUMS8X16;
@@ -3106,31 +3170,38 @@ void ProcessEvent() {                                                           
             case FONT_TIMESNEWROMAN13:
               font = FONT_TIMESNEWROMAN13;
               oled.setFont(TimesNewRoman13);
+              DisplayToHelp("Saved TimesNewRoman");
               break;
             case FONT_ADAFRUIT5X7:
               font = FONT_ADAFRUIT5X7;
               oled.setFont(Adafruit5x7);
+              DisplayToHelp("Saved Adafruit5x7.");
               break;
             case FONT_FONT5X7:
               font = FONT_FONT5X7;
               oled.setFont(font5x7);
+              DisplayToHelp("Saved font5x7.");
               break;
             case FONT_LCD5X7:
               font = FONT_LCD5X7;
               oled.setFont(lcd5x7);
+              DisplayToHelp("Saved lcd5x7.");
               break;
             case FONT_STANG5X7:
               font = FONT_STANG5X7;
               oled.setFont(Stang5x7);
+              DisplayToHelp("Saved Stang5x7.");
               break;
             case FONT_SYSTEM5X7:
               font = FONT_SYSTEM5X7;
               oled.setFont(System5x7);
+              DisplayToHelp("Saved System5x7.");
               break;
             default:
               font = FONT_ARIAL14;
               oled.setFont(Arial14);
               DisplayToError("ERR: 047");
+              DisplayToHelp("Saved Arial14.");
               break;
           }
           writeFont();
@@ -3141,19 +3212,22 @@ void ProcessEvent() {                                                           
             case ORIENT_LEFTY:
               orientation = ORIENT_LEFTY;
               oled.displayRemap(false);
+              DisplayToHelp("Saved lefty.");
               break;
             case ORIENT_RIGHTY:
               orientation = ORIENT_RIGHTY;
               oled.displayRemap(true);
+              DisplayToHelp("Saved righty.");
               break;
             default:
               orientation = ORIENT_LEFTY;
               oled.displayRemap(false);
               DisplayToError("ERR: 048");
+              DisplayToHelp("Saved lefty.");
               break;
           }
           writeOrientation();
-          DisplayToStatus("Orientation Saved.");
+          DisplayToStatus("Orientation saved.");
           break;
         default:
           DisplayToError("ERR: 001");
@@ -3163,6 +3237,7 @@ void ProcessEvent() {                                                           
     } else if (STATE_SEND_CREDS_MENU == machineState){                          // EVENT_SINGLE_CLICK
       setPurple();
       event = EVENT_NONE;
+      BlankLine4();
       switch(position) {
          case SEND_USER_AND_PASSWORD:                                                                
             sendUsernameAndPassword();                                          // Send the user name and password
@@ -3197,6 +3272,7 @@ void ProcessEvent() {                                                           
             break;
          case EDIT_ACCOUNT:                                                     // Show the enter account menu
             switchToEditMenu();
+            DisplayToHelp("Select what to edit.");
             break;
          case DELETE_ACCOUNT:                                                   // Delete account
             event = EVENT_DELETE_ACCT;
@@ -3207,7 +3283,7 @@ void ProcessEvent() {                                                           
             DisplayToStatus("Sent old pass");
             break;
          default:
-            DisplayToError("ERR: 004");
+            DisplayToError("ERR: 004B");
             break;
       }
       setGreen();
@@ -3220,16 +3296,16 @@ void ProcessEvent() {                                                           
         line3DispBuff[enterPosition] = '*';
       }
       line3DispBuff[enterPosition + 1] = NULL_TERM;                             // push the null terminator out ahead of the last char in the string
-      DisplayBuffer3();
+      DisplayBuffer3();                                                         // Show what's been entered so far.
       if (enterPosition < DISPLAY_BUFFER_SIZE) enterPosition++;                 // don't increment enterPosition beyond the space that's allocated for the associated array
       event = EVENT_NONE;
     } else if (STATE_CHANGE_MASTER == machineState) {                           // EVENT_SINGLE_CLICK
       newPassword[enterPosition] = allChars[position];
       newPassword[enterPosition + 1] = NULL_TERM;                               // push the null terminator out ahead of the last char in the string
       if (showPasswordsFlag) {
-        line3DispBuff[enterPosition] = allChars[position];
+        line3DispBuff[enterPosition] = allChars[position];                      // Show what's been entered so far.
       } else {
-        line3DispBuff[enterPosition] = '*';
+        line3DispBuff[enterPosition] = '*';                                     // Mask the password  when it's displayed.
       }
       line3DispBuff[enterPosition + 1] = NULL_TERM;                             // push the null terminator out ahead of the last char in the string
       DisplayBuffer3();
@@ -3237,33 +3313,45 @@ void ProcessEvent() {                                                           
       event = EVENT_NONE;
     } else if (STATE_CONFIRM_BACK_EEPROM == machineState) {                     // EVENT_SINGLE_CLICK
       if (confirmChars[position] == 'Y') {
+        DisplayToHelp("Backing up EEprom...");
         CopyEEPromToBackup();
+        DisplayToHelp("Finished backup.");
       }
       position = FIND_FAVORITE;
       event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_CONFIRM_RESTORE == machineState) {                         // EVENT_SINGLE_CLICK
       if (confirmChars[position] == 'Y') {
+        DisplayToHelp("Restoring from backup.");
         RestoreEEPromBackup();
+        DisplayToHelp("Finished restore.");
       }
       position = FIND_FAVORITE;
       event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_CONFIRM_FIX_CORRUPT == machineState) {
       if (confirmChars[position] == 'Y') {
-         FixCorruptLinkedList();
+        DisplayToHelp("Fixing corruption...");
+        FixCorruptLinkedList();
+        DisplayToHelp("Corruption fixed.");
       }
       event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_CONFIRM_RESET == machineState) {                           // EVENT_SINGLE_CLICK
       if (confirmChars[position] == 'Y') {
+        DisplayToHelp("Factory resetting.");
         FactoryReset();
+        DisplayToHelp("Finished reset.");
       } else {
+        BlankLine4();
         position = FIND_FAVORITE;
         event = EVENT_SHOW_MAIN_MENU;
       }
     } else if (STATE_CONFIRM_DEL_ACCT == machineState) {                        // EVENT_SINGLE_CLICK
       if (confirmChars[position] == 'Y') {
+        DisplayToHelp("Deleting account.");
         deleteAccount(acctPosition);
+        DisplayToHelp("Account deleted.");
       }
       switchToFindAcctMenu();
+      DisplayToHelp("Select an account.");
     //} else if (STATE_CONFIRM_IMP_KP_CSV == machineState) {                    // EVENT_SINGLE_CLICK
     //  if (confirmChars[position] == 'Y') {
     //    importKeePassCSV();
@@ -3283,14 +3371,17 @@ void ProcessEvent() {                                                           
       switch (position) {
         case SETTINGS_SET_KEYBOARD:
           machineState = STATE_KEY_ON_OFF_MENU;
+          DisplayToHelp("Set keyboard state.");
           event = EVENT_SHOW_OFF_ON_MENU;
           break;
         case SETTINGS_SET_SHOW_PW:
           machineState = STATE_SHOW_PW_ON_OFF_MENU;
+          DisplayToHelp("Select psswrd On/Off");
           event = EVENT_SHOW_OFF_ON_MENU;
           break;
         case SETTINGS_SET_DECOY:
           machineState = STATE_DECOY_ON_OFF_MENU;
+          DisplayToHelp("Decoy passwrd On/Off");
           event = EVENT_SHOW_OFF_ON_MENU;
           break;
         case SETTINGS_SET_RGB_INT:
@@ -3328,6 +3419,7 @@ void ProcessEvent() {                                                           
           event = EVENT_SHOW_ORIENT_MENU;
           break;
         default:
+          BlankLine4();
           DisplayToError("ERR: 005");
           break;
       }
@@ -3361,6 +3453,7 @@ void ProcessEvent() {                                                           
     }
 
   } else if (event == EVENT_LONG_CLICK) {                                       // jump up / back to previous menu 
+    BlankLine4();
     if (STATE_ENTER_MASTER == machineState){
       //ReadFromSerial( masterPassword,                                         // Uncomment this if you want to enable entering the master password via PC keyboard
       //                MASTER_PASSWORD_SIZE,
@@ -3374,8 +3467,8 @@ void ProcessEvent() {                                                           
         ShowMenu(position, currentMenu);
         char bufferCount[4];
         itoa(acctCount, bufferCount, 10);                                       // convert account count to a string and put it in buffer.
-        strcpy(line3DispBuff, bufferCount);
-        strcat(line3DispBuff, " accounts");                                     // display the account count on the display
+        strcpy(line4DispBuff, bufferCount);
+        strcat(line4DispBuff, " accounts");                                     // display the account count on the display
         DisplayBuffer();
         event = EVENT_NONE;
       } else {
@@ -3401,7 +3494,7 @@ void ProcessEvent() {                                                           
       if (strlen(newPassword) > 0) {                                            // only change the master password if a new password was entered
         ChangeMasterPassword(newPassword);
       } else {
-        DisplayToStatus("Pass not > 0 char");
+        DisplayToHelp("Pass not > 0 char");
       }
       event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_EDIT_ACCOUNT == machineState) {                            // EVENT_LONG_CLICK
@@ -3442,7 +3535,7 @@ void ProcessEvent() {                                                           
       eeprom_write_bytes(GET_ADDR_STYLE(acctPosition), style, STYLE_SIZE);
       position = EDIT_ACCT_NAME;
       event = EVENT_SHOW_EDIT_MENU;
-//    } else if (STATE_EDIT_GROUPS == machineState) {                             // EVENT_LONG_CLICK
+//    } else if (STATE_EDIT_GROUPS == machineState) {                           // EVENT_LONG_CLICK
 //      menuNumber = EDIT_MENU_NUMBER;
 //      int arraySize = 0;
 //      for (uint8_t i = 0; i < MENU_SIZE; i++) {
@@ -3451,7 +3544,7 @@ void ProcessEvent() {                                                           
 //      memcpy(currentMenu, enterMenu, arraySize);
 //      elements = EDIT_MENU_ELEMENTS;
 //      machineState = STATE_EDIT_CREDS_MENU;
-//      if (position < 0 || position > (EDIT_MENU_ELEMENTS - 1)) position = 0;    // for safety
+//      if (position < 0 || position > (EDIT_MENU_ELEMENTS - 1)) position = 0;  // for safety
 //      ShowMenu(position, currentMenu, "  Edit Credentials  ");
 //      readAcctFromEEProm(acctPosition, accountName);
 //      DisplayToStatus(accountName);
@@ -3466,39 +3559,40 @@ void ProcessEvent() {                                                           
         position = ADD_ACCOUNT;
       }
     } else if (STATE_SEND_CREDS_MENU == machineState){                          // EVENT_LONG_CLICK
+      DisplayToHelp("Select account.");
 			switch (groupFilter) {
-			case FAVORITES:
-				switchToFindByGroupMenu(GROUP_FAVORITES, false);
-				break;
-			case WORK:
-				switchToFindByGroupMenu(GROUP_WORK, false);
-				break;
-			case PERSONAL:
-				switchToFindByGroupMenu(GROUP_PERSONAL, false);
-				break;
-			case HOME:
-				switchToFindByGroupMenu(GROUP_HOME, false);
-				break;
-			case SCHOOL:
-				switchToFindByGroupMenu(GROUP_SCHOOL, false);
-				break;
-			case FINANCIAL:
-				switchToFindByGroupMenu(GROUP_FINANCIAL, false);
-				break;
-			case MAIL:
-				switchToFindByGroupMenu(GROUP_MAIL, false);
-				break;
-			case CUSTOM:
-				switchToFindByGroupMenu(GROUP_CUSTOM, false);
-				break;
-			case ALL_GROUPS:
-				switchToFindAcctMenu();
-				break;
-			default:
-				position = 0;
-				DisplayToError("ERR: 040");
-				switchToFindAcctMenu();
-				break;
+        case FAVORITES:
+          switchToFindByGroupMenu(GROUP_FAVORITES, false);
+          break;
+        case WORK:
+          switchToFindByGroupMenu(GROUP_WORK, false);
+          break;
+        case PERSONAL:
+          switchToFindByGroupMenu(GROUP_PERSONAL, false);
+          break;
+        case HOME:
+          switchToFindByGroupMenu(GROUP_HOME, false);
+          break;
+        case SCHOOL:
+          switchToFindByGroupMenu(GROUP_SCHOOL, false);
+          break;
+        case FINANCIAL:
+          switchToFindByGroupMenu(GROUP_FINANCIAL, false);
+          break;
+        case MAIL:
+          switchToFindByGroupMenu(GROUP_MAIL, false);
+          break;
+        case CUSTOM:
+          switchToFindByGroupMenu(GROUP_CUSTOM, false);
+          break;
+        case ALL_GROUPS:
+          switchToFindAcctMenu();
+          break;
+        default:
+          position = 0;
+          DisplayToError("ERR: 040");
+          switchToFindAcctMenu();
+          break;
 			}
 			BlankLine3();                                                             // wipes out the name of the account 
 //  } else if (STATE_FIND_ACCOUNT == machineState){                             // long click after selecting an account
@@ -3515,6 +3609,7 @@ void ProcessEvent() {                                                           
       event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_CONFIRM_DEL_ACCT == machineState) {                        // EVENT_LONG_CLICK
       switchToSendCredsMenu();
+      DisplayToHelp("Select attribute.");
       BlankLine3();
     } else if (STATE_MENU_SETTINGS == machineState) {                           // EVENT_LONG_CLICK
       event = EVENT_SHOW_MAIN_MENU;                                             // if in the settings menu return to the main menu
@@ -3619,6 +3714,7 @@ void ProcessEvent() {                                                           
           break;
       }
       //position = 0;                                                           // return to the top of the settings menu
+      DisplayToHelp("Select a setting.");
       event = EVENT_SHOW_SETTINGS_MENU;
 		} else if (STATE_EDIT_GROUP_1 == machineState) {
 			ProcessGroupInput( 			groupCategory_1,                                  // attribute name
@@ -3674,6 +3770,7 @@ void ProcessEvent() {                                                           
 //    position = FILE_MENU_SEL;
     } else {                                                                    
       event = EVENT_SHOW_MAIN_MENU;                                             // if any other state show main menu (e.g just after EVENT_RESET)
+      DisplayToHelp("Select an item.");
       BlankLine2();
       BlankLine3();
       switch (machineState) {                                                   // set positon so that you navigate back to the menu item from which you came
@@ -3710,11 +3807,14 @@ void ProcessEvent() {                                                           
     memcpy(currentMenu, mainMenu, arraySize);
     elements = MAIN_MENU_ELEMENTS;
     machineState = STATE_SHOW_MAIN_MENU;
+    oled.clear();
     if (!authenticated) {
       position = ENTER_MASTER_PASSWORD;
+      DisplayToHelp("Enter password.");
+    } else {
+      DisplayToHelp("Select an action.");
     }
-    oled.clear();
-    ShowMenu(position, currentMenu, "        Main        ");
+    ShowMenu(position, currentMenu, "      Actions       ");
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_EDIT_MENU) {                                   // show the edit menu
@@ -3730,9 +3830,10 @@ void ProcessEvent() {                                                           
     ShowMenu(position, currentMenu, "  Edit Credentials  ");
     readAcctFromEEProm(acctPosition, accountName);
     DisplayToStatus(accountName);
+    DisplayToHelp("Select an attribute.");
     event = EVENT_NONE;
 
-  } else if (event == EVENT_SHOW_SETTINGS_MENU) {                               // show the edit menu
+  } else if (event == EVENT_SHOW_SETTINGS_MENU) {                               // show the settings menu
     menuNumber = SETTINGS_MENU_NUMBER;
     int arraySize = 0;
     for (uint8_t i = 0; i < MENU_SIZE; i++) {
@@ -3744,9 +3845,10 @@ void ProcessEvent() {                                                           
     if (position < 0 || position > (SETTINGS_MENU_ELEMENTS - 1)) position = 0;  // for safety
     //position = 0;                                                             // set focus on the first menu element.
     ShowMenu(position, currentMenu,"      Settings      ");
+    DisplayToHelp("Select a setting.");
     event = EVENT_NONE;
 
-  } else if (event == EVENT_SHOW_FILE_MENU) {                                   // show the edit menu
+  } else if (event == EVENT_SHOW_FILE_MENU) {                                   // show the backup/restore menu
     menuNumber = FILE_MENU_NUMBER;
     int arraySize = 0;
     for (uint8_t i = 0; i < MENU_SIZE; i++) {
@@ -3757,6 +3859,7 @@ void ProcessEvent() {                                                           
     machineState = STATE_MENU_FILE;
     position = 0;
     ShowMenu(position, currentMenu,"Backup/Restore");
+    DisplayToHelp("Select an action.");
     event = EVENT_NONE;
 //  } else if (event == EVENT_SHOW_FIND_BY_GROUP) {                             // show the find by group
 
@@ -3783,7 +3886,8 @@ void ProcessEvent() {                                                           
         position = 0;
         break;
     }
-    ShowMenu(position, currentMenu);  
+    ShowMenu(position, currentMenu); 
+    DisplayToHelp("Select On or Off");
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_RGB_INT_MENU) {
@@ -3813,6 +3917,7 @@ void ProcessEvent() {                                                           
         break;
     }
     ShowMenu(position, currentMenu, "   RGB Intensity   ");  
+    DisplayToHelp("Select intensity.");
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_GROUP_DEF_MENU) {
@@ -3826,6 +3931,7 @@ void ProcessEvent() {                                                           
 		machineState = STATE_MENU_DEFINE_GROUPS;
 		position = 0;
     ShowMenu(position, currentMenu, " Customize Groups  ");  
+    DisplayToHelp("Select a group.");
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_LOG_TIME_MENU) {
@@ -3863,7 +3969,8 @@ void ProcessEvent() {                                                           
         DisplayToError("ERR: 018");
         break;
     }
-    ShowMenu(position, currentMenu, "   Logout Timeout   ");  
+    ShowMenu(position, currentMenu, "   Logout Timeout   "); 
+    DisplayToHelp("Select timeout value");
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_LG_ATTEM_MENU) {
@@ -3893,6 +4000,7 @@ void ProcessEvent() {                                                           
         break;
     }
     ShowMenu(position, currentMenu, "   Login Attempts   ");  
+    DisplayToHelp("Select login attempt");
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_KEYBOARD_MENU) {
@@ -3941,6 +4049,7 @@ void ProcessEvent() {                                                           
         break;
     }
     ShowMenu(position, currentMenu, "   Keyboard Type    ");  
+    DisplayToHelp("Select keyboard.");
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_ENCODER_MENU) {
@@ -3964,6 +4073,7 @@ void ProcessEvent() {                                                           
         break;
     }
     ShowMenu(position, currentMenu, "   Encoder Type    ");  
+    DisplayToHelp("Select encoder type.");
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_FONT_MENU) {
@@ -3976,6 +4086,7 @@ void ProcessEvent() {                                                           
     elements = FONT_MENU_ELEMENTS;
     position = font;
     ShowMenu(position, currentMenu, "        Font        ");  
+    DisplayToHelp("Select font.");
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_ORIENT_MENU) {
@@ -3988,6 +4099,7 @@ void ProcessEvent() {                                                           
     elements = ORIENT_MENU_ELEMENTS;
     position = orientation;
     ShowMenu(position, currentMenu, "    Orientation     ");  
+    DisplayToHelp("Select orientation.");
     event = EVENT_NONE;
 
   } else if (event == EVENT_CHANGE_MASTER) {
@@ -3999,6 +4111,7 @@ void ProcessEvent() {                                                           
     charToPrint[1] = NULL_TERM;
     DisplayToEdit((char *)charToPrint);
     DisplayToMenu("   Enter Password   ");
+    DisplayToHelp("Change password.");
     if (keyboardFlag) {
       Serial.begin(BAUD_RATE);
       while(!Serial);
@@ -4017,18 +4130,21 @@ void ProcessEvent() {                                                           
   } else if (event == EVENT_DELETE_ACCT) {
     ConfirmChoice(STATE_CONFIRM_DEL_ACCT);
 
-  } else if (event == EVENT_BACKUP_TO_FILE) {
-    BackupToPPCVSFile();
-    event = EVENT_NONE;
+  } else if (event == EVENT_FIX_CORRUPTION) {
+    ConfirmChoice(STATE_CONFIRM_FIX_CORRUPT);
+    
+//} else if (event == EVENT_BACKUP_TO_FILE) {
+//  BackupToPPCVSFile();
+//  event = EVENT_NONE;
 
-  } else if (event == EVENT_IMPORT_PP_CSV) {
-    ConfirmChoice(STATE_CONFIRM_IMP_PP_CSV);
+//} else if (event == EVENT_IMPORT_PP_CSV) {
+//  ConfirmChoice(STATE_CONFIRM_IMP_PP_CSV);
 
-  } else if (event == EVENT_IMPORT_CP_CSV) {
-    ConfirmChoice(STATE_CONFIRM_IMP_CP_CSV);
+//} else if (event == EVENT_IMPORT_CP_CSV) {
+//  ConfirmChoice(STATE_CONFIRM_IMP_CP_CSV);
 
-    } else if (event == EVENT_IMPORT_KEEPASS_CSV) {
-    ConfirmChoice(STATE_CONFIRM_IMP_KP_CSV);
+//} else if (event == EVENT_IMPORT_KEEPASS_CSV) {
+//  ConfirmChoice(STATE_CONFIRM_IMP_KP_CSV);
 
   } else if (event == EVENT_LOGOUT) {
     if(authenticated) {
@@ -4043,11 +4159,43 @@ void ProcessEvent() {                                                           
     }
     BlankLine2();
     
-  } else if (event == EVENT_FIX_CORRUPTION) {
-    ConfirmChoice(STATE_CONFIRM_FIX_CORRUPT);
-    
   } else {
     DisplayToError("ERR: 007");
+  }
+}
+
+void setHelpOnSendCredsMenu(uint8_t position) {
+  switch(position) {
+    case SEND_PASSWORD:
+      DisplayToHelp("Click to send.");
+      break;
+    case SEND_USER_AND_PASSWORD:
+      DisplayToHelp("Click to send.");
+      break;
+    case SEND_WEBSITE:
+      DisplayToHelp("Click to send.");
+      break;
+    case SEND_USERNAME:
+      DisplayToHelp("Click to send.");
+      break;
+    case SEND_PASSWORD_NO_RET:
+      DisplayToHelp("Click to send.");
+      break;
+    case SEND_ACCOUNT:
+      DisplayToHelp("Click to send.");
+      break;
+    case EDIT_ACCOUNT:
+      DisplayToHelp("Click to edit.");
+      break;
+    case DELETE_ACCOUNT:
+      DisplayToHelp("Click to delete.");
+      break;
+    case SEND_OLD_PASSWORD:
+      DisplayToHelp("Click to send.");
+      break;
+    default:
+      DisplayToError("ERR: 004A");
+      break;
   }
 }
 
@@ -4073,7 +4221,7 @@ void setupStateEnterMasterPassword() {
   char charToPrint[2];
   charToPrint[0] = allChars[0];
   charToPrint[1] = NULL_TERM;
-  DisplayToMenu("   Enter Password   ");
+  DisplayToMenu("  Master Password   ");
   BlankLine2();
   DisplayToEdit((char *)charToPrint);
   //if (keyboardFlag) {                                                         // commented out because master password must always be entered via rotary encoder
@@ -4081,6 +4229,7 @@ void setupStateEnterMasterPassword() {
   //  while(!Serial);                                                           // we get stuck here if keyboard is on and we logout and try to log back in
   //}
   event = EVENT_NONE;
+  DisplayToHelp("Enter password.");
 }  
 
 void PopulateGlobals() {  
@@ -4208,6 +4357,7 @@ void ConfirmChoice(uint8_t state) {                                             
   //DebugLN("ConfirmChoice()");
   machineState = state;                                                         // set machineState to the passed in state
   DisplayToEdit("Are you sure? ");
+  DisplayToHelp("Select (Y)es or (N)o");
   position = 0;                                                                 // confirmChars[0] = 'N'
   ShowChar(confirmChars[position], POS_Y_N_CONFIRM);                            // default choice is always 'N'; No.
   event = EVENT_NONE;                                                           // wait for input from the rotary encoder or short or long button press
@@ -4267,6 +4417,7 @@ void switchFindByGroup() {
   //ShowMenu(position, currentMenu,"   Find by Group    ");
   DisplayToItem(groupMenu[position]);
   DisplayToMenu("   Find by Group    ");
+  DisplayToHelp("Select a group.");
   event = EVENT_NONE;
 }  
 
@@ -4287,6 +4438,7 @@ void switchToFindByGroup() {
 
 void switchToFindByGroupMenu(uint8_t menu, boolean setAcctPosition) {
 	char buffer[DISPLAY_BUFFER_SIZE] = "Find ";
+  DisplayToHelp("Select account.");
   switch (menu) {
     case GROUP_FAVORITES:
       groupFilter = FAVORITES;
@@ -4360,7 +4512,6 @@ void switchToFindByGroupMenu(uint8_t menu, boolean setAcctPosition) {
 
 void switchToSendCredsMenu() {
   //DebugLN("switchToSendCredsMenu()");
-  //acctPosition = position;  //misbehaving
   menuNumber = SEND_MENU_NUMBER;
   elements = SEND_MENU_ELEMENTS;
   int arraySize = 0;
@@ -4374,6 +4525,7 @@ void switchToSendCredsMenu() {
   ShowMenu(position, currentMenu, "    Credentials     ");
   readAcctFromEEProm(acctPosition, accountName);
   DisplayToStatus((char *)accountName);
+  DisplayToHelp("Click to send.");
   event = EVENT_NONE;
 }
 
@@ -4940,18 +5092,24 @@ void DisplayToStatus(char* lineToPrint) {
 }
 
 void DisplayToError(char* lineToPrint) {
-  strncpy(line3DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
-  line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
+  strncpy(line4DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
+  line4DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
 	oled.invertDisplay(true);
-  DisplayBuffer3();
+  DisplayBuffer4();
   delayNoBlock(ONE_SECOND * 2);
 	oled.invertDisplay(false);
 }
 
+void DisplayToHelp(char* lineToPrint) {
+  strncpy(line4DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
+  line4DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
+  DisplayBuffer4();
+}
+
 void DisplayToDebug(char* lineToPrint) {
-  strncpy(line3DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
-  line3DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
-  DisplayBuffer3();
+  strncpy(line4DispBuff, lineToPrint, DISPLAY_BUFFER_SIZE);
+  line4DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
+  DisplayBuffer4();
 }
 
 void BlankLine1() {
@@ -4975,6 +5133,13 @@ void BlankLine3() {
   DisplayBuffer3();
 }
 
+void BlankLine4() {
+  //DebugLN("BlankLine4()");
+  strncpy(line3DispBuff,spaceFilled,DISPLAY_BUFFER_SIZE);
+  line4DispBuff[DISPLAY_BUFFER_SIZE - 1] = NULL_TERM;                           // important in the case where length of lineToPrint exceeds DISPLAY_BUFFER_SIZE.
+  DisplayBuffer4();
+}
+
 void DisplayBuffer() {
   //DebugLN("DisplayBuffer()");
   oled.clear();                                                                 // Clear all pixels in the buffer in the memory, and then use the sendBuffer function to display the buffer "Buffer" on the screen to clear the screen.
@@ -4984,6 +5149,8 @@ void DisplayBuffer() {
   oled.print(line2DispBuff);
   oled.setCursor(0,LINE_3_POS);
   oled.print(line3DispBuff);
+  oled.setCursor(0,LINE_4_POS);
+  oled.print(line4DispBuff);
 }
 
 void DisplayBuffer1() {
@@ -5008,6 +5175,14 @@ void DisplayBuffer3() {
   oled.clearToEOL();
   oled.setCursor(0,LINE_3_POS);
   oled.print(line3DispBuff);
+}
+
+void DisplayBuffer4() {
+  //DebugLN("DisplayBuffer4()");
+  oled.setCursor(0,LINE_4_POS);
+  oled.clearToEOL();
+  oled.setCursor(0,LINE_4_POS);
+  oled.print(line4DispBuff);
 }
 
 void ShowMenu(uint8_t position, char **menu, char *menuName) {
@@ -5601,6 +5776,7 @@ boolean eeprom_write_bytes( uint32_t startAddr,                                 
 void InitializeEEProm(void) {                                                   // Initializes all of external EEprom; sets every address = 255.
   //DebugLN("InitializeEEProm()");
   DisplayToStatus("Initializing EEprom");
+  DisplayToHelp("Wait...");
   //DisableInterrupts();                                                        // disable global interrupts
   boolean colorRed = true;                                                      // show purple during healthy EEprom initialize
   uint32_t pageAddress = MIN_AVAIL_ADDR;
@@ -5638,6 +5814,7 @@ void InitializeEEProm(void) {                                                   
 #endif
     pageAddress += EEPROM_BYTES_PER_PAGE;
   }
+  DisplayToHelp("Done.");
   setBlue();
   //EnableInterrupts();                                                         // enable global interrupts
 }
@@ -5902,6 +6079,7 @@ void CopyEEPromToBackup() {                                                     
   //DebugLN("CopyEEPromToBackup()");                                              // flash the LED red and yellow during this operation
   //DisableInterrupts();                                                        // disable global interrupts
   DisplayToStatus("Backing up...");
+  DisplayToHelp("Wait...");
   write_eeprom_byte(GET_ADDR_KEYBOARD_FLAG, false);                             // keyboard should always be off for a restored backup.
   char buffer[EEPROM_BYTES_PER_PAGE];                                           // make a buffer the same size as the page size.
   boolean colorRed = true;
@@ -5947,6 +6125,7 @@ void CopyEEPromToBackup() {                                                     
   write_eeprom_byte(GET_ADDR_KEYBOARD_FLAG, keyboardFlag);                      // set keyboard flag back to what it was before this operation started
   setGreen();
   DisplayToStatus("Backed up");
+  DisplayToHelp("Done.");
   //EnableInterrupts();                                                         // done with the copy, re-enable global interrupts
 }
 
@@ -5954,6 +6133,7 @@ void RestoreEEPromBackup() {                                                    
   //DebugLN("RestoreEEPromBackup()");
   //DisableInterrupts();                                                        // disable global interrupts
   DisplayToStatus("Restoring...");
+  DisplayToHelp("Wait...");
   char buffer[EEPROM_BYTES_PER_PAGE];                                           // make a buffer the same size as the page size.
   boolean colorRed = true;
   for ( uint32_t address = MIN_AVAIL_ADDR; 
@@ -6000,6 +6180,7 @@ void RestoreEEPromBackup() {                                                    
   acctCount = countAccounts();                                                  // count the number of populated accounts in EEprom
   setGreen();
   DisplayToStatus("Creds Restored");
+  DisplayToHelp("Done.");
   //EnableInterrupts();                                                         // done with the copy, re-enable global interrupts
 }
 
@@ -6866,7 +7047,9 @@ void delayNoBlock(unsigned long delayTime) {
 // - Change the master password
 
 void ChangeMasterPassword(char *passedNewPassword) {                            // change masterPassword to passedNewPassword
+  setYellow();
   DisplayToStatus("Backing up");
+  DisplayToHelp("Wait...");
   CopyEEPromToBackup();                                                         // Copy everything from primary to secondary EEprom
   DisplayToStatus("Changing master pass");
 
@@ -6981,7 +7164,8 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
   memcpy(masterPassword, localNewPassword, MASTER_PASSWORD_SIZE);               // populate global masterPassword with the new master password.
   
   setGreen();
-  DisplayToStatus("Changed master pass");
+  DisplayToStatus("Changed password");
+  DisplayToHelp("Done.");
 }
 
 uint8_t FindAccountPos(char *passedAccountName) {                               // TODO: improve performance with a binary search through the doubly linked list here
