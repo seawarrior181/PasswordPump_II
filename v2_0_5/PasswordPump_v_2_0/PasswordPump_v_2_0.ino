@@ -1,24 +1,24 @@
-/* ___                              _ ___
-  | _ \__ _ _______ __ _____ _ _ __| | _ \_  _ _ __  _ __ 
-  |  _/ _` (_-<_-< V  V / _ \ '_/ _` |  _/ || | '  \| '_ \
-  |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
-  Author:       Daniel J. Murphy                    |_| 
+/*               ___                              _ ___
+                | _ \__ _ _______ __ _____ _ _ __| | _ \_  _ _ __  _ __ 
+                |  _/ _` (_-<_-< V  V / _ \ '_/ _` |  _/ || | '  \| '_ \
+                |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
+  Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
   Version:      2.0.5
-  Date:         2019/07/26 - 2020/06/14
+  Date:         2019/07/26 - 2020/10/17
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
-  MCU:          ATSAMD21G18 32-bit Cortex M0+ or ATSAMD51J19 32-bit Cortex M4
-  Memory:       256KB Flash and 32 KB RAM or 512KB Flash and 192KB RAM
+  MCU:          ATSAMD21G18 32-bit  Cortex M0+ or ATSAMD51J19 32-bit Cortex M4
+  Memory:       256KB  Flash   and  32KB RAM  or  512KB  Flash  and  192KB RAM
   EEprom:       2MB of SPI Flash (not used)
-  Clock Speed:  48 MHz or 120MHz
+  Clock Speed:  48 MHz (M0) or 120MHz (M4)
   Voltage:      3.3v MCU & 25LC512 EEProm / 5v RGB LED, Rotary Encoder, 
                 SSD1306 OLED 
   Current:      0.03A
   Components:   RGB LED, SSD1306 128x32 LED  display, one momentary push button, 
                 one  rotary encoder,  2 4.7kohm  resistors  for  I2C,  3  220ohm 
                 resistors  for  the  RGB  LED,  2 25LC512 external EEprom chips, 
-                custom PCB.
+                custom PCB, plastic knob.
   Purpose
   =======
   - To manage user names and passwords and to type them in via keyboard/USB.  To
@@ -111,14 +111,16 @@
     happen.
   - When entering an account name 29 chars long via keyboard, nothing gets 
     entered.
-  - You can only select a new keyboard language once, the second time will 
-    freeze the MCU.  Just press the reset button to work around.
   ! In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x single character user names and passwords are not working well
+  * You can only select a new keyboard language once, the second time will 
+    freeze the MCU.  To work around this resetting the keyboard more than
+    once is prohibited. If you do reset the keyboard a second time you need
+    to reset the device for the change to take effect.
   * Enabled the ability to fix a corrupt linked account list.
   * Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
     BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
@@ -858,12 +860,14 @@
   046 - Invalid encoder type specified
   047 - Invalid font specified
   048 - Invalid orientation specified
+  049 - Invalid edit menu item when setting help
+  050 - Invalid settings menu item when setting help
 
   Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                             */
-//#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4
-#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0
+//#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
+#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -1654,6 +1658,7 @@ uint8_t enterPosition = 0;                                                      
 uint8_t acctPosition;                                                           // the position of the selected account.
 uint8_t acctCount = 0;                                                          // the number of accounts in EEprom.
 boolean authenticated = false;                                                  // indicates if the correct master password has been provided
+uint8_t changeKeyboardAttempts;                                                 // we can only change the keyboard once, subsequent attempts result in a frozen device
 unsigned long lastActivityTime;                                                 // used to automatically logout after a period of inactivity
 uint32_t iterationCount = 0;                                                    // # of times ProcessEvent() called since last evaluation of lastActivityTime
 uint8_t headPosition;                                                           // the head of the doubly linked list that keeps account names sorted
@@ -1723,9 +1728,7 @@ CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separa
 SHA256 sha256;
 AESSmall256 aes;                                                                // 32 byte key, 32 byte block; this uses 4% more program memory. Set 
                                                                                 // MASTER_PASSWORD_SIZE = 32 when in use.
-
 Button2 encoderButton = Button2(BUTTON_PIN);                                    // the button on the rotary encoder.
-
 SSD1306AsciiWire oled;                                                          // for the SSD1306 display
 
 /*
@@ -1879,7 +1882,7 @@ void switchToFindByGroupMenu(uint8_t menu, boolean setAcctPosition);
 void sendRTN();
 void ChangeMasterPassword(char *passedNewPassword);
 uint8_t FindAccountPos(char *accountName);
-void BackupToPPCVSFile();                                                       // before executing the function the user must open a text editor and place input focus there.
+//void BackupToPPCVSFile();                                                     // before executing the function the user must open a text editor and place input focus there.
 void RestoreFromPPCVSFile();
 void ImportChromeExportFile();
 void attachCommandCallbacks();                                                  // We must define a callback function in our Arduino program for each entry in the list below.
@@ -2133,6 +2136,7 @@ void setup() {                                                                  
 	
   lastActivityTime = millis();                                                  // establish the start time for when the device is powered up
   authenticated = false;                                                        // we're not authenticated yet!
+  changeKeyboardAttempts += 1;
 
   machineState = STATE_SHOW_MAIN_MENU;
   position = ENTER_MASTER_PASSWORD; 
@@ -2306,6 +2310,7 @@ void ProcessEvent() {                                                           
         position++;
         MenuDown(currentMenu);
         SwitchRotatePosition(position);
+        setHelpOnEditCredsMenu(position);
       }
     } else if (STATE_MENU_FIND_BY_GROUP == machineState) {											// event == EVENT_ROTATE_CW
       if ((position < (GROUP_MENU_ELEMENTS - 1)) && (acctCount > 0)) {          // we'll only show the edit account options when there's at least one account
@@ -2395,6 +2400,7 @@ void ProcessEvent() {                                                           
       if (position < SETTINGS_MENU_ELEMENTS - 1) {                              // prevent scrolling past the last item on the menu
         position++;
         MenuDown(currentMenu);                                                  // move one position down the current menu
+        setHelpOnSettingsMenu(position);
       }
     } else if (STATE_MENU_FILE == machineState) {																// event == EVENT_ROTATE_CW
       if (position < FILE_MENU_ELEMENTS - 1) {                                  // prevent scrolling past the last item on the menu
@@ -2449,6 +2455,7 @@ void ProcessEvent() {                                                           
         position--;
         MenuUp(currentMenu);
         SwitchRotatePosition(position);
+        setHelpOnEditCredsMenu(position);
       }
     } else if (STATE_MENU_FIND_BY_GROUP   == machineState) {                    // EVENT_ROTATE_CC
 			if (position > 0) {
@@ -2517,6 +2524,7 @@ void ProcessEvent() {                                                           
       if (position > 0) {                                                       // 
         position--;
         MenuUp(currentMenu);
+        setHelpOnSettingsMenu(position);
       }
     } else if (STATE_MENU_FILE == machineState) {                               // EVENT_ROTATE_CC
       if (position > 0) {
@@ -3041,82 +3049,88 @@ void ProcessEvent() {                                                           
           DisplayToStatus("Timeout Saved");
           break;
         case STATE_MENU_KEYBOARD:
-            originalKeyboardType = keyboardType;
+          originalKeyboardType = keyboardType;
+          changeKeyboardAttempts += 1;
+          if (changeKeyboardAttempts < 3) {                                     // To prevent a crash
             switch (position) {
-            case KEYBOARD_CZECH:
-              keyboardType = KEYBOARD_CZECH;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapCzech, _hidReportDescriptorCzech);
-                DisplayToHelp("Saved Czech keyboard.");
-              }
-              break;
-            case KEYBOARD_DANISH:
-              keyboardType = KEYBOARD_DANISH;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapDanish, _hidReportDescriptorDanish);
-                DisplayToHelp("Saved Danish keyboard.");
-              }
-              break;
-            case KEYBOARD_FINNISH:
-              keyboardType = KEYBOARD_FINNISH;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapFinnish, _hidReportDescriptorFinnish);
-                DisplayToHelp("Saved Finnish keybrd");
-              }
-              break;
-            case KEYBOARD_FRENCH:
-              keyboardType = KEYBOARD_FRENCH;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapFrench, _hidReportDescriptorFrench);
-                DisplayToHelp("Saved French keyboard.");
-              }
-              break;
-            case KEYBOARD_GERMAN:
-              keyboardType = KEYBOARD_GERMAN;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapGerman, _hidReportDescriptorGerman);
-                DisplayToHelp("Saved German keybrd");
-              }
-              break;
-            case KEYBOARD_NORWEGIAN:
-              keyboardType = KEYBOARD_NORWEGIAN;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapNorwegian, _hidReportDescriptorNorwegian);
-                DisplayToHelp("Saved Norwegian.");
-              }
-              break;
-            case KEYBOARD_SPANISH:
-              keyboardType = KEYBOARD_SPANISH;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapSpanish, _hidReportDescriptorSpanish);
-                DisplayToHelp("Saved Spanish keybrd");
-              }
-              break;
-            case KEYBOARD_SWEDISH:
-              keyboardType = KEYBOARD_SWEDISH;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapSwedish, _hidReportDescriptorSwedish);
-                DisplayToHelp("Saved Swedish keybrd");
-              }
-              break;
-            case KEYBOARD_UK:
-              keyboardType = KEYBOARD_UK;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapUK, _hidReportDescriptorUK);
-                DisplayToHelp("Saved UK keyboard");
-              }
-              break;
-            case KEYBOARD_US:
-              keyboardType = KEYBOARD_US;
-              if (keyboardType != originalKeyboardType) {
-                Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
-                DisplayToHelp("Saved US keyboard");
-              }
-              break;
-            default:
-              BlankLine4();
-              DisplayToError("045");
-              break;
+              case KEYBOARD_CZECH:
+                keyboardType = KEYBOARD_CZECH;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapCzech, _hidReportDescriptorCzech);
+                  DisplayToHelp("Saved Czech keyboard.");
+                }
+                break;
+              case KEYBOARD_DANISH:
+                keyboardType = KEYBOARD_DANISH;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapDanish, _hidReportDescriptorDanish);
+                  DisplayToHelp("Saved Danish keyboard.");
+                }
+                break;
+              case KEYBOARD_FINNISH:
+                keyboardType = KEYBOARD_FINNISH;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapFinnish, _hidReportDescriptorFinnish);
+                  DisplayToHelp("Saved Finnish keybrd");
+                }
+                break;
+              case KEYBOARD_FRENCH:
+                keyboardType = KEYBOARD_FRENCH;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapFrench, _hidReportDescriptorFrench);
+                  DisplayToHelp("Saved French keyboard.");
+                }
+                break;
+              case KEYBOARD_GERMAN:
+                keyboardType = KEYBOARD_GERMAN;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapGerman, _hidReportDescriptorGerman);
+                  DisplayToHelp("Saved German keybrd");
+                }
+                break;
+              case KEYBOARD_NORWEGIAN:
+                keyboardType = KEYBOARD_NORWEGIAN;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapNorwegian, _hidReportDescriptorNorwegian);
+                  DisplayToHelp("Saved Norwegian.");
+                }
+                break;
+              case KEYBOARD_SPANISH:
+                keyboardType = KEYBOARD_SPANISH;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapSpanish, _hidReportDescriptorSpanish);
+                  DisplayToHelp("Saved Spanish keybrd");
+                }
+                break;
+              case KEYBOARD_SWEDISH:
+                keyboardType = KEYBOARD_SWEDISH;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapSwedish, _hidReportDescriptorSwedish);
+                  DisplayToHelp("Saved Swedish keybrd");
+                }
+                break;
+              case KEYBOARD_UK:
+                keyboardType = KEYBOARD_UK;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapUK, _hidReportDescriptorUK);
+                  DisplayToHelp("Saved UK keyboard");
+                }
+                break;
+              case KEYBOARD_US:
+                keyboardType = KEYBOARD_US;
+                if (keyboardType != originalKeyboardType) {
+                  Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+                  DisplayToHelp("Saved US keyboard");
+                }
+                break;
+              default:
+                BlankLine4();
+                DisplayToError("045");
+                break;
+            }
+          } else {
+            DisplayToHelp("Reset to switch");
+            keyboardType = position;
           }
           writeKeyboardType();
           DisplayToStatus("Keyboard Saved.");
@@ -3371,17 +3385,17 @@ void ProcessEvent() {                                                           
       switch (position) {
         case SETTINGS_SET_KEYBOARD:
           machineState = STATE_KEY_ON_OFF_MENU;
-          DisplayToHelp("Set keyboard state.");
+          //DisplayToHelp("Set keyboard state.");
           event = EVENT_SHOW_OFF_ON_MENU;
           break;
         case SETTINGS_SET_SHOW_PW:
           machineState = STATE_SHOW_PW_ON_OFF_MENU;
-          DisplayToHelp("Select psswrd On/Off");
+          //DisplayToHelp("Select psswrd On/Off");
           event = EVENT_SHOW_OFF_ON_MENU;
           break;
         case SETTINGS_SET_DECOY:
           machineState = STATE_DECOY_ON_OFF_MENU;
-          DisplayToHelp("Decoy passwrd On/Off");
+          //DisplayToHelp("Decoy passwrd On/Off");
           event = EVENT_SHOW_OFF_ON_MENU;
           break;
         case SETTINGS_SET_RGB_INT:
@@ -3463,7 +3477,7 @@ void ProcessEvent() {                                                           
         PopulateGlobals();
         position = FIND_FAVORITE;
         machineState = STATE_SHOW_MAIN_MENU;
-        DisplayToMenu("        Main        ");
+        DisplayToMenu("      Actions       ");                                  // Main menu heading
         ShowMenu(position, currentMenu);
         char bufferCount[4];
         itoa(acctCount, bufferCount, 10);                                       // convert account count to a string and put it in buffer.
@@ -4199,6 +4213,81 @@ void setHelpOnSendCredsMenu(uint8_t position) {
   }
 }
 
+void setHelpOnEditCredsMenu(uint8_t position) {
+  switch(position) {
+    case EDIT_ACCT_NAME:
+      DisplayToHelp("Click to edit acct");
+      break;
+    case EDIT_USERNAME:
+      DisplayToHelp("Click to edit user");
+      break;
+    case EDIT_PASSWORD:
+      DisplayToHelp("Click to edit pass");
+      break;
+    case EDIT_WEBSITE:
+      DisplayToHelp("Click to edit URL");
+      break;
+    case EDIT_STYLE:
+      DisplayToHelp("Click to edit style");
+      break;
+    case EDIT_GROUPS:
+      DisplayToHelp("Click to edit groups");
+      break;
+    case GENERATE_PASSWORD:
+      DisplayToHelp("Click to generate");
+      break;
+    case SAVE_OLD_PASSWORD:
+      DisplayToHelp("Click to save old");
+      break;
+    default:
+      DisplayToError("ERR: 049");
+      break;
+  }
+}
+
+void setHelpOnSettingsMenu(uint8_t position) {
+  switch(position) {
+    case SETTINGS_SET_KEYBOARD:
+      DisplayToHelp("Click to set on/off");
+      break;
+    case SETTINGS_SET_SHOW_PW:
+      DisplayToHelp("Click to set on/off");
+      break;
+    case SETTINGS_SET_DECOY:
+      DisplayToHelp("Click to set on/off");
+      break;
+    case SETTINGS_SET_RGB_INT:
+      DisplayToHelp("Click for intensity");
+      break;
+    case SETTINGS_SET_TIMEOUT:
+      DisplayToHelp("Click for timeout");
+      break;
+    case SETTINGS_SET_LOGIN_ATTEM:
+      DisplayToHelp("Click to set attempt");
+      break;
+    case SETTINGS_GROUP_DEFINITION:
+      DisplayToHelp("Click define groups");
+      break;
+    case SETTINGS_CHANGE_MASTER:
+      DisplayToHelp("Click change master");
+      break;
+    case SETTINGS_KEYBOARD_LANG:
+      DisplayToHelp("Click to set lang");
+      break;
+    case SETTINGS_ENCODER_TYPE:
+      DisplayToHelp("Click to set encoder");
+      break;
+    case SETTINGS_FONT:
+      DisplayToHelp("Click to set font");
+      break;
+    case SETTINGS_ORIENTATION:
+      DisplayToHelp("Click for orientatn");
+      break;
+    default:
+      DisplayToError("ERR: 050");
+      break;
+  }
+}
 void DimDisplay(boolean dim) {
   if (dim) {
 //  oled.dim(true);
@@ -4959,47 +5048,47 @@ void sendUsernameAndPassword() {
 }
 
 
-void BackupToPPCVSFile() {                                                      // before executing the function the user must open a text editor and place input focus there.
-  //DebugLN("BackupToPPCVSFile()");
-  DisplayToStatus("Backup to CVS file");
-  setPurple();
-  acctPosition = headPosition;
-  Keyboard.begin();
-  while (acctPosition != INITIAL_MEMORY_STATE_BYTE) {
-    delayNoBlock(500);                                                          // without the delays the results are corrupt
-    Keyboard.print("\"");
-    delayNoBlock(50);
-    readAcctFromEEProm(acctPosition, accountName);
-    Keyboard.print(accountName);
-    delayNoBlock(50);
-    Keyboard.print("\",\"");
-    delayNoBlock(50);
-    readUserFromEEProm(acctPosition, username); 
-    Keyboard.print(username);
-    delayNoBlock(50);
-    Keyboard.print("\",\"");
-    delayNoBlock(50);
-    readPassFromEEProm(acctPosition, password);
-    Keyboard.print(password);
-    delayNoBlock(50);
-    Keyboard.print("\",\"");
-    delayNoBlock(50);
-    readWebSiteFromEEProm(acctPosition, website);
-    Keyboard.print(website);
-    delayNoBlock(50);
-    Keyboard.print("\",");
-    delayNoBlock(50);
-    uint8_t group = readGroupFromEEprom(acctPosition);                          // read the group from EEProm
-    Keyboard.println(group);                                                    // type the group through the keyboard
-    delayNoBlock(50);
-    //sendGroup();
-    //sendRTN();
-    acctPosition = getNextPtr(acctPosition);
-  }
-  Keyboard.end();
-  setGreen();
-  DisplayToStatus("Done backup to CVS");
-}
+//void BackupToPPCVSFile() {                                                      // before executing the function the user must open a text editor and place input focus there.
+//  //DebugLN("BackupToPPCVSFile()");
+//  DisplayToStatus("Backup to CVS file");
+//  setPurple();
+//  acctPosition = headPosition;
+//  Keyboard.begin();
+//  while (acctPosition != INITIAL_MEMORY_STATE_BYTE) {
+//    delayNoBlock(500);                                                          // without the delays the results are corrupt
+//    Keyboard.print("\"");
+//    delayNoBlock(50);
+//    readAcctFromEEProm(acctPosition, accountName);
+//    Keyboard.print(accountName);
+//    delayNoBlock(50);
+//    Keyboard.print("\",\"");
+//    delayNoBlock(50);
+//    readUserFromEEProm(acctPosition, username); 
+//    Keyboard.print(username);
+//    delayNoBlock(50);
+//    Keyboard.print("\",\"");
+//    delayNoBlock(50);
+//    readPassFromEEProm(acctPosition, password);
+//    Keyboard.print(password);
+//    delayNoBlock(50);
+//    Keyboard.print("\",\"");
+//    delayNoBlock(50);
+//    readWebSiteFromEEProm(acctPosition, website);
+//    Keyboard.print(website);
+//    delayNoBlock(50);
+//    Keyboard.print("\",");
+//    delayNoBlock(50);
+//    uint8_t group = readGroupFromEEprom(acctPosition);                          // read the group from EEProm
+//    Keyboard.println(group);                                                    // type the group through the keyboard
+//    delayNoBlock(50);
+//    //sendGroup();
+//    //sendRTN();
+//    acctPosition = getNextPtr(acctPosition);
+//  }
+//  Keyboard.end();
+//  setGreen();
+//  DisplayToStatus("Done backup to CVS");
+//}
 
 /* Currently defunct
 void sendAll() {                                                                // this is the function we use to backup all of the account names, user names and passwords
@@ -6303,6 +6392,7 @@ void stompPointers(uint8_t accountPosition) {                                   
 }
 
 void FixCorruptLinkedList() {                                                   // Rebuild the linked list to fix any issues with the pointers
+  //DebugLN("FixCorruptLinkedList()");
   //DisableInterrupts();
   setRed();
   DisplayToMenu("Fixing corruption");
@@ -6312,7 +6402,14 @@ void FixCorruptLinkedList() {                                                   
   for (uint8_t pos = 0; pos <= (CREDS_ACCOMIDATED - 1); pos++) {                // Visit every possible location for a set of creds
     char buffer[ACCOUNT_SIZE];                                                  // a buffer that will accomodate the account name
     char snum[3];
-    char strToDisplay[20];
+    char strToDisplay[DISPLAY_BUFFER_SIZE];
+    if (pos % 5 == 0) {                                                         // Flash red and yellow
+      if (isRed) {
+        setYellow();
+      } else {
+        setRed();
+      }
+    }
     buffer[0] = NULL_TERM;
     itoa(pos, snum, 10);                                                        // convert pos to a string representation
     readAcctFromEEProm(pos, buffer);                                            // get the name of the account at this position, if any. readAcctFromEEProm sets buffer[0] = NULL_TERM if buffer[0] == (char) INITIAL_MEMORY_STATE_CHAR
@@ -6320,7 +6417,7 @@ void FixCorruptLinkedList() {                                                   
       writePointers(pos, buffer);                                               // set the previous and next pointers on this set of credentials
       strcpy(strToDisplay, "Fixed   #:");                                       // copy the string "Acct#: " to the var strToDisplay
     } else {
-      stompPointers(pos);                                                       // set the pointers to INITIAL_MEMORY_STATE_BYTE at this position
+      stompPointers(pos);                                                       // set the pointers to INITIAL_MEMORY_STATE_BYTE at this position; stomp them!
       strcpy(strToDisplay, "Skipped #:");                                       // copy the string "Acct#: " to the var strToDisplay
     }
     strcat(strToDisplay, snum);                                                 // concatinate the string representation of pos to strToDisplay
