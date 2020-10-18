@@ -6,6 +6,9 @@ The purpose of this repository on GitHub is to disseminate software for and info
 
 It is always wise to download the latest version of the PasswordPumpGUI when you are downloading the latest version of PasswordPump_v_2_0.ino.
 
+Note about v2.0.5 of the PasswordPump:
+If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will most likely have a "lefty" encoder.  This means that as you turn the rotary encoder clockwise, it proceeds backwards through the alphabet instead of forwards.  Some folks find this counter intuitive.  To fix this you merely need to navigate to Settings->Encoder Type and change it from ‘Normal’ to ‘Lefty’; and don’t worry, the setting is remembered if you power cycle the device.  If you factory reset the device you’ll need to change the Encoder Type to Lefty again.
+
 # Change Log
 unreleased v2.0.6
  Note: please use v2.0.5 unless you're adventurous.  
