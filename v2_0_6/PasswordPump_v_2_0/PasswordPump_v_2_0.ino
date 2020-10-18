@@ -7,13 +7,13 @@
   Version:      2.0.6
   Date:         2019/07/26 - 2020/10/18
   Language:     Arduino IDE 1.8.13, C++
-  Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
-  MCU:          ATSAMD21G18 32-bit  Cortex M0+ or ATSAMD51J19 32-bit Cortex M4
-  Memory:       256KB  Flash   and  32KB RAM  or  512KB  Flash  and  192KB RAM
+  Device:       Adafruit ItsyBitsy  M0 Express‎ or Adafruit  ItsyBitsy M4 Express‎
+  MCU:          ATSAMD21G18 32-bit  Cortex M0+  or  ATSAMD51J19 32-bit Cortex M4
+  Memory:       256KB  Flash   and  32KB RAM   or  512KB  Flash  and   192KB RAM
   EEprom:       2MB of SPI Flash (not used)
   Clock Speed:  48 MHz (M0) or 120MHz (M4)
-  Voltage:      3.3v MCU & 25LC512 EEProm / 5v RGB LED, Rotary Encoder, 
-                SSD1306 OLED 
+  Voltage:      3.3v MCU & 25LC512 EEProm / 5v RGB LED, Rotary Encoder,  SSD1306 
+                OLED 
   Current:      0.03A
   Components:   RGB LED, SSD1306 128x32 LED  display, one momentary push button, 
                 one  rotary encoder,  2 4.7kohm  resistors  for  I2C,  3  220ohm 

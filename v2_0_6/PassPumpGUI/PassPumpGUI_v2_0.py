@@ -6,7 +6,7 @@
 # Author:       Daniel J. Murphy                    |_|
 # File:         PassPumpGUI_v2_0.py
 # Version:      2.0.6
-# Date:         2019/07/26 - 2020/06/14
+# Date:         2019/07/26 - 2020/10/18
 # Language:     Python
 #
 # Purpose
