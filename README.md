@@ -12,6 +12,8 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 # Change Log
 unreleased v2.0.6
  Note: please use v2.0.5 unless you're adventurous.  
+  * Fixed a defect in PasswordPumpGUI whereby you could navigate to and edit fields before the port was open, resulting in the display of error messages.
+  * Cleaned up Factory Reset to reset more values, like keyboard language, encoder type, logout timeout.
   * Updated the version number from v2.0.5 to v2.0.6.
 
 2020-10-17 v2.0.5

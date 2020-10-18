@@ -18,7 +18,7 @@
   Components:   RGB LED, SSD1306 128x32 LED  display, one momentary push button, 
                 one  rotary encoder,  2 4.7kohm  resistors  for  I2C,  3  220ohm 
                 resistors  for  the  RGB  LED,  2 25LC512 external EEprom chips, 
-                custom PCB, plastic knob.
+                custom PCB, plastic knob, USB cable.
   Purpose
   =======
   - To manage user names and passwords and to type them in via keyboard/USB.  To
@@ -748,9 +748,7 @@
   Backup/Restore
     Backup EEprom [confirm]       
     Restore EEprm Backup [confirm]
-  Fix Corruption [confirm]
   Settings
-    Keyboard ON/OFF                
     Show Password ON/OFF            
     Decoy Password ON/OFF
     RGB LED Intensity
@@ -807,6 +805,8 @@
     Orientation
       Lefty
       Righty
+    Keyboard ON/OFF                
+  Fix Corruption [confirm]
   Factory Reset [confirm]   
 
   Error Codes  TODO: add more error codes
@@ -940,6 +940,7 @@
 //- Defines
 
 #define BAUD_RATE                 115200                                        //  Baud rate for the Serial monitor, best for 16MHz (was 38400)
+
 #define BUTTON_PIN                12                                            //   "                              
 
 #define RED_PIN                   5                                             // Pin locations for the RGB LED, must be PWM capable 
@@ -1206,7 +1207,6 @@
 
 #define SSD1306_I2C_ADDR          0x3C                                          // Slave 128x32 OLED I2C address
 
-#define MAX_IDLE_TIME             3600000UL                                     // milliseconds in an hour, time allowed before automatic logout
 #define LONG_CLICK_LENGTH         500                                           // milliseconds to hold down the rotary encoder button to trigger EVENT_LONG_CLICK
 #define UN_PW_DELAY               1000UL                                        // time in milliseconds to wait after sending user name before sending password
 #define SHA_ITERATIONS            1                                             // number of times to hash the master password (won't work w/ more than 1 iteration)
@@ -1223,16 +1223,17 @@
 #define MAIN_MENU_NUMBER          0
 #define MAIN_MENU_ELEMENTS        11                                            // number of selections in the main menu
 
-char * mainMenu[] =               {              "Master Password",             // menu picks appear only on the top line
+char * mainMenu[] =               {              
+                                                 "Master Password",             // menu picks appear only on the top line
                                                  "Find Favorites",              // find favorite credentials
                                                  "Find All Accounts",           // after an account is found send user sendMenu 
                                                  "Find by Group",               // search accounts by a particular group
                                                  "Edit with Computer",          // edit credentials with the python UI
                                                  "Add Account",
                                                  "Logout & Lock",               // locks the user out until master password is re-entered
-                                                 "Backup/Restore",              // Backup, Restore a backup 
-                                                 "Fix Corruption",              // fix any corruption in the linked list
+                                                 "Backup & Restore",            // Backup, Restore a backup 
                                                  "Settings",                    // navigate to the settings menu
+                                                 "Fix Corruption",              // fix any corruption in the linked list
                                                  "Factory Reset"              };// factory reset; erases all credentials from memory
 
 #define ENTER_MASTER_PASSWORD     0                                             // locations of the main menu items
@@ -1243,8 +1244,8 @@ char * mainMenu[] =               {              "Master Password",             
 #define ADD_ACCOUNT               5
 #define LOGOUT                    6
 #define FILE_MENU_SEL             7
-#define FIX_CORRUPT_LIST          8
-#define SETTINGS                  9
+#define SETTINGS                  8
+#define FIX_CORRUPT_LIST          9
 #define FACTORY_RESET             10
 
 uint8_t menuNumber = MAIN_MENU_NUMBER;                                          // holds the menu number of the currently displayed menu
@@ -1253,15 +1254,16 @@ char *currentMenu[MENU_SIZE];                                                   
 
 #define SEND_MENU_NUMBER          1
 #define SEND_MENU_ELEMENTS        9                                             // number of selections in the send credentials menu
-const char * const sendMenu[] =   {              "Send Password <RET>",         // send the password followed by a carriage return
+const char * const sendMenu[] =   {              
+                                                 "Send Password <RET>",         // send the password followed by a carriage return
                                                  "Send User & Password",        // send the user name then the password UN_PW_DELAY milliseconds later
                                                  "Send URL",                    // send the URL of the associated website
                                                  "Send User Name",              // send the user name
                                                  "Send Pass (no <RET>)",
                                                  "Send Account",                // send the account name
+                                                 "Send Old Password",           // send the previous password
                                                  "Edit Credentials",            // sends user to enterMenu menu
                                                  "Delete Credentials",          // delete the account
-                                                 "Send Old Password",           // send the previous password
                                                  ""                           };
 
 #define SEND_PASSWORD             0                                             // locations of the send credentials menu items
@@ -1270,13 +1272,14 @@ const char * const sendMenu[] =   {              "Send Password <RET>",         
 #define SEND_USERNAME             3
 #define SEND_PASSWORD_NO_RET      4
 #define SEND_ACCOUNT              5
-#define EDIT_ACCOUNT              6
-#define DELETE_ACCOUNT            7
-#define SEND_OLD_PASSWORD         8
+#define SEND_OLD_PASSWORD         6
+#define EDIT_ACCOUNT              7
+#define DELETE_ACCOUNT            8
 
 #define EDIT_MENU_NUMBER          2
 #define EDIT_MENU_ELEMENTS        8                                             // the number of selections in the menu for editing credentials
-const char * const enterMenu[] =  {              "Edit Account Name",           // menu picks appear only on the top line
+const char * const enterMenu[] =  {              
+                                                 "Edit Account Name",           // menu picks appear only on the top line
                                                  "Edit User Name",              // edit the user name
                                                  "Edit Password",               // edit the password
                                                  "Edit URL",                    // edit the website URL
@@ -1298,8 +1301,7 @@ const char * const enterMenu[] =  {              "Edit Account Name",           
 #define SETTINGS_MENU_NUMBER      3
 #define SETTINGS_MENU_ELEMENTS    12                                             // the number of selections in the menu for changing settings
 
-char *settingsMenu[] =
-                                      {          "Keyboard",                    // flag that determines if the input by keyboard feature is on or off
+char *settingsMenu[] =                {
                                                  "Show Password",               // determines if passwords are displayed or masked with asterisk
                                                  "Decoy Password",              // Determines if a decoy password can be entered to automatically factory reset the device
                                                  "RGB LED Intensity",           // Setting the RGB LED's intensity High, Medium, Low, Off
@@ -1311,24 +1313,26 @@ char *settingsMenu[] =
                                                  "Encoder Type",                // Change the encoder type
                                                  "Font",                        // Change the font
                                                  "Orientation",                 // Change display orientation
+                                                 "Keyboard",                    // flag that determines if the input by keyboard feature is on or off
                                                  ""                           };
 
-#define SETTINGS_SET_KEYBOARD     0                                             //
-#define SETTINGS_SET_SHOW_PW      1
-#define SETTINGS_SET_DECOY        2
-#define SETTINGS_SET_RGB_INT      3
-#define SETTINGS_SET_TIMEOUT      4
-#define SETTINGS_SET_LOGIN_ATTEM  5
-#define SETTINGS_GROUP_DEFINITION 6
-#define SETTINGS_CHANGE_MASTER    7
-#define SETTINGS_KEYBOARD_LANG    8
-#define SETTINGS_ENCODER_TYPE     9
-#define SETTINGS_FONT             10
-#define SETTINGS_ORIENTATION      11
+#define SETTINGS_SET_SHOW_PW      0
+#define SETTINGS_SET_DECOY        1
+#define SETTINGS_SET_RGB_INT      2
+#define SETTINGS_SET_TIMEOUT      3
+#define SETTINGS_SET_LOGIN_ATTEM  4
+#define SETTINGS_GROUP_DEFINITION 5
+#define SETTINGS_CHANGE_MASTER    6
+#define SETTINGS_KEYBOARD_LANG    7
+#define SETTINGS_ENCODER_TYPE     8
+#define SETTINGS_FONT             9
+#define SETTINGS_ORIENTATION      10
+#define SETTINGS_SET_KEYBOARD     11                                            //
 
 #define LOGOUT_TIMEOUT_MENU_NUMBER    4
 #define LOGOUT_TIMEOUT_MENU_ELEMENTS  7
-const char * const logoutTimeoutMenu[] = {       "30",                          // 30 half hour
+const char * const logoutTimeoutMenu[] = {       
+                                                 "30",                          // 30 half hour
                                                  "60",                          // INITIAL_MEMORY_STATE_BYTE, one hour
                                                  "90",                          // 90 one and a half hours
                                                  "120",                         // 120 two hours
@@ -1351,10 +1355,12 @@ const char * const logoutTimeoutMenu[] = {       "30",                          
 #define LOGOUT_TIMEOUT_VAL_240    240
 #define LOGOUT_TIMEOUT_VAL_1      1
 #define LOGOUT_TIMEOUT_VAL_0      0
+#define LOGOUT_TIMEOUT_DEFAULT    LOGOUT_TIMEOUT_VAL_60
 
 #define RGB_INTENSITY_MENU_NUMBER     5
 #define RGB_INTENSITY_MENU_ELEMENTS   4
-const char * const RGBLEDIntensityMenu[] = {     "High",                        // INITIAL_MEMORY_STATE_BYTE
+const char * const RGBLEDIntensityMenu[] = {     
+                                                 "High",                        // INITIAL_MEMORY_STATE_BYTE
                                                  "Medium",                      // 128
                                                  "Low",                         // 64
                                                  "Off"                          // 0
@@ -1366,7 +1372,8 @@ const char * const RGBLEDIntensityMenu[] = {     "High",                        
 
 #define LOGIN_ATTEMPTS_MENU_NUMBER   6
 #define LOGIN_ATTEMPTS_MENU_ELEMENTS 4
-const char * const LoginAttemptsMenu[] = {       "3",                           // INITIAL_MEMORY_STATE_BYTE
+const char * const LoginAttemptsMenu[] = {       
+                                                 "3",                           // INITIAL_MEMORY_STATE_BYTE
                                                  "5",
                                                  "10",
                                                  "25",
@@ -1378,7 +1385,8 @@ const char * const LoginAttemptsMenu[] = {       "3",                           
 
 #define OFF_ON_MENU_NUMBER        7
 #define OFF_ON_MENU_ELEMENTS      2
-const char * const offOnMenu[] = {               "Off",
+const char * const offOnMenu[] = {               
+                                                 "Off",
                                                  "On",
                                                  ""                           };
 #define OFF                       0
@@ -1386,7 +1394,8 @@ const char * const offOnMenu[] = {               "Off",
 
 #define STYLE_MENU_NUMBER         8                                             // TODO: This menu isn't used yet.
 #define STYLE_MENU_ELEMENTS       2
-const char * const styleMenu[] = {               "<RETURN>",
+const char * const styleMenu[] = {               
+                                                 "<RETURN>",
                                                  "<TAB>",
                                                  ""                           };
 #define STYLE_RETURN              0
@@ -1395,15 +1404,16 @@ const char * const styleMenu[] = {               "<RETURN>",
 #define GROUP_MENU_NUMBER         9
 #define GROUP_MENU_ELEMENTS       8
 char   groupMenu[GROUP_MENU_ELEMENTS+1][DISPLAY_BUFFER_SIZE] = 
-  																					  {   "Favorites",
-                                                  "",
-                                                  "",
-                                                  "",
-                                                  "",
-                                                  "",
-                                                  "",
-                                                  "",
-                                                  ""                           };
+  																					  {   
+                                                 "Favorites",
+                                                 "",
+                                                 "",
+                                                 "",
+                                                 "",
+                                                 "",
+                                                 "",
+                                                 "",
+                                                 ""                           };
 #define GROUP_FAVORITES           0
 #define GROUP_WORK                1
 #define GROUP_PERSONAL            2
@@ -1415,13 +1425,14 @@ char   groupMenu[GROUP_MENU_ELEMENTS+1][DISPLAY_BUFFER_SIZE] =
 
 #define GROUP_EDIT_MENU_NUMBER		11
 #define	GROUP_EDIT_MENU_ELEMENTS	7
-const char * const groupEditMenu[] = {						"Edit Group 1",
-																									"Edit Group 2",
-																									"Edit Group 3",
-																									"Edit Group 4",
-																									"Edit Group 5",
-																									"Edit Group 6",
-																									"Edit Group 7"							};
+const char * const groupEditMenu[] = {						
+                                                 "Edit Group 1",
+                                                 "Edit Group 2",
+																								 "Edit Group 3",
+																								 "Edit Group 4",
+																								 "Edit Group 5",
+																								 "Edit Group 6",
+																								 "Edit Group 7"							};
 #define EDIT_GROUP_1							0
 #define EDIT_GROUP_2							1
 #define EDIT_GROUP_3							2
@@ -1443,7 +1454,8 @@ const char * const groupEditMenu[] = {						"Edit Group 1",
 
 #define FILE_MENU_NUMBER          10
 #define FILE_MENU_ELEMENTS        2
-const char * const fileMenu[] = {                "Backup EEprom",               // duplicate the external EEprom
+const char * const fileMenu[] = {                
+                                                 "Backup EEprom",               // duplicate the external EEprom
                                                  "Restore EEprm Backup",        // copies the content of the secondary EEprom back to the primary, overwriting.
                                                  //"Backup to .CSV File",       // sends all credential out through the keyboard for capture in an editor
                                                  //"Import PasswordPump",       // import from the PasswordPump CSV file
@@ -1459,7 +1471,8 @@ const char * const fileMenu[] = {                "Backup EEprom",               
 
 #define KEYBOARD_MENU_NUMBER      11
 #define KEYBOARD_MENU_ELEMENTS    10
-const char * const keyboardMenu[] = {            "Czech",
+const char * const keyboardMenu[] = {            
+                                                 "Czech",
                                                  "Danish",
                                                  "Finnish",
                                                  "French",
@@ -1481,10 +1494,12 @@ const char * const keyboardMenu[] = {            "Czech",
 #define KEYBOARD_SWEDISH          7
 #define KEYBOARD_UK               8
 #define KEYBOARD_US               9
+#define KEYBOARD_DEFAULT          KEYBOARD_US
 
 #define ENCODER_MENU_NUMBER       12
 #define ENCODER_MENU_ELEMENTS     2
-const char * const encoderMenu[] = {             "Normal",
+const char * const encoderMenu[] = {             
+                                                 "Normal",
                                                  "Lefty",
                                                  ""                           };
 #define ENCODER_NORMAL            0
@@ -1492,7 +1507,8 @@ const char * const encoderMenu[] = {             "Normal",
 
 #define FONT_MENU_NUMBER          13
 #define FONT_MENU_ELEMENTS         9
-const char * const fontMenu[] = {                "Arial14",                     //
+const char * const fontMenu[] = {                
+                                                 "Arial14",                     //
                                                  "Arial_bold_14",
                                                  "Callibri10",
 //                                               "fixednums8x16",               // broke, do NOT use
@@ -1523,14 +1539,17 @@ const char * const fontMenu[] = {                "Arial14",                     
 #define FONT_LCD5X7               6
 #define FONT_STANG5X7             7
 #define FONT_SYSTEM5X7            8
+#define DEFAULT_FONT              FONT_SYSTEM5X7
 
 #define ORIENT_MENU_NUMBER        14
 #define ORIENT_MENU_ELEMENTS      2
-const char * const orientMenu[] = {              "Lefty",
+const char * const orientMenu[] = {              
+                                                 "Lefty",
                                                  "Righty",
                                                  ""                           };
 #define ORIENT_LEFTY              0
 #define ORIENT_RIGHTY             1
+#define DEFAULT_ORIENT            ORIENT_LEFTY
 
 #define SCREEN_WIDTH              128                                           // OLED display width, in pixels
 #define SCREEN_HEIGHT             32                                            // OLED display height, in pixels
@@ -1929,7 +1948,7 @@ void setup() {                                                                  
   pinMode(rotaryPin1, INPUT_PULLUP);
   pinMode(rotaryPin2, INPUT_PULLUP);
   
-  pinMode(UNUSED_PIN2, OUTPUT);digitalWrite(UNUSED_PIN2, LOW);
+  pinMode(UNUSED_PIN2, OUTPUT);digitalWrite(UNUSED_PIN2, LOW);                  // set all unused pins to LOW
   pinMode(UNUSED_PIN3, OUTPUT);digitalWrite(UNUSED_PIN3, LOW);
   pinMode(UNUSED_PIN4, OUTPUT);digitalWrite(UNUSED_PIN4, LOW);
   pinMode(UNUSED_PIN5, OUTPUT);digitalWrite(UNUSED_PIN5, LOW);
@@ -2027,8 +2046,8 @@ void setup() {                                                                  
 
   font = getFont;                                                               // Setup the Font
   if (font == INITIAL_MEMORY_STATE_BYTE) {
-    font = FONT_SYSTEM5X7;
-    writeEncoderType();
+    font = DEFAULT_FONT;
+    writeFont();
   }
 
   switch(font) {
@@ -2070,19 +2089,19 @@ void setup() {                                                                  
   
   orientation = getOrientation;                                                 // Is the rotary encoder on the left or on the right?
   if (orientation == INITIAL_MEMORY_STATE_BYTE) {
-    orientation = ORIENT_LEFTY;
+    orientation = DEFAULT_ORIENT;
     writeOrientation();
   }
 
   switch (orientation) {
     case ORIENT_LEFTY:
-      oled.displayRemap(false);
+      oled.displayRemap(ORIENT_LEFTY);
       break;
     case ORIENT_RIGHTY:
-      oled.displayRemap(true);
+      oled.displayRemap(ORIENT_RIGHTY);
       break;
     default:
-      oled.displayRemap(false);
+      oled.displayRemap(DEFAULT_ORIENT);
       DisplayToError("ERR: 048");
       break;
   }
@@ -2092,7 +2111,7 @@ void setup() {                                                                  
   
   keyboardType = getKeyboardType;                                               // Setup the Keyboard Language
 	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {															// ...and if not initialize them
-    keyboardType = KEYBOARD_US;
+    keyboardType = KEYBOARD_DEFAULT;
 		writeKeyboardType();
 	}
   switch(keyboardType) {
@@ -2128,7 +2147,7 @@ void setup() {                                                                  
       break;
     default:
       Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
-      keyboardType = KEYBOARD_US;
+      keyboardType = KEYBOARD_DEFAULT;
       writeKeyboardType();
       DisplayToError("045");
       break;
@@ -2152,7 +2171,7 @@ void setup() {                                                                  
   DisplayToHelp("Click to begin.");
 
   EnableInterrupts();                                                           // Turn on global interrupts
-}
+}                                                                               // end of setup()
   
 void loop() {                                                                   // executes forever until reset button is pressed or power is interrupted
   encoderButton.loop();                                                         // polling for button press TODO: replace w/ interrupt
@@ -2647,7 +2666,7 @@ void ProcessEvent() {                                                           
           break;
         case SETTINGS:                                                          // show the settings menu
           event = EVENT_SHOW_SETTINGS_MENU;
-          position = SETTINGS_SET_KEYBOARD;
+          position = SETTINGS_SET_SHOW_PW;
           break;
         case FACTORY_RESET:                                                     // Reset
           event = EVENT_RESET;
@@ -3225,19 +3244,19 @@ void ProcessEvent() {                                                           
           switch (position) {
             case ORIENT_LEFTY:
               orientation = ORIENT_LEFTY;
-              oled.displayRemap(false);
+              oled.displayRemap(ORIENT_LEFTY);
               DisplayToHelp("Saved lefty.");
               break;
             case ORIENT_RIGHTY:
               orientation = ORIENT_RIGHTY;
-              oled.displayRemap(true);
+              oled.displayRemap(ORIENT_RIGHTY);
               DisplayToHelp("Saved righty.");
               break;
             default:
-              orientation = ORIENT_LEFTY;
-              oled.displayRemap(false);
+              orientation = DEFAULT_ORIENT;
+              oled.displayRemap(DEFAULT_ORIENT);
               DisplayToError("ERR: 048");
-              DisplayToHelp("Saved lefty.");
+              DisplayToHelp("Saved default.");
               break;
           }
           writeOrientation();
@@ -3723,7 +3742,7 @@ void ProcessEvent() {                                                           
           position = SETTINGS_ORIENTATION;
           break;
         default:
-          position = SETTINGS_SET_KEYBOARD;
+          position = SETTINGS_SET_SHOW_PW;
           DisplayToError("ERR: 042");
           break;
       }
@@ -4057,8 +4076,8 @@ void ProcessEvent() {                                                           
         position = KEYBOARD_US;
         break;
       default:
-        position = KEYBOARD_US;
-        keyboardType = KEYBOARD_US;
+        position = KEYBOARD_DEFAULT;
+        keyboardType = KEYBOARD_DEFAULT;
         DisplayToError("ERR: 045");
         break;
     }
@@ -4332,7 +4351,7 @@ void PopulateGlobals() {
 
   logoutTimeout = getLogoutTimeout;                                             // the inactivity logout timer
   if (logoutTimeout == INITIAL_MEMORY_STATE_BYTE) {
-    logoutTimeout = 60;
+    logoutTimeout = LOGOUT_TIMEOUT_DEFAULT;
     writeLogoutTimeout();
   }
   //DebugMetric("logoutTimeout: ", logoutTimeout);
@@ -4345,7 +4364,7 @@ void PopulateGlobals() {
 
   keyboardType = getKeyboardType;
 	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {															// ...and if not initialize them
-    keyboardType = KEYBOARD_US;
+    keyboardType = KEYBOARD_DEFAULT;
 		writeKeyboardType();
 	}
 
@@ -4722,23 +4741,28 @@ void FactoryReset() {
     writeKeyboardFlag();
     decoyPassword = true;
     writeDecoyPWFlag();
-    loginAttempts = ATTEMPTS_DEFAULT;                                           // set it to ATTEMPTS_DEFAULT (10)
-    writeLoginAttempts();                                                       // and write it to EEprom
     RGBLEDIntensity = RGB_LED_DEFAULT;
     writeRGBLEDIntensity();
+    logoutTimeout = LOGOUT_TIMEOUT_DEFAULT;
+    writeLogoutTimeout();
+    loginAttempts = ATTEMPTS_DEFAULT;                                           // set it to ATTEMPTS_DEFAULT (10)
+    writeLoginAttempts();                                                       // and write it to EEprom
 		initializeAllGroupCategories();
 		readGroupCategories();
 		loadGroupMenu();
-    //randomSeed(analogRead(RANDOM_PIN));                                       // seed the random number generator
+    keyboardType = KEYBOARD_DEFAULT;
+		writeKeyboardType();
+    encoderType = ENCODER_NORMAL;
+    writeEncoderType();
+    font = DEFAULT_FONT;
+    writeFont();
+    orientation = DEFAULT_ORIENT;
+    writeOrientation();
   	randomSeed(micros() * micros() ^ analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator
     ShowSplashScreen();
-    //DisplayToStatus("Factory Reset");
-    //event = EVENT_SHOW_MAIN_MENU;                                             // first job is to show the first element of the main menu
 		event = EVENT_NONE;
     machineState = STATE_SHOW_MAIN_MENU;
 		position = ENTER_MASTER_PASSWORD;
-    //BlankLine2();
-    //DisplayToStatus("Not logged in");
   }
 }
 
@@ -7765,7 +7789,7 @@ void OnGetPrevPos(){
 
 void OnGetAcctPos(){
   setGreen();
-  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // ????????manipulate acctPosition here?
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // manipulate acctPosition here?
   setPurple();
 }
 

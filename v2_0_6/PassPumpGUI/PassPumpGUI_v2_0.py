@@ -49,6 +49,8 @@
 # - After adding a new account, if the style isn't specified (or left on the
 #   default), ValueError: invalid literal for int() with base 10: '' occurs
 #   on subsequent visits to that account.
+# * Before the port is open you can navigate to and edit fields, resulting in
+#   error messages displaying.
 # * Change the 0 / 1 for Tab and Return to just Tab and Return.  Select tab
 #   as the default.
 # * If input focus is on the password field, and you select Insert, then
@@ -344,6 +346,12 @@ def clickedOpen():
     except TypeError as te:
         updateDirections("TypeError encountered in clickedOpen():\r\n" + str(te))
         acctCount = 0
+    txt_acct.config(state='normal')
+    txt_user.config(state='normal')
+    txt_pass.config(state='normal')
+    txt_old_pass.config(state='normal')
+    txt_url.config(state='normal')
+    cbStyle.config(state='normal')
     if (acctCount > 0):
         loadListBox()
         selection = 0
@@ -361,6 +369,14 @@ def clickedOpen():
     btn_generate.config(state='normal')
     btn_powned.config(state='normal')
     btn_flip_pw.config(state='normal')
+    textboxFavorites.config(state='normal')
+    textboxWork.config(state='normal')
+    textboxPersonal.config(state='normal')
+    textboxHome.config(state='normal')
+    textboxSchool.config(state='normal')
+    textboxFinancial.config(state='normal')
+    textboxMail.config(state='normal')
+    textboxCustom.config(state='normal')
     menubar.entryconfig('File', state='normal')
     menubar.entryconfig('Backup/Restore', state='normal')
     menubar.entryconfig('Settings', state='normal')
@@ -1730,12 +1746,12 @@ txt_old_pass.grid(column=2, row=5)
 txt_url = Entry(window, width=40)
 txt_url.grid(column=2, row=6)
 
-txt_acct.config(state='normal')
-txt_user.config(state='normal')
-txt_pass.config(state='normal')
+txt_acct.config(state='disabled')
+txt_user.config(state='disabled')
+txt_pass.config(state='disabled')
 txt_pass.config(show="*")
-txt_old_pass.config(state='normal')
-txt_url.config(state='normal')
+txt_old_pass.config(state='disabled')
+txt_url.config(state='disabled')
 
 groupName1 = "Group1"
 groupName2 = "Group2"
@@ -1795,6 +1811,7 @@ cbStyle['values'] = ('Return',
 cbStyle.current(1)
 cbStyle.grid(column=2, row=7)
 cbStyle.bind('<<ComboboxSelected>>', on_style_select)
+cbStyle.config(state='disabled')
 
 btn_previous = Button(window, text="<<Previous", command=clickedPrevious)
 btn_previous.grid(column=1, row=19)
@@ -1877,6 +1894,15 @@ textboxMail.grid(column=2,row=14)
 textboxCustom = Checkbutton(window, text=groupName7, variable=vCustom, command=OnCustom, onvalue=1, offvalue=0)
 textboxCustom.var = vCustom
 textboxCustom.grid(column=2,row=15)
+
+textboxFavorites.config(state='disabled')
+textboxWork.config(state='disabled')
+textboxPersonal.config(state='disabled')
+textboxHome.config(state='disabled')
+textboxSchool.config(state='disabled')
+textboxFinancial.config(state='disabled')
+textboxMail.config(state='disabled')
+textboxCustom.config(state='disabled')
 
 lb.bind("<Down>", OnEntryDown)
 lb.bind("<Up>", OnEntryUp)
