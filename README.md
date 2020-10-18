@@ -7,9 +7,12 @@ The purpose of this repository on GitHub is to disseminate software for and info
 It is always wise to download the latest version of the PasswordPumpGUI when you are downloading the latest version of PasswordPump_v_2_0.ino.
 
 # Change Log
-unreleased v2.0.5
+unreleased v2.0.6
+ Note: please use v2.0.5 unless you're adventurous.  
+  * Updated the version number from v2.0.5 to v2.0.6.
 
- Note: please use v2.0.4 unless you're adventurous.  
+2020-10-17 v2.0.5
+
   * Added the fix corrupt account list feature to the PasswordPumpGUI_v2_0.py.
   * A customer has recently reported to me that the linked list that keeps the credentials sorted by account name is becoming corrupt, which is affecting his ability to navigate through the credentials on the device via the rotary encoder or via the PasswordPumpGUI.  Toward fixing that problem I have added a menu option entitled Fix Corruption.  It is not clear to me yet how this corruption is introduced, as I am unable to reproduce the conditions under which the defect occurs in my lab.
   * Added a feature in settings whereby you can remap the orientation of the PasswordPump's text so that you can use it with the rotary encoder on the left (default) or the right.

@@ -4,8 +4,8 @@
                 |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
   Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
-  Version:      2.0.5
-  Date:         2019/07/26 - 2020/10/17
+  Version:      2.0.6
+  Date:         2019/07/26 - 2020/10/18
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy M0 Express‎ or Adafruit ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit  Cortex M0+ or ATSAMD51J19 32-bit Cortex M4
@@ -4300,7 +4300,7 @@ void DimDisplay(boolean dim) {
 
 void ScrollPasswordPump(void) {
   oled.clear();
-  oled.println("PasswordPump  v2.0.5");
+  oled.println("PasswordPump  v2.0.6");
 }
 
 void setupStateEnterMasterPassword() {
@@ -4825,7 +4825,7 @@ void InitializeGlobals() {
 }
 
 void ShowSplashScreen() {
-    strcpy(line1DispBuff,"PasswordPump  v2.0.5");
+    strcpy(line1DispBuff,"PasswordPump  v2.0.6");
     strcpy(line2DispBuff, __DATE__);
     strcpy(line3DispBuff,"(c)2020 Dan Murphy ");
     DisplayBuffer();
