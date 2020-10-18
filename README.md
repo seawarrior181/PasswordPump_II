@@ -23,6 +23,7 @@ unreleased v2.0.6
   * Fixed several issues with menu navigation; selecting 'N' and not being returned to the top of the main menu, long clicking and the screen not clearing.
   * Removed the font fixednums8x16 which wasn't working, resulting in losing all creds.
   * Changed the default font.
+  * Added a feature whereby the user can select from a variety of different fonts.
 
 2020-07-24 v2.0.4 
   * Made the encoder type configurable; i.e. to handle 'lefty' encoders w/o the precompiler directive.
@@ -34,7 +35,7 @@ unreleased v2.0.6
   * In the PasswordPumpGUI, added the ability to check to see if your password has ever been discovered in a known data breach (pwned).
   * Added the ability to customize the group names via PasswordPumpGUI.  
   * Added Factory Reset to the PassPumpGUI program. 
-  * Added a pre-compiler directive to deal with "lefty" rotary encoders; see users guide for more info.  
+  * Added a pre-compiler directive to deal with "lefty" rotary encoders; see users guide for more info.  (Obsolete). 
   * Modified the custom PCB and added a pre-compiler directive for use with Adafruit ItsyBitsy M0. 
   * Fixed the defect whereby entering the decoy password did not result in a factory reset. 
   * Tweaked the mechanism for generating a random seed.  
