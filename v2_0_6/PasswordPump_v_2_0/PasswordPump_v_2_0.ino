@@ -111,12 +111,20 @@
     happen.
   - When entering an account name 29 chars long via keyboard, nothing gets 
     entered.
+  - If you've set the keyboard language during a session, then you select
+    factory reset, the keyboard language is not reset to the default until you 
+    press the reset button.
   ! In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x single character user names and passwords are not working well
+  * When deleting the first account in the linked list and then running fix
+    corruption, it would have the effect of deleting all accounts (corrupted
+    the linked list).
+  * After a Factory Reset operation, the encoder type, font, and orientation
+    settings were persisting until a hard reset was performed.
   * You can only select a new keyboard language once, the second time will 
     freeze the MCU.  To work around this resetting the keyboard more than
     once is prohibited. If you do reset the keyboard a second time you need
@@ -862,6 +870,10 @@
   048 - Invalid orientation specified
   049 - Invalid edit menu item when setting help
   050 - Invalid settings menu item when setting help
+  051 - Infinite loop when searching for list head
+  052 - Original head position not equal to found head position
+  053 - Infinite loop when searching for list tail
+  054 - Infinite loop when counting accounts
 
   Finally, the Program 
   ==============================================================================
@@ -1680,7 +1692,7 @@ uint8_t acctCount = 0;                                                          
 boolean authenticated = false;                                                  // indicates if the correct master password has been provided
 unsigned long lastActivityTime;                                                 // used to automatically logout after a period of inactivity
 uint32_t iterationCount = 0;                                                    // # of times ProcessEvent() called since last evaluation of lastActivityTime
-uint8_t headPosition;                                                           // the head of the doubly linked list that keeps account names sorted
+uint8_t headPosition = INITIAL_MEMORY_STATE_BYTE;                               // the head of the doubly linked list that keeps account names sorted
 uint8_t tailPosition;                                                           // the tail of the doubly linked list that keeps account names sorted
 uint8_t groupFilter = ALL_GROUPS;                                               // turn on all groups in the filter
 uint8_t fromFilter = FAVORITES;																									// indicates the filter in effect for menu navigation
@@ -1822,7 +1834,7 @@ void readUserFromEEProm(uint8_t pos, char *buf);
 void readStyleFromEEProm(uint8_t pos, char *buf) ;
 void readPassFromEEProm(uint8_t pos, char *buf);
 void readOldPassFromEEProm(uint8_t pos, char *buf);
-uint8_t getListHeadPosition(void);
+void setListHeadPosition(void);                                                 // set headPosition
 uint8_t getNextPtr(uint8_t pos);
 uint8_t getPrevPtr(uint8_t pos);
 void writeNextPtr(uint8_t pos, uint8_t nextPtr);
@@ -1832,7 +1844,7 @@ void writeResetFlag(uint8_t buf);
 void writeShowPasswordsFlag(void);
 void writeDecoyPWFlag(void);
 void writeKeyboardFlag(void);
-void writeListHeadPos(void);
+void writeListHeadPos(uint8_t pos);
 void writeRGBLEDIntensity();
 boolean eeprom_is_addr_ok(uint32_t addr);
 boolean eeprom_write_bytes( uint32_t startAddr, 
@@ -1926,6 +1938,7 @@ void OnReadTail();
 void OnGetNextFreePos();
 void OnDeleteAccount();
 void initializeAllGroupCategories();																						// sets all group categories to their default values
+uint8_t findListHeadPosition();                                                 // returns the position of the first element in the linked list
 
 Keyboard_ Keyboard;                                                             // define the keyboard object
 
@@ -4368,7 +4381,7 @@ void PopulateGlobals() {
 		writeKeyboardType();
 	}
 
-  headPosition = getListHeadPosition();                                         // read the head of the doubly linked list that sorts by account name
+  setListHeadPosition();                                                        // set headPosition. read the head of the doubly linked list that sorts by account name
   //DebugMetric("headPosition: ",headPosition);
   acctPosition = headPosition;                                                  // initially the current account is the head account
   tailPosition = findTailPosition(headPosition);                                // find the tail of the doubly linked list that sorts by account name
@@ -4737,32 +4750,78 @@ void FactoryReset() {
     writeLoginFailures();                                                       // write login failure count back to EEprom
     showPasswordsFlag = true;                                                   // to match the out of box setting (true / 255)
     writeShowPasswordsFlag();                                                   // write show passwords flag back to EEprom
+
     keyboardFlag = false;
     writeKeyboardFlag();
+
     decoyPassword = true;
     writeDecoyPWFlag();
+
     RGBLEDIntensity = RGB_LED_DEFAULT;
     writeRGBLEDIntensity();
+    setBlue();
+    
     logoutTimeout = LOGOUT_TIMEOUT_DEFAULT;
     writeLogoutTimeout();
+
     loginAttempts = ATTEMPTS_DEFAULT;                                           // set it to ATTEMPTS_DEFAULT (10)
     writeLoginAttempts();                                                       // and write it to EEprom
+
 		initializeAllGroupCategories();
 		readGroupCategories();
 		loadGroupMenu();
-    keyboardType = KEYBOARD_DEFAULT;
-		writeKeyboardType();
+
     encoderType = ENCODER_NORMAL;
     writeEncoderType();
+    switch (encoderType) {
+      case ENCODER_NORMAL:
+        rotaryPin1 = 9;
+        rotaryPin2 = 7;
+        break;
+      case ENCODER_LEFTY:
+        rotaryPin1 = 7;
+        rotaryPin2 = 9;
+        break;
+      default:
+        rotaryPin1 = 9;
+        rotaryPin2 = 7;
+        DisplayToError("ERR: 046");
+        break;
+    }
+
     font = DEFAULT_FONT;
     writeFont();
+    oled.setFont(System5x7);
+
     orientation = DEFAULT_ORIENT;
     writeOrientation();
+    switch (orientation) {
+      case ORIENT_LEFTY:
+        oled.displayRemap(ORIENT_LEFTY);
+        break;
+      case ORIENT_RIGHTY:
+        oled.displayRemap(ORIENT_RIGHTY);
+        break;
+      default:
+        oled.displayRemap(DEFAULT_ORIENT);
+        DisplayToError("ERR: 048");
+        break;
+    }
+
   	randomSeed(micros() * micros() ^ analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator
-    ShowSplashScreen();
+
 		event = EVENT_NONE;
     machineState = STATE_SHOW_MAIN_MENU;
 		position = ENTER_MASTER_PASSWORD;
+
+    keyboardType = KEYBOARD_DEFAULT;
+		writeKeyboardType();
+    changeKeyboardAttempts += 1;
+    if (changeKeyboardAttempts < 3) {
+      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
+    }
+
+    ShowSplashScreen();
   }
 }
 
@@ -4835,8 +4894,8 @@ void InitializeGlobals() {
   acctPosition = 0;                                                             // the position of the selected account.
   acctCount = 0;                                                                // the number of accounts in EEprom.
   iterationCount = 0;                                                           // # of times ProcessEvent() called since last evaluation of lastActivityTime
-  headPosition = 0;                                                             // the head of the doubly linked list that keeps account names sorted
-  tailPosition = 0;                                                             // the tail of the doubly linked list that keeps account names sorted
+  headPosition = INITIAL_MEMORY_STATE_BYTE;                                     // the head of the doubly linked list that keeps account names sorted
+  tailPosition = INITIAL_MEMORY_STATE_BYTE;                                     // the tail of the doubly linked list that keeps account names sorted
   loginFailures = 0;
   lastModeA = LOW;
   lastModeB = LOW;
@@ -4882,16 +4941,14 @@ void deleteAccount(uint8_t position) {
     writeNextPtr(prevPosition, nextPosition);                                   // write the next account position into the next account pointer of the previous position
   } else {
     headPosition = nextPosition;                                                // we're deleting the head, make the next element the new head
-    writeListHeadPos();                                                         // write the head position to EEprom
+    writeListHeadPos(headPosition);                                             // write the head position to EEprom
   }
   if(nextPosition != INITIAL_MEMORY_STATE_BYTE) {                               // if we're not already the tail position
     writePrevPtr(nextPosition, prevPosition);                                   // write the previous account position into the previous account pointer of the next position
   } else {
-    tailPosition = prevPosition;                                                // we're deleting the dail, make the previous element the new tail
+    tailPosition = prevPosition;                                                // we're deleting the tail, make the previous element the new tail
   }
-
-  writeNextPtr(position, INITIAL_MEMORY_STATE_BYTE);                            // set the next pointer for this position to 255
-  writePrevPtr(position, INITIAL_MEMORY_STATE_BYTE);                            // set the previous pointer for this position to 255
+  stompPointers(position);                                                      // set the next pointer and previous pointer for this position to 255
   for (uint8_t i = 0; i < ACCOUNT_SIZE;   i++) accountName[i] = INITIAL_MEMORY_STATE_CHAR;
   for (uint8_t i = 0; i < USERNAME_SIZE;  i++) username[i]    = INITIAL_MEMORY_STATE_CHAR;
   for (uint8_t i = 0; i < PASSWORD_SIZE;  i++) password[i]    = INITIAL_MEMORY_STATE_CHAR;
@@ -5758,15 +5815,42 @@ uint8_t readGroupFromEEprom(uint8_t pos) {
   }
 }
 
-uint8_t getListHeadPosition() {                                                 // returns the position of the first element in the linked list
-  //DebugLN("getListHeadPosition()");
-  uint8_t listHead = read_eeprom_byte(GET_ADDR_LIST_HEAD);
-  if (listHead == INITIAL_MEMORY_STATE_BYTE) {                                  // TODO: this could be the wrong approach...
-    listHead = getNextFreeAcctPos();
-    headPosition = listHead;
-    writeListHeadPos();
+void setListHeadPosition() {                                                    // set headPosition, the first element in the linked list
+  //DebugLN("setListHeadPosition()");
+  headPosition = read_eeprom_byte(GET_ADDR_LIST_HEAD);
+  //uint8_t listHead = read_eeprom_byte(GET_ADDR_LIST_HEAD);
+  //if (listHead == INITIAL_MEMORY_STATE_BYTE) {                                  // TODO: this could be the wrong approach...
+  //  listHead = getNextFreeAcctPos();
+  //  writeListHeadPos(headPosition);
+  //}
+  //headPosition = listHead;
+}
+
+uint8_t findListHeadPosition() {                                                // returns the position of the first element in the linked list
+  //DebugLN("findListHeadPosition()");
+  uint8_t firstFoundCred;
+  for (uint8_t pos = 0; pos < CREDS_ACCOMIDATED; pos++) {
+    firstFoundCred = getPrevPtr(pos);                                           // check to see if this postion is occupied by a credential...
+    if (firstFoundCred != INITIAL_MEMORY_STATE_BYTE) {                          // ...and if so...
+      pos = CREDS_ACCOMIDATED;                                                  // break out of the loop, a cred was found
+    }
   }
-  return listHead;
+  if (firstFoundCred == INITIAL_MEMORY_STATE_BYTE) return(INITIAL_MEMORY_STATE_BYTE);                                        // if no creds were found the head position is 0
+  
+  uint8_t prevPtr = firstFoundCred;                                             // we know we have found at least one cred
+  uint8_t defendAgainstCorruption = 0;
+  uint8_t currentPtr;
+  do {
+      currentPtr = prevPtr;
+      prevPtr = getPrevPtr(currentPtr);
+      if (defendAgainstCorruption++ > CREDS_ACCOMIDATED) {                      // if we're obviously inside of an infinite loop break out.
+        prevPtr = INITIAL_MEMORY_STATE_BYTE;
+        currentPtr = prevPtr;
+        DisplayToError("ERR: 051");
+      }
+  } while(prevPtr != INITIAL_MEMORY_STATE_BYTE);
+ 
+  return(currentPtr);
 }
 
 uint8_t getNextPtr(uint8_t pos) {                                               // given position, returns the address of the next element in the linked list
@@ -5822,9 +5906,9 @@ void writeKeyboardFlag() {
   write_eeprom_byte(GET_ADDR_KEYBOARD_FLAG, keyboardFlag);
 }
 
-void writeListHeadPos() {                                                       // writes the position of the beginning of the linked list to EEprom
+void writeListHeadPos(uint8_t pos) {                                            // writes the position of the beginning of the linked list to EEprom
   //DebugLN("writeListHeadPos()");
-  write_eeprom_byte(GET_ADDR_LIST_HEAD, headPosition);
+  write_eeprom_byte(GET_ADDR_LIST_HEAD, pos);
 }
 
 void writeRGBLEDIntensity() {
@@ -6287,7 +6371,7 @@ void RestoreEEPromBackup() {                                                    
     }
 #endif
   }
-  headPosition = getListHeadPosition();                                         // read the head of the doubly linked list that sorts by account name
+  setListHeadPosition();                                                        // set headPosition. read the head of the doubly linked list that sorts by account name
   acctPosition = headPosition;
   tailPosition = findTailPosition(headPosition);                                // find the tail of the doubly linked list that sorts by account name
   acctCount = countAccounts();                                                  // count the number of populated accounts in EEprom
@@ -6301,33 +6385,32 @@ void RestoreEEPromBackup() {                                                    
 
 uint8_t countAccounts() {                                                       // count all of the account names from EEprom.
   //DebugLN("countAccounts()");
-  if (headPosition == INITIAL_MEMORY_STATE_BYTE) {
-    acctCount = 0;
-    return acctCount;
-  }
-  if (headPosition == 0 && 
+  setListHeadPosition();
+  if (headPosition == INITIAL_MEMORY_STATE_BYTE ||                              // return 0 if the head position is 255 or the account name at the head position is null.
       read_eeprom_byte(GET_ADDR_ACCT(headPosition)) == INITIAL_MEMORY_STATE_BYTE) {
-    acctCount = 0;
-    return acctCount;
+    return(0);
   }
-  acctCount = 0;
+  uint8_t count = 0;
   uint8_t pos = headPosition;
   while(pos != INITIAL_MEMORY_STATE_BYTE) {
-    acctCount++;
+    count++;
     uint8_t prevPos = pos;
     pos = getNextPtr(pos);
     if (pos == prevPos) {
-      //DebugLN("Corruption in countAccounts()");
       DisplayToError("ERR: 041");
-      return(acctCount);
+      return(count);
+    }
+    if (count > CREDS_ACCOMIDATED) {
+      DisplayToError("ERR: 054");
+      return(0);
     }
   }
-  return(acctCount);
+  return(count);
 }
 
 uint8_t getNextFreeAcctPos() {                                                  // return the position of the next EEprom location for account name marked empty.
   //DebugLN("getNextFreeAcctPos()");
-  for(uint8_t acctPos = 0; acctPos < (CREDS_ACCOMIDATED - 1); acctPos++) {      // Subtract 1 from CREDS_ACCOMIDATED because CREDS_ACCOMIDATED = INITIAL_MEMORY_STATE_BYTE<--not true anymore
+  for(uint8_t acctPos = 0; acctPos < CREDS_ACCOMIDATED; acctPos++) {    
       if ((read_eeprom_byte(GET_ADDR_ACCT(acctPos)) == 
            INITIAL_MEMORY_STATE_BYTE                   ) &&
           (acctPos != 124                              )) {
@@ -6340,16 +6423,23 @@ uint8_t getNextFreeAcctPos() {                                                  
 uint8_t findTailPosition(uint8_t pos) {                                         // find the position of the last element in the linked list
   uint8_t nextPos;
   //DebugLN("findTailPosition()");
-  while (getNextPtr(pos) != INITIAL_MEMORY_STATE_BYTE) {                        // the last element in the linked list will always have a nextPtr that points to INITIAL_MEMORY_STATE_BYTE
-    nextPos = getNextPtr(pos);
-    if (pos == nextPos) {
-      //DebugLN("Infinite loop detected in findTailPosition().  Corruption. ");
-      //DebugMetric("getNextPointer(pos) returned: ",nextPos);
-      DisplayToError("ERR: 011");
-      DisplayToItem("Restore backup");
-      return(pos);
-    } else {
-      pos = nextPos;
+  if (pos != INITIAL_MEMORY_STATE_BYTE) {
+    uint8_t defendAgainstCorruption = 0;
+    while (getNextPtr(pos) != INITIAL_MEMORY_STATE_BYTE) {                        // the last element in the linked list will always have a nextPtr that points to INITIAL_MEMORY_STATE_BYTE
+      nextPos = getNextPtr(pos);
+      if (pos == nextPos) {
+        //DebugLN("Infinite loop detected in findTailPosition().  Corruption. ");
+        //DebugMetric("getNextPointer(pos) returned: ",nextPos);
+        DisplayToError("ERR: 011");
+        DisplayToItem("Restore backup");
+        return(pos);
+      } else {
+        pos = nextPos;
+      }
+      if (defendAgainstCorruption++ > CREDS_ACCOMIDATED) {
+        DisplayToError("ERR: 053");
+        return(INITIAL_MEMORY_STATE_BYTE);
+      }
     }
   }
   return(pos);
@@ -6358,14 +6448,18 @@ uint8_t findTailPosition(uint8_t pos) {                                         
 void writePointers(uint8_t accountPosition, char *accountName) {                // traverse through the linked list finding the right spot to insert this record in the list
   //DebugLN("writePointers()");
   //DebugLN("--------------");
-  //DebugMetric("1: ",accountPosition);
-  if ((headPosition    == 0) &&
-      (tailPosition    == 0) &&
+  //DebugMetric("accountPosition: ",accountPosition);
+  //DebugMetric("headPosition: ",headPosition);
+  //DebugMetric("tailPosition: ",tailPosition);
+  if ((headPosition    == INITIAL_MEMORY_STATE_BYTE) &&
+      (tailPosition    == INITIAL_MEMORY_STATE_BYTE) &&
       (accountPosition == 0)   ) {                                              // this is the first element added to the linked list
     //DebugLN("2");
-    writePrevPtr(accountPosition, INITIAL_MEMORY_STATE_BYTE);
-    writeNextPtr(accountPosition, INITIAL_MEMORY_STATE_BYTE);
-    writeListHeadPos();
+    headPosition = 0;
+    tailPosition = 0;
+    writeListHeadPos(0);
+    writePrevPtr(0, INITIAL_MEMORY_STATE_BYTE);
+    writeNextPtr(0, INITIAL_MEMORY_STATE_BYTE);
     return;
   }
   
@@ -6374,7 +6468,7 @@ void writePointers(uint8_t accountPosition, char *accountName) {                
   //DebugMetric("3: ",currentPosition);
   uint8_t prevPosition = getPrevPtr(currentPosition);                           // should always be INTIAL_MEMORY_STATE_BYTE.  This IS necessary.
   //DebugMetric("4: ",prevPosition);
-  readAcctFromEEProm(headPosition, acctBuf);                                    // reading the accountName for the head, decrypt
+  readAcctFromEEProm(currentPosition, acctBuf);                                 // reading the accountName for the head, decrypt
   //Debug("5: ");DebugLN(acctBuf);
   while ((currentPosition != INITIAL_MEMORY_STATE_BYTE   ) &&                   // loop thru the list until we find the 1st position where the passed accountName is > account name of currentPosition
          (strncmp(acctBuf, accountName, ACCOUNT_SIZE) < 0)     ) {              // if Return value < 0 then it indicates str1 is less than str2.
@@ -6388,7 +6482,7 @@ void writePointers(uint8_t accountPosition, char *accountName) {                
   if(currentPosition == headPosition) {                                         // inserting before the first element in the list
     headPosition = accountPosition;
     //DebugMetric("9: ",headPosition);
-    writeListHeadPos();
+    writeListHeadPos(headPosition);
   }
   if (currentPosition == INITIAL_MEMORY_STATE_BYTE) {                           // inserting an element at the end of the linked list
     tailPosition = accountPosition;
@@ -6420,10 +6514,10 @@ void FixCorruptLinkedList() {                                                   
   //DisableInterrupts();
   setRed();
   DisplayToMenu("Fixing corruption");
-  headPosition = 0;
-  writeListHeadPos();
+  headPosition = INITIAL_MEMORY_STATE_BYTE;
+  writeListHeadPos(headPosition);
   tailPosition = 0;
-  for (uint8_t pos = 0; pos <= (CREDS_ACCOMIDATED - 1); pos++) {                // Visit every possible location for a set of creds
+  for (uint8_t pos = 0; pos < CREDS_ACCOMIDATED; pos++) {                // Visit every possible location for a set of creds
     char buffer[ACCOUNT_SIZE];                                                  // a buffer that will accomodate the account name
     char snum[3];
     char strToDisplay[DISPLAY_BUFFER_SIZE];
@@ -6447,8 +6541,15 @@ void FixCorruptLinkedList() {                                                   
     strcat(strToDisplay, snum);                                                 // concatinate the string representation of pos to strToDisplay
     DisplayToItem(strToDisplay);
   }
-  headPosition = getListHeadPosition();                                         // read the head of the doubly linked list that sorts by account name
+  uint8_t originalHeadPosition = headPosition;
+  DisplayToItem("Finding head pos");
+  headPosition = findListHeadPosition();
+  writeListHeadPos(headPosition);
+  if (originalHeadPosition != headPosition) {
+    DisplayToError("ERR: 052");
+  }
   acctPosition = headPosition;
+  DisplayToItem("Finding tail pos");
   tailPosition = findTailPosition(headPosition);                                // find the tail of the doubly linked list that sorts by account name
   position = 1;                                                                 // make the menu position Find Accounts
   acctCount = countAccounts();                                                  // count the number of populated accounts in EEprom
@@ -7421,7 +7522,7 @@ void OnReadAccountName() {
 		DisplayToStatus(accountName);
     cmdMessenger.sendCmd(kStrAcknowledge, accountName);
   } else {
-    cmdMessenger.sendCmd(kStrAcknowledge, "Click File->Exit Now!");             // I've never seen this happen
+    cmdMessenger.sendCmd(kStrAcknowledge, "Click File->Exit Now!");             // Defect: this will happen if you delete the first account in the linked list and then execute Fix Corrupt Linked List.
   }
   setPurple();
 }
@@ -7795,7 +7896,8 @@ void OnGetAcctPos(){
 
 void OnReadHead(){
   setGreen();
-  acctPosition = getListHeadPosition();
+  setListHeadPosition();                                                        // set headPosition
+  acctPosition = headPosition;
   cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // sending a single byte 
   setPurple();
 }

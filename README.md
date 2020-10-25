@@ -13,7 +13,8 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 unreleased v2.0.6
  Note: please use v2.0.5 unless you're adventurous.  
   * Fixed a defect in PasswordPumpGUI whereby you could navigate to and edit fields before the port was open, resulting in the display of error messages.
-  * Cleaned up Factory Reset to reset more values, like keyboard language, encoder type, logout timeout.
+  * Cleaned up Factory Reset to reset more values, like keyboard language, encoder type, logout timeout, so that they would not persist after a soft reset (a reset performed by selecting Factory Reset from the menu).  The values were not persisting after a hard reset.
+  * Fixed a defect in Fix Corruption whereby if the head of the linked list was deleted, Fix Corruption would effectivly wipe out the ability to navigate to all accounts.
   * Updated the version number from v2.0.5 to v2.0.6.
 
 2020-10-17 v2.0.5

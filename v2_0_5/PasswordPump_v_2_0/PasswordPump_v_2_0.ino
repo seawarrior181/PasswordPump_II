@@ -111,16 +111,19 @@
     happen.
   - When entering an account name 29 chars long via keyboard, nothing gets 
     entered.
+  - The support for Czech, Danish, Swedish, Norwegian, Finnish, French, German, 
+    Spanish and United Kingdom keyboards is untested so buyer beware.  I do try 
+    to accommodate all of those languages, but I have not tested the 
+    PasswordPump with the associated keyboards because I do not possess those 
+    keyboards or the corresponding language skills.
+  - You can only select a new keyboard language once. Just press the reset 
+    button to work around.
   ! In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
   x single character user names and passwords are not working well
-  * You can only select a new keyboard language once, the second time will 
-    freeze the MCU.  To work around this resetting the keyboard more than
-    once is prohibited. If you do reset the keyboard a second time you need
-    to reset the device for the change to take effect.
   * Enabled the ability to fix a corrupt linked account list.
   * Delete screws up the account count when it leaves a hole.  e.g. add AAA, 
     BBB, CCC; delete BBB, you'll only be able to "Find" AAA.
@@ -866,8 +869,8 @@
   Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                             */
-//#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
-#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
+#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
+//#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
