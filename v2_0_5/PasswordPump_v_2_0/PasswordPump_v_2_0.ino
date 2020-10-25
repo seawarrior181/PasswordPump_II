@@ -869,8 +869,8 @@
   Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                             */
-#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
-//#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
+//#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
+#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
