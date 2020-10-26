@@ -1030,7 +1030,7 @@
 #define ATTEMPTS_25               25
 #define ATTEMPTS_DEFAULT          ATTEMPTS_10
 
-#define MAX_ITERATION_COUNT       1048575
+#define MAX_ITERATION_COUNT       104857
 
 #define LOGOUT_WARNING            25000                                         // flash red/blue LED for 25 seconds before logout
 
@@ -1572,6 +1572,13 @@ const char * const orientMenu[] = {
 
 #define SIZE_OF_DECOY_PW          2                                             // size in chars of the decoy password string
 
+#define MILLISECONDS_IN_A_SECOND  1000UL
+#define MILLISECONDS_IN_A_MINUTE  60000UL
+#define PAUSE_TO_SHOW_REMAINING   60000UL
+#define SECONDS_IN_A_MINUTE       60
+#define SECONDS_IN_AN_HOUR        3600UL
+#define MINUTES_IN_AN_HOUR        60
+
 //- Global Variables                                                            // char is signed by default. byte is unsigned.
 
                                                                                 // CMDMessenger vars
@@ -1602,6 +1609,7 @@ int encPosLast = 0;
 int change = 0;                                                                 // END Rotary encoder state                           
 
 long milliseconds;                                                              // holds time in milliseconds
+long oldTimeLeft;                                                               // holds the time in seconds from the previous calculation.
 char accountName[ACCOUNT_SIZE];                                                 // holds the account name
 char username[USERNAME_SIZE];                                                   // holds the user name of the current account
 char password[PASSWORD_SIZE];                                                   // holds the password of the current account
@@ -2252,25 +2260,27 @@ void ProcessEvent() {                                                           
                                                                                 // necessary and slows responsiveness just a bit
   } else {                                                                      // event == EVENT_NONE
     EnableInterrupts();
-    milliseconds = millis();
     if (++iterationCount == MAX_ITERATION_COUNT) {                              // we don't want to call millis() every single time through the loop
+      milliseconds = millis();
       iterationCount = 0;                                                       // necessary?  won't we just wrap around?
       if (logoutTimeout && authenticated) {                                     // if logoutTimeout != 0, i.e. there is a logout timeout set.
-        long logoutTime = lastActivityTime + (logoutTimeout * 60000);
+        unsigned long logoutTime = lastActivityTime +                           // logoutTimeout = 30, 60, 90, etc.; 
+                         (logoutTimeout * MILLISECONDS_IN_A_MINUTE);            // convert logoutTimeout to milliseconds by multiplying by 1000 milliseconds in a second * 60 seconds in a minute.
         if (milliseconds < logoutTime) {                                        // check to see if the device has been idle for logoutTimeout milliseconds
 																																								// Need to find a way to get the display to clear every time we display a new number...
-					// if (authenticated) {                                               // if authenticated display the time remaining until logout in seconds on display line 3, right justified
-            // long timeLeft = (lastActivityTime + logoutTimeout)- milliseconds;// calculate time remaining until logout 
-            // timeLeft /= 1000;                                                // convert timeLeft to seconds, max of 4 decimal places
-            // char timeTillLogout[4]; 
-            // ltoa(timeLeft,timeTillLogout,10);
-            // oled.setCursor(96,LINE_3_POS);                                   // x, y
-            // oled.print("    ");
-            // oled.display();
-            // oled.setCursor(96,LINE_3_POS);                                   // x, y
-            // oled.print(timeTillLogout);
-            // oled.display();
-					// }
+          long timeLeft = logoutTime - milliseconds;                            // calculate time remaining until logout 
+          timeLeft = timeLeft/MILLISECONDS_IN_A_SECOND;                         // convert timeLeft to seconds, max of 4 decimal places
+          if (timeLeft != oldTimeLeft) { 
+            if (milliseconds - lastActivityTime > MILLISECONDS_IN_A_MINUTE) {   // if we've been idle for more than a minute, show seconds left until logout
+              oldTimeLeft = timeLeft;
+              uint8_t roundHoursTillLogout   = timeLeft / SECONDS_IN_AN_HOUR;
+              uint8_t roundMinutesTillLogout = (timeLeft - (roundHoursTillLogout * SECONDS_IN_AN_HOUR)) / SECONDS_IN_A_MINUTE;
+              uint8_t roundSecondsTillLogout = ((timeLeft - (roundHoursTillLogout * SECONDS_IN_AN_HOUR)) - (roundMinutesTillLogout * SECONDS_IN_A_MINUTE));
+              char sTimeTillLogout[21];
+              sprintf(sTimeTillLogout, "Time Left: %02u:%02u:%02u", roundHoursTillLogout, roundMinutesTillLogout, roundSecondsTillLogout);
+              DisplayToHelp(sTimeTillLogout);
+            }
+          }
           if ((milliseconds + LOGOUT_WARNING) > logoutTime) {                   // Check to see if we are within 25 seconds of logging out
             if (RGBLEDIntensity) {
               uint8_t oldRGBLEDIntensity = RGBLEDIntensity;
@@ -5818,12 +5828,6 @@ uint8_t readGroupFromEEprom(uint8_t pos) {
 void setListHeadPosition() {                                                    // set headPosition, the first element in the linked list
   //DebugLN("setListHeadPosition()");
   headPosition = read_eeprom_byte(GET_ADDR_LIST_HEAD);
-  //uint8_t listHead = read_eeprom_byte(GET_ADDR_LIST_HEAD);
-  //if (listHead == INITIAL_MEMORY_STATE_BYTE) {                                  // TODO: this could be the wrong approach...
-  //  listHead = getNextFreeAcctPos();
-  //  writeListHeadPos(headPosition);
-  //}
-  //headPosition = listHead;
 }
 
 uint8_t findListHeadPosition() {                                                // returns the position of the first element in the linked list

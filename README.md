@@ -12,6 +12,7 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 # Change Log
 unreleased v2.0.6
  Note: please use v2.0.5 unless you're adventurous.  
+  * Added a feature whereby after 1 minute of inactivity the time left before logout is displayed on the device.
   * Fixed a defect in PasswordPumpGUI whereby you could navigate to and edit fields before the port was open, resulting in the display of error messages.
   * Cleaned up Factory Reset to reset more values, like keyboard language, encoder type, logout timeout, so that they would not persist after a soft reset (a reset performed by selecting Factory Reset from the menu).  The values were not persisting after a hard reset.
   * Fixed a defect in Fix Corruption whereby if the head of the linked list was deleted, Fix Corruption would effectivly wipe out the ability to navigate to all accounts.
