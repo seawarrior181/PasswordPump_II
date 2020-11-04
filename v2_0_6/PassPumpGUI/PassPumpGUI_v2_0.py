@@ -520,8 +520,8 @@ def clickedOldPass():
 def clickedStyle():
     global position
     resStyle = cbStyle.current()
-    if ((resStyle != 0) and (resStyle != 1)):                                  # style must be 0 or 1
-        resStyle = 1;                                                          # default is 1
+    if ((resStyle < 0) or (resStyle > 2)):                                      # style must be 0, 1 or 2
+        resStyle = 1;                                                           # default is 1
     c.send("pyUpdateStyle", calcAcctPositionSend(position), resStyle)
     response = c.receive()
     #print(response)
@@ -549,9 +549,9 @@ def clickedUrlParam(txt_url_param):
 def clickedUrl():
     global position
     aURL = stripBadChars(txt_url.get())
-    resURL = aURL[0:32]                                                        # max length of a URL is 96 chars
+    resURL = aURL[0:32]                                                         # max length of a URL is 96 chars
     txt_url.config(state='normal')
-    if (len(resURL) > 0):                                                      # if the URL doesn't exist don't send it
+    if (len(resURL) > 0):                                                       # if the URL doesn't exist don't send it
         c.send("pyUpdateURL", calcAcctPositionSend(position), resURL)
     else:
         c.send("pyUpdateURL", calcAcctPositionSend(position), "")
@@ -564,26 +564,26 @@ def clickedUrl():
     updateDirections(directions)
     window.update()
 
-def clickedUrl_New():                                                          # send the website over in 3 chunks instead of all at once to circumvent problems encountered when sending it all at once.
+def clickedUrl_New():                                                           # send the website over in 3 chunks instead of all at once to circumvent problems encountered when sending it all at once.
     txt_url.config(state='normal')
     global position
     aURL = stripBadChars(txt_url.get())
-    resURL_1 = aURL[0:32]                                                      # max length of a URL is 96 chars
-    if (len(resURL_1) > 0):                                                    # if the URL doesn't exist don't send it
+    resURL_1 = aURL[0:32]                                                       # max length of a URL is 96 chars
+    if (len(resURL_1) > 0):                                                     # if the URL doesn't exist don't send it
         c.send("pyUpdateURL_1", resURL_1)
         response = c.receive()
         #print(response)
         response_list = response[1]
         position = calcAcctPositionReceive(response_list[0])
-        resURL_2 = aURL[32:64]                                                 # max length of a URL is 96 chars
-        if (len(resURL_2) > 0):                                                # if the URL doesn't exist don't send it
+        resURL_2 = aURL[32:64]                                                  # max length of a URL is 96 chars
+        if (len(resURL_2) > 0):                                                 # if the URL doesn't exist don't send it
             c.send("pyUpdateURL_2", resURL_2)
             response = c.receive()
             #print(response)
             response_list = response[1]
             position = calcAcctPositionReceive(response_list[0])
-            resURL_3 = aURL[64:96]                                             # max length of a URL is 96 chars
-            if (len(resURL_3) > 0):                                            # if the URL doesn't exist don't send it
+            resURL_3 = aURL[64:96]                                              # max length of a URL is 96 chars
+            if (len(resURL_3) > 0):                                             # if the URL doesn't exist don't send it
                 c.send("pyUpdateURL_3", calcAcctPositionSend(position), resURL_3)
                 response = c.receive()
                 #print(response)
@@ -1803,11 +1803,12 @@ menubar.entryconfig('File', state='disabled')
 menubar.entryconfig('Backup/Restore', state='disabled')
 menubar.entryconfig('Settings', state='disabled')
 
-#styles = ["0 - Return","1 - Tab"]
+#styles = ["0 - Return","1 - Tab","2 - Tab Tab Rtn"]
 #cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
 cbStyle = Combobox(window, justify=LEFT, width=37)
-cbStyle['values'] = ('Return',
-                     'Tab')
+cbStyle['values'] = ('usr<RTN>pass<RTN>',
+                     'usr<TAB>pass<RTN>',
+                     'usr<TAB>pass<TAB><RTN>')
 cbStyle.current(1)
 cbStyle.grid(column=2, row=7)
 cbStyle.bind('<<ComboboxSelected>>', on_style_select)

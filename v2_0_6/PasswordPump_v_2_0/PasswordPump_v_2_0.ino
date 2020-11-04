@@ -94,32 +94,46 @@
   - Check if password is pwned/appeard in a data breach (in Python GUI)
   - Check for password complexity (in Python GUI)
   
+  Compatability
+  =============
+  The PasswordPump has been shown to work with Windows machines, Apple, and 
+  Android phones and tablets.  Specifically the following are supported:
+   - Windows 7
+   - Windows 10
+   - Mac OS X
+   - Ubuntu
+   - Raspberry Pi OS (Raspbian)
+   - Android
+  If you’ve successfully (or unsuccessfully) used the PasswordPump with an 
+  operating system that’s not on this list let me know so I can add it.
+  
   Known Defects/Issues
   ====================  
     - = outstanding             
 		! = will not fix
     x = fixed but needs testing 
     * = fixed - if a release is listed, that's the release in which it was fixed                  
-  - The linked list that manages the list of accounts is occasionally becoming 
-    corrupt. To mitigate this I added a 'Fix Corruption' feature that should 
-    address any corruption in the linked list. Exact conditions of corruption 
-    cannot be reproduced in the lab at this time.  This issue has only been 
-    reported by one customer.
-  - Embedded quote in a CSV import file are not getting saved to the filed e.g.
+ 1- The linked list that manages the list of accounts is sometimes corrupted. 
+    To mitigate this I added a 'Fix Corruption' feature that should address any 
+    corruption in the linked list. Exact conditions of corruption cannot be 
+    reproduced in the lab at this time, and code changes have been made in an 
+    attepmt to fix it. This issue has been reported by one customer.
+ 2- Embedded quote in a CSV import file are not getting saved to the file e.g.
     password.
-  - When you import credentials with <CR><LF> in the account name bad things
+ 3- When you import credentials with <CR><LF> in the account name bad things
     happen.
-  - When entering an account name 29 chars long via keyboard, nothing gets 
-    entered.
-  - If you've set the keyboard language during a session, then you select
+  ! If you've set the keyboard language during a session, then you select
     factory reset, the keyboard language is not reset to the default until you 
     press the reset button.
+  ! When entering an account name 29 chars long via keyboard, nothing gets 
+    entered.  I doubt that anyone is actually entering credentials via
+    serial terminal at this point.  Use PasswordPumpGUI instead.
   ! In the switch statement for EVENT_SINGLE_CLICK the case statements 
     are not in order. When they are in order it doesn't evaluate 
     correctly.
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
-  x single character user names and passwords are not working well
+  * single character user names and passwords are not working well
   * When deleting the first account in the linked list and then running fix
     corruption, it would have the effect of deleting all accounts (corrupted
     the linked list).
@@ -272,27 +286,22 @@
   TODO / Enhancements
   ===================
     - = unimplemented
-    ? - tried to implement, ran into problems
-    % - concerned there isn't enough memory left to implement
+    ? = tried to implement, ran into problems
+    % = concerned there isn't enough memory left to implement
+    ! = will not implement
     x = implemented but not tested  
-    * - implemented and tested
+    * = implemented and tested
   - Implement a password complexity check for generated passwords that matches
     the complexity of passwords generated via PasswordPumpGUI.  It's currently
     possible to generate a password on the device that doesn't pass complexity
     rules.
-  - Make it work over bluetooth
   - Make the size of the generated password configurable.
   - Somehow signal to the user when entering the master password for the first 
     time.
-  - Implement more error codes
-  - Make UN_PW_DELAY configurable
-  - Create a case.
-  - Learn how to set the lock bits
-  - Add the ability to fix a corrupt linked list.
+  - Create an excellent case.
+  - Confirm that the lock bits are correctly set.
   - Add the ability to pump a single tab or a single carriage return from the 
     menu.
-  - Make the menus scroll around when the end is reached (?)
-  - Scroll the display horizontally when necessary
   - Import KeePass .xml file
   - Import LastPass files
   - Export to KeePass CSV format
@@ -301,12 +310,18 @@
   - Consolidate code in the import files sections (this code is currently 
 	  commented out.
   - A back space should be available during character input via rotary encoder.
-	- In the customize groups menu, use the current name of the group instead of
-	  the group number.
+  - Implement more error codes
+  - Scroll the display horizontally when necessary
+  - Make the menus scroll around when the end is reached (?)
+  ! Make it work over bluetooth
+  ! Make UN_PW_DELAY configurable
   ? Add a feature whereby the unit factory resets after two triple clicks, even
     if not yet authenticated. (commented out, caused problems)
   ? Add a feature whereby the unit logs out after two double clicks. (commented
     out, caused problems)
+	* In the customize groups menu, use the current name of the group instead of
+	  the group number.
+  * Add the ability to fix a corrupt linked list.
   * Add a decoy password that executes a factory reset when the password plus
     the characters "FR" are supplied as the master password.
   * Enable decoy password feature, make it configurable
@@ -420,7 +435,8 @@
 	- If, after building your PasswordPump, you notice that the rotary encoder is
 	  advancing through the alphabet when you turn the encoder counter-clockwise
 		then you can reverse this behavior by selecting 'Lefty' in 
-    Settings->Encoder Type.  This state survives power cycling.
+    Settings->Encoder Type.  This state survives power cycling but not factory
+    reset.
   - If you wish to change the orientation of the display to the rotary encoder,
     (i.e. if you want to operate the encoder with your right hand) navigate to 
     Settings->Orientation.
@@ -435,7 +451,7 @@
 
   Copyright
   =========
-  - Copyright ©2018, ©2019, ©2020 Daniel J Murphy <dan-murphy@comcast.net>
+  - Copyright ©2018, ©2019, ©2020, @2021 Daniel J Murphy <dan-murphy@comcast.net>
   
   License                                                                       
   =======
@@ -488,10 +504,12 @@
                                                       1.3" and 0.96" Monochrome 
                                                       displays.
 	-	https://github.com/adafruit/Adafruit_SPIFlash			For FAT filesystems on 
-																											SPI flash chips
+																											SPI flash chips 
 	- https://github.com/thijse/Arduino-CmdMessenger 		A messaging library for 
 																											the Arduino and 
-																											.NET/Mono platforms
+																											.NET/Mono platforms.
+                                                      Somewhat buggy but 
+                                                      appreciated nonetheless.
 
   Library Modifications
   =====================
@@ -715,7 +733,10 @@
         Edit User Name            
         Edit Password             
         Edit URL                  
-        Indicate Style            
+        Indicate Style      
+          usr<RTN>pass<RTN>
+          usr<TAB>pass<RTN>
+          usr<TAB>pass<TAB,RTN>
         Assign Groups             
           Favorites
           Work
@@ -751,6 +772,9 @@
     Edit User Name                 
     Edit Password                  
     Indicate Style                 
+      usr<RTN>pass<RTN>
+      usr<TAB>pass<RTN>
+      usr<TAB>pass<TAB,RTN>
     GeneratePasswrd                
   Logout & Lock                           
   Backup/Restore
@@ -874,12 +898,16 @@
   052 - Original head position not equal to found head position
   053 - Infinite loop when searching for list tail
   054 - Infinite loop when counting accounts
+  055 - Invalid style specified
 
   Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                             */
 //#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
 #define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
+#define ENCODER_NORMAL            0                                             // don't change this.
+#define ENCODER_LEFTY             1                                             // don't change this.
+#define ENCODER_DEFAULT           ENCODER_LEFTY                                 // set the encoder type default based on how the encoder is behaving
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -1221,6 +1249,7 @@
 
 #define LONG_CLICK_LENGTH         500                                           // milliseconds to hold down the rotary encoder button to trigger EVENT_LONG_CLICK
 #define UN_PW_DELAY               1000UL                                        // time in milliseconds to wait after sending user name before sending password
+#define PW_RTN_DELAY              25UL                                          // time in milliseconds to wait after sending password before sending return
 #define SHA_ITERATIONS            1                                             // number of times to hash the master password (won't work w/ more than 1 iteration)
 #define KHZ_4000                  400000UL                                      // Speed (in Hz) for Wire transmissions in SSD1306 library calls.
 #define KHZ_100                   10000UL                                       // Speed (in Hz) for Wire transmissions following SSD1306 library calls.
@@ -1295,8 +1324,8 @@ const char * const enterMenu[] =  {
                                                  "Edit User Name",              // edit the user name
                                                  "Edit Password",               // edit the password
                                                  "Edit URL",                    // edit the website URL
-                                                 "Indicate Style",              // 0, <CR>, 1, <TAB> between user name and password when both sent
-                                                 "Assign Groups",               // Favorite = 1, None = 0
+                                                 "Indicate Style",              // 
+                                                 "Assign Groups",               // 
                                                  "Generate Password",           // generate a 31 character UUID for the password
                                                  "Save to Old Password",        // save the current password to the old password
                                                  ""                           };
@@ -1404,14 +1433,16 @@ const char * const offOnMenu[] = {
 #define OFF                       0
 #define ON                        1
 
-#define STYLE_MENU_NUMBER         8                                             // TODO: This menu isn't used yet.
-#define STYLE_MENU_ELEMENTS       2
+#define STYLE_MENU_NUMBER         8
+#define STYLE_MENU_ELEMENTS       3
 const char * const styleMenu[] = {               
-                                                 "<RETURN>",
-                                                 "<TAB>",
+                                                 "usr<RTN>pass<RTN>",
+                                                 "usr<TAB>pass<RTN>",
+                                                 "usr<TAB>pas<TAB,RTN>",
                                                  ""                           };
 #define STYLE_RETURN              0
 #define STYLE_TAB                 1
+#define STYLE_TAB_TAB_RETURN      2
 
 #define GROUP_MENU_NUMBER         9
 #define GROUP_MENU_ELEMENTS       8
@@ -1514,8 +1545,6 @@ const char * const encoderMenu[] = {
                                                  "Normal",
                                                  "Lefty",
                                                  ""                           };
-#define ENCODER_NORMAL            0
-#define ENCODER_LEFTY             1
 
 #define FONT_MENU_NUMBER          13
 #define FONT_MENU_ELEMENTS         9
@@ -1888,9 +1917,9 @@ void TestEEPromWrite();
 void TestEEPromRead();
 void InitAllEEProm();
 //void importKeePassCSV();
-char *csvgetline(File fin);
-int csvnfield(void);
-char *csvfield(int n);
+//char *csvgetline(File fin);
+//int csvnfield(void);
+//char *csvfield(int n);
 void sendOldPassword();
 void setSalt(char *salt, uint8_t size);
 void sha256HashOnce(char *password);
@@ -1907,10 +1936,10 @@ void ProcessAttributeInput( char *attributeName,
                             uint32_t address          );
 void enterAttributeChar(char *attribute, uint8_t passwordFlag);
 void EditAttribute(uint8_t aState, uint8_t pos);
-char *csvgetline(File *f);                                                      // read next input line
-char *csvfield(int n);	                                                        // return field n
-int csvnfield(void);		                                                        // return number of fields
-void ShowSplashScreen();                                                        // shows the initial spash screen with the copyright
+//char *csvgetline(File *f);                                                      // read next input line
+//char *csvfield(int n);	                                                        // return field n
+//int csvnfield(void);		                                                        // return number of fields
+void ShowSplashScreen();                                                          // shows the initial spash screen with the copyright
 void DisableInterrupts();
 void EnableInterrupts();
 uint8_t readGroupFromEEprom(uint8_t pos);
@@ -1919,6 +1948,7 @@ void writeGroup(uint8_t pos, uint8_t group);
 void SetSaltAndKey(uint8_t position);                                           // populate and save the salt, set the key with the salt and master password
 void switchToFindByGroupMenu(uint8_t menu, boolean setAcctPosition);
 void sendRTN();
+void sendTAB();
 void ChangeMasterPassword(char *passedNewPassword);
 uint8_t FindAccountPos(char *accountName);
 //void BackupToPPCVSFile();                                                     // before executing the function the user must open a text editor and place input focus there.
@@ -2045,7 +2075,7 @@ void setup() {                                                                  
 
   encoderType = getEncoderType;                                                 // Setup the encoder type; normal or lefty.
   if (encoderType == INITIAL_MEMORY_STATE_BYTE) {
-    encoderType = ENCODER_NORMAL;
+    encoderType = ENCODER_DEFAULT;
     writeEncoderType();
   }
 
@@ -2058,7 +2088,9 @@ void setup() {                                                                  
       rotaryPin1 = 7;
       rotaryPin2 = 9;
       break;
-    default:
+    default:                                                                    // set to ENCODER_NORMAL if ERR: 046
+      encoderType = ENCODER_NORMAL;
+      writeEncoderType();
       rotaryPin1 = 9;
       rotaryPin2 = 7;
       DisplayToError("ERR: 046");
@@ -2324,7 +2356,7 @@ void ProcessEvent() {                                                           
       }
     } else if ((STATE_ENTER_MASTER   == machineState  ) ||											// event == EVENT_ROTATE_CW
                (STATE_EDIT_ACCOUNT   == machineState  ) ||
-               (STATE_EDIT_STYLE     == machineState  ) ||
+//             (STATE_EDIT_STYLE     == machineState  ) ||
                (STATE_EDIT_USERNAME  == machineState  ) ||
                (STATE_EDIT_PASSWORD  == machineState  ) ||
                (STATE_EDIT_WEBSITE   == machineState  ) ||
@@ -2395,6 +2427,11 @@ void ProcessEvent() {                                                           
       }
     } else if (STATE_MENU_LOGOUT_TIMEOUT  == machineState) {									  // event == EVENT_ROTATE_CW
       if (position < LOGOUT_TIMEOUT_MENU_ELEMENTS - 1) {                        
+        position++;
+        MenuDown(currentMenu);
+      }
+    } else if (STATE_EDIT_STYLE  == machineState) {									            // event == EVENT_ROTATE_CW
+      if (position < STYLE_MENU_ELEMENTS - 1) {                        
         position++;
         MenuDown(currentMenu);
       }
@@ -2469,7 +2506,7 @@ void ProcessEvent() {                                                           
       }
     } else if ((STATE_ENTER_MASTER  == machineState ) ||                    		// EVENT_ROTATE_CC
                (STATE_EDIT_ACCOUNT  == machineState ) ||
-               (STATE_EDIT_STYLE    == machineState ) ||
+//             (STATE_EDIT_STYLE    == machineState ) ||
                (STATE_EDIT_USERNAME == machineState ) ||
                (STATE_EDIT_PASSWORD == machineState ) ||
                (STATE_EDIT_WEBSITE  == machineState ) ||
@@ -2514,7 +2551,8 @@ void ProcessEvent() {                                                           
                (STATE_MENU_KEYBOARD       == machineState) ||
                (STATE_MENU_ENCODER        == machineState) ||
                (STATE_MENU_FONT           == machineState) ||
-               (STATE_MENU_ORIENT         == machineState)) {                   // EVENT_ROTATE_CC
+               (STATE_MENU_ORIENT         == machineState) ||
+               (STATE_EDIT_STYLE          == machineState)) {                   // EVENT_ROTATE_CC
       if (position > 0) {
         position--;
         MenuUp(currentMenu);
@@ -2743,7 +2781,7 @@ void ProcessEvent() {                                                           
           DisplayToHelp("Enter password.");
           EditAttribute(STATE_EDIT_PASSWORD, DEFAULT_ALPHA_EDIT_POS);
           break; 
-       case EDIT_WEBSITE:                                                       // Enter URL
+        case EDIT_WEBSITE:                                                      // Enter URL
           DisplayToMenu(accountName);
           DisplayToItem("Edit URL");
           BlankLine3();
@@ -2751,11 +2789,12 @@ void ProcessEvent() {                                                           
           EditAttribute(STATE_EDIT_WEBSITE, DEFAULT_ALPHA_EDIT_POS);
           break;
         case EDIT_STYLE:
-          DisplayToMenu("0 = <RETURN>");
-          DisplayToItem("1 = <TAB>");
-          BlankLine3();
-          DisplayToHelp("Edit the style.");
-          EditAttribute(STATE_EDIT_STYLE, DEFAULT_STYLE_EDIT_POS);
+          switchToStyleMenu();
+//        DisplayToMenu("0 = <RETURN>");
+//        DisplayToItem("1 = <TAB>");
+//        BlankLine3();
+          DisplayToHelp("Specify the style.");
+//        EditAttribute(STATE_EDIT_STYLE, DEFAULT_STYLE_EDIT_POS);
           break; 
         case EDIT_GROUPS:
           DisplayToMenu(accountName);
@@ -2953,8 +2992,8 @@ void ProcessEvent() {                                                           
       enterAttributeChar(password, true);
     } else if (STATE_EDIT_WEBSITE == machineState) {                            // EVENT_SINGLE_CLICK
       enterAttributeChar(website, false);
-    } else if (STATE_EDIT_STYLE == machineState) {                              // EVENT_SINGLE_CLICK
-      enterAttributeChar(style, false);
+//  } else if (STATE_EDIT_STYLE == machineState) {                              // EVENT_SINGLE_CLICK
+//    enterAttributeChar(style, false);
 		} else if (STATE_EDIT_GROUP_1 == machineState) {
 			enterAttributeChar(groupCategory_1, false);
 		} else if (STATE_EDIT_GROUP_2 == machineState) {
@@ -2978,7 +3017,8 @@ void ProcessEvent() {                                                           
                (STATE_MENU_KEYBOARD       == machineState) ||
                (STATE_MENU_ENCODER        == machineState) ||
                (STATE_MENU_FONT           == machineState) ||
-               (STATE_MENU_ORIENT         == machineState)) {
+               (STATE_MENU_ORIENT         == machineState) ||
+               (STATE_EDIT_STYLE          == machineState)) {
       BlankLine4();
       switch (machineState) {                                                   // TODO: this is a weird way to do this... fix it.
         case STATE_KEY_ON_OFF_MENU:
@@ -3090,7 +3130,7 @@ void ProcessEvent() {                                                           
           writeLogoutTimeout();
           DisplayToStatus("Timeout Saved");
           break;
-        case STATE_MENU_KEYBOARD:
+        case STATE_MENU_KEYBOARD:                                               // EVENT_SINGLE_CLICK
           originalKeyboardType = keyboardType;
           changeKeyboardAttempts += 1;
           if (changeKeyboardAttempts < 3) {                                     // To prevent a crash
@@ -3177,7 +3217,7 @@ void ProcessEvent() {                                                           
           writeKeyboardType();
           DisplayToStatus("Keyboard Saved.");
           break;
-        case STATE_MENU_ENCODER:
+        case STATE_MENU_ENCODER:                                                // EVENT_SINGLE_CLICK
           switch (position) {
             case ENCODER_NORMAL:
               encoderType = ENCODER_NORMAL;
@@ -3192,17 +3232,17 @@ void ProcessEvent() {                                                           
               DisplayToHelp("Saved lefty encoder");
               break;
             default:
-              encoderType = ENCODER_NORMAL;
+              encoderType = ENCODER_NORMAL;                                    
               rotaryPin1 = 9;
               rotaryPin2 = 7;
-              DisplayToHelp("Saved normal encoder");
+              DisplayToHelp("Saved encoder");
               DisplayToError("ERR: 046");
               break;
           }
           writeEncoderType();
           DisplayToStatus("Encoder Saved.");
           break;
-        case STATE_MENU_FONT:
+        case STATE_MENU_FONT:                                                   // EVENT_SINGLE_CLICK
           switch (position) {
             case FONT_ARIAL14:
               font = FONT_ARIAL14;
@@ -3263,7 +3303,7 @@ void ProcessEvent() {                                                           
           writeFont();
           DisplayToStatus("Font Saved.");
           break;
-        case STATE_MENU_ORIENT:
+        case STATE_MENU_ORIENT:                                                 // EVENT_SINGLE_CLICK
           switch (position) {
             case ORIENT_LEFTY:
               orientation = ORIENT_LEFTY;
@@ -3285,7 +3325,30 @@ void ProcessEvent() {                                                           
           writeOrientation();
           DisplayToStatus("Orientation saved.");
           break;
-        default:
+        case STATE_EDIT_STYLE:                                                  // EVENT_SINGLE_CLICK
+          switch (position) {
+            case STYLE_RETURN:
+              strcpy(style,"0");
+              DisplayToHelp("Saved RETURN.");
+              break;
+            case STYLE_TAB:
+              strcpy(style,"1");
+              DisplayToHelp("Saved TAB.");
+              break;
+            case STYLE_TAB_TAB_RETURN:
+              strcpy(style,"2");
+              DisplayToHelp("Saved TAB TAB RTN.");
+              break;
+            default:
+              strcpy(style,"1");
+              DisplayToError("ERR: 055");
+              DisplayToHelp("Saved default.");
+              break;
+          }
+          eeprom_write_bytes(GET_ADDR_STYLE(acctPosition), style, STYLE_SIZE);
+          DisplayToStatus("Style saved.");
+          break;
+        default:                                                                // EVENT_SINGLE_CLICK
           DisplayToError("ERR: 001");
           break;
       }
@@ -3302,7 +3365,12 @@ void ProcessEvent() {                                                           
             break; 
          case SEND_PASSWORD:                                                    
             sendPassword();                                                     // Send the password
-            sendRTN();                                                          // Send the carriage return
+            delayNoBlock(PW_RTN_DELAY);
+            readStyleFromEEProm(acctPosition, style);                           // read the style from EEprom
+            if (strcmp(style,"2") == 0) {
+              sendTAB();                                                        // Send a <TAB>
+            }
+            sendRTN();                                                          // Send the <CR> carriage return
             DisplayToMenu(accountName);
             DisplayToStatus("Sent password");
             break;
@@ -3587,24 +3655,24 @@ void ProcessEvent() {                                                           
       event = EVENT_SHOW_EDIT_MENU;   
       BlankLine2();
     } else if (STATE_EDIT_STYLE == machineState) {                              // EVENT_LONG_CLICK
-      ReadFromSerial(style, STYLE_SIZE, (char *)enterMenu[EDIT_STYLE]);
-      eeprom_write_bytes(GET_ADDR_STYLE(acctPosition), style, STYLE_SIZE);
-      position = EDIT_ACCT_NAME;
+//    ReadFromSerial(style, STYLE_SIZE, (char *)enterMenu[EDIT_STYLE]);
+//    eeprom_write_bytes(GET_ADDR_STYLE(acctPosition), style, STYLE_SIZE);
+      position = EDIT_STYLE;
       event = EVENT_SHOW_EDIT_MENU;
-//    } else if (STATE_EDIT_GROUPS == machineState) {                           // EVENT_LONG_CLICK
-//      menuNumber = EDIT_MENU_NUMBER;
-//      int arraySize = 0;
-//      for (uint8_t i = 0; i < MENU_SIZE; i++) {
-//        arraySize += sizeof(enterMenu[i]);  
-//      }
-//      memcpy(currentMenu, enterMenu, arraySize);
-//      elements = EDIT_MENU_ELEMENTS;
-//      machineState = STATE_EDIT_CREDS_MENU;
-//      if (position < 0 || position > (EDIT_MENU_ELEMENTS - 1)) position = 0;  // for safety
-//      ShowMenu(position, currentMenu, "  Edit Credentials  ");
-//      readAcctFromEEProm(acctPosition, accountName);
-//      DisplayToStatus(accountName);
-//      event = EVENT_NONE;
+//  } else if (STATE_EDIT_GROUPS == machineState) {                             // EVENT_LONG_CLICK
+//    menuNumber = EDIT_MENU_NUMBER;
+//    int arraySize = 0;
+//    for (uint8_t i = 0; i < MENU_SIZE; i++) {
+//      arraySize += sizeof(enterMenu[i]);  
+//    }
+//    memcpy(currentMenu, enterMenu, arraySize);
+//    elements = EDIT_MENU_ELEMENTS;
+//    machineState = STATE_EDIT_CREDS_MENU;
+//    if (position < 0 || position > (EDIT_MENU_ELEMENTS - 1)) position = 0;    // for safety
+//    ShowMenu(position, currentMenu, "  Edit Credentials  ");
+//    readAcctFromEEProm(acctPosition, accountName);
+//    DisplayToStatus(accountName);
+//    event = EVENT_NONE;
     } else if (STATE_EDIT_CREDS_MENU == machineState){                          // go back to send creds menu or main menu,depending on how you got here.
       if (!addFlag) {
         switchToSendCredsMenu();
@@ -4124,7 +4192,7 @@ void ProcessEvent() {                                                           
         position = ENCODER_LEFTY;
         break;
       default:
-        position = ENCODER_NORMAL;
+        position = encoderType;
         DisplayToError("ERR: 046");
         break;
     }
@@ -4650,7 +4718,7 @@ void switchToSendCredsMenu() {
     arraySize += sizeof(sendMenu[i]);  
   }
   memcpy(currentMenu, sendMenu, arraySize);
-  elements = SEND_MENU_ELEMENTS;
+  //elements = SEND_MENU_ELEMENTS;
   position = SEND_PASSWORD;
   machineState = STATE_SEND_CREDS_MENU;
   ShowMenu(position, currentMenu, "    Credentials     ");
@@ -4668,6 +4736,37 @@ void switchToFindAcctMenu() {
   groupFilter = ALL_GROUPS; 													// this ensures that we'll return to the correct menu
   readAcctFromEEProm(position, accountName);
   DisplayToItem((char *)accountName);
+  event = EVENT_NONE;
+}
+
+void switchToStyleMenu() {
+  //DebugLN("switchToStyleMenu()");
+  menuNumber = STYLE_MENU_NUMBER;
+  elements = STYLE_MENU_ELEMENTS;
+  int arraySize = 0;
+  for (uint8_t i = 0; i < MENU_SIZE; i++) {
+    arraySize += sizeof(styleMenu[i]);  
+  }
+  memcpy(currentMenu, styleMenu, arraySize);
+  readStyleFromEEProm(acctPosition, style);
+  if (style[0] != '0' &&
+      style[0] != '1' &&
+      style[0] != '2'   ){
+    position = STYLE_TAB;
+  } else if (!strcmp(style,"0")) {
+    position = STYLE_RETURN;
+  } else if (!strcmp(style,"1")) {
+    position = STYLE_TAB;
+  } else if (!strcmp(style,"2")) {
+    position = STYLE_TAB_TAB_RETURN;
+  } else {
+    position = STYLE_TAB;
+    DisplayToError("ERR: 055");
+  }
+  machineState = STATE_EDIT_STYLE;
+  ShowMenu(position, currentMenu, "     Set Style");
+//readAcctFromEEProm(acctPosition, accountName);
+//DisplayToItem((char *)accountName);
   event = EVENT_NONE;
 }
 
@@ -4696,7 +4795,7 @@ void SwitchRotatePosition(uint8_t pos) {
       break;
     case EDIT_STYLE:
       if (!addFlag) readStyleFromEEProm(acctPosition, style);
-      DisplayToEdit((char *)style);
+      //DisplayToEdit((char *)style);
       break;
     case EDIT_GROUPS:
       BlankLine3();
@@ -4781,8 +4880,7 @@ void FactoryReset() {
 		readGroupCategories();
 		loadGroupMenu();
 
-    encoderType = ENCODER_NORMAL;
-    writeEncoderType();
+    encoderType = ENCODER_DEFAULT;
     switch (encoderType) {
       case ENCODER_NORMAL:
         rotaryPin1 = 9;
@@ -4793,11 +4891,13 @@ void FactoryReset() {
         rotaryPin2 = 9;
         break;
       default:
+        encoderType = ENCODER_NORMAL;
         rotaryPin1 = 9;
         rotaryPin2 = 7;
         DisplayToError("ERR: 046");
         break;
     }
+    writeEncoderType();
 
     font = DEFAULT_FONT;
     writeFont();
@@ -5095,6 +5195,13 @@ void sendRTN() {
   Keyboard.end();
 }
 
+void sendTAB() {
+  Keyboard.begin();
+  Keyboard.press(TAB_KEY);                                                    // if style isn't default or "0" then send <TAB>
+  Keyboard.release(TAB_KEY);
+  Keyboard.end();
+}
+
 void sendLockAndLogout() {                                                      
   //DebugLN("sendLockAndLogout()");
   Keyboard.begin();
@@ -5134,19 +5241,25 @@ void sendUsernameAndPassword() {
     Keyboard.release(TAB_KEY);
   }
   delayNoBlock(UN_PW_DELAY);
-  Keyboard.println(passwordChar);                                               // type the password through the keyboard
+  Keyboard.print(passwordChar);                                                 // type the password through the keyboard
+  if (strcmp(style, "2") == 0) {
+    Keyboard.press(TAB_KEY);                                                    // Send the <TAB>
+    Keyboard.release(TAB_KEY);
+  }
+  delayNoBlock(PW_RTN_DELAY);
+  Keyboard.println("");                                                         // send <CR> through the keyboard
   Keyboard.end();
 }
 
 
-//void BackupToPPCVSFile() {                                                      // before executing the function the user must open a text editor and place input focus there.
+//void BackupToPPCVSFile() {                                                    // before executing the function the user must open a text editor and place input focus there.
 //  //DebugLN("BackupToPPCVSFile()");
 //  DisplayToStatus("Backup to CVS file");
 //  setPurple();
 //  acctPosition = headPosition;
 //  Keyboard.begin();
 //  while (acctPosition != INITIAL_MEMORY_STATE_BYTE) {
-//    delayNoBlock(500);                                                          // without the delays the results are corrupt
+//    delayNoBlock(500);                                                        // without the delays the results are corrupt
 //    Keyboard.print("\"");
 //    delayNoBlock(50);
 //    readAcctFromEEProm(acctPosition, accountName);
@@ -5169,8 +5282,8 @@ void sendUsernameAndPassword() {
 //    delayNoBlock(50);
 //    Keyboard.print("\",");
 //    delayNoBlock(50);
-//    uint8_t group = readGroupFromEEprom(acctPosition);                          // read the group from EEProm
-//    Keyboard.println(group);                                                    // type the group through the keyboard
+//    uint8_t group = readGroupFromEEprom(acctPosition);                        // read the group from EEProm
+//    Keyboard.println(group);                                                  // type the group through the keyboard
 //    delayNoBlock(50);
 //    //sendGroup();
 //    //sendRTN();
@@ -5193,6 +5306,7 @@ void sendAll() {                                                                
     sendUsername();
     Keyboard.println("");                                                       // send <CR> through the keyboard
     sendPassword();
+    delayNoBlock(PW_RTN_DELAY);
     sendRTN();
     Keyboard.begin();
     Keyboard.println("");
