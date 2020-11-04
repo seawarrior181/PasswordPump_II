@@ -2040,7 +2040,7 @@ void setup() {                                                                  
 
   setBlue();                                                                    // not yet authenticated
   
-  RGBLEDIntensity = getLoginFailures;                                             // getLoginFailures returns a byte.
+  loginFailures = getLoginFailures;                                             // getLoginFailures returns a byte.
   if (loginFailures == INITIAL_MEMORY_STATE_BYTE ) {                            // if loginFailures has never been written too
     loginFailures = 0;                                                          // set it to zero
     writeLoginFailures();                                                       // and write it to EEprom.
