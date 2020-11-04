@@ -5,7 +5,7 @@
   Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
   Version:      2.0.6
-  Date:         2019/07/26 - 2020/10/18
+  Date:         2019/07/26 - 2020/11/04
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy  M0 Express‎ or Adafruit  ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit  Cortex M0+  or  ATSAMD51J19 32-bit Cortex M4
@@ -3620,6 +3620,9 @@ void ProcessEvent() {                                                           
       } else {
         DisplayToHelp("Pass not > 0 char");
       }
+      position = SETTINGS;
+      BlankLine2();
+      BlankLine3();
       event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_EDIT_ACCOUNT == machineState) {                            // EVENT_LONG_CLICK
       ProcessAttributeInput(  accountName,
@@ -4234,8 +4237,8 @@ void ProcessEvent() {                                                           
     charToPrint[0] = allChars[0];
     charToPrint[1] = NULL_TERM;
     DisplayToEdit((char *)charToPrint);
-    DisplayToMenu("   Enter Password   ");
-    DisplayToHelp("Change password.");
+    DisplayToMenu("    Enter Master    ");
+    DisplayToHelp("Enter new password.");
     if (keyboardFlag) {
       Serial.begin(BAUD_RATE);
       while(!Serial);
@@ -7411,11 +7414,7 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
     char style[STYLE_SIZE];                                                     // holds the style of the current account (<TAB> or <CR> between send user name and password)
     char password[PASSWORD_SIZE];                                               // holds the password of the current account
     char oldPassword[PASSWORD_SIZE];                                            // holds the previous password of the current account
-    //uint8_t groups;
-    //uint8_t nextPtr;
-    //uint8_t prevPtr;
 
-    //ReadSaltAndSetKey(pos);                                                   // unnecessary; resets the key; populates global salt variable, calls aes.setKey w/ salt and global masterPassword.
     char localNewSalt[SALT_SIZE];                                               // for the new salt associated with this set of credentials
     readSaltFromEEProm(pos, localNewSalt);                                      // 
     readAcctFromEEProm(pos, accountName);                                       // when you call readAcctFromEEProm, the salt is read, the key is set for you, result is decrypted
@@ -7425,9 +7424,6 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
     readStyleFromEEProm(pos, style);                                            // not encrypted
     readPassFromEEProm(pos, password);                                          // read and decrypt the password
     readOldPassFromEEProm(pos, oldPassword);                                    // read and decrypt the old password
-    //groups = readGroupFromEEprom(pos);
-    //nextPtr = getNextPtr(pos);
-    //prevPtr = getPrevPtr(pos);
                                                                                 // declare placeholders for encrypted text
     char bufferAcct[ACCOUNT_SIZE];                                              // encrypted account
     char bufferUser[USERNAME_SIZE];                                             // encrypted user name
@@ -7436,8 +7432,6 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
     char bufferOldPass[OLD_PASSWORD_SIZE];                                      // encrypted old password
 
                                                                                 // setup the new key
-    //setSalt(localNewSalt, SALT_SIZE);                                         // populate localNewSalt with a random string
-    //eeprom_write_bytes(GET_ADDR_SALT(position), localNewSalt, SALT_SIZE);     // save the salt to EEprom, don't encrypt the salt.
     uint8_t localNewKey[KEY_SIZE];                                              // set the key so we're prepared when we write the account to EEprom
     memcpy(localNewKey, localNewSalt, SALT_SIZE);                               // copy the localNewSalt to the first part of the localNewKey
     memcpy(localNewKey + SALT_SIZE, localNewPassword, MASTER_PASSWORD_SIZE);    // copy the new master password to the second part of the key, masterPassword should be padded w/ null terminator from processing in authenticateMaster
@@ -7485,8 +7479,6 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
       setRed();
     }
   }                                                                             // end for
-
-  //RestoreEEPromBackup();                                                      // now copy secondary over to primary
                                                                                 // now save the new hashed master password and a new salt
   char eepromMasterHash[HASHED_MASTER_PASSWORD_SZ];                             // this will hold the hashed master password
   setSalt(masterSalt, MASTER_SALT_SIZE);                                        // generate a random salt, store global masterSalt
@@ -7500,11 +7492,10 @@ void ChangeMasterPassword(char *passedNewPassword) {                            
                       eepromMasterHash, 
                       HASHED_MASTER_PASSWORD_SZ);                               // write the (hashed) master password to EEprom
   
-  //strncpy(masterPassword, localNewPassword, MASTER_PASSWORD_SIZE);            // populate global masterPassword with the new master password.
   memcpy(masterPassword, localNewPassword, MASTER_PASSWORD_SIZE);               // populate global masterPassword with the new master password.
   
   setGreen();
-  DisplayToStatus("Changed password");
+  DisplayToStatus("Changed master pass");
   DisplayToHelp("Done.");
 }
 
