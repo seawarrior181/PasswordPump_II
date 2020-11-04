@@ -1187,6 +1187,7 @@
 #define EVENT_SHOW_ENCODER_MENU   34
 #define EVENT_SHOW_FONT_MENU      35
 #define EVENT_SHOW_ORIENT_MENU    36
+#define EVENT_SUSPEND             99                                            // event to set when you want to suspend processing, like after calling factory reset.
                                                                                 // Not using an enum here to save memory.  
 //- States                                                                      
 
@@ -2010,7 +2011,7 @@ void setup() {                                                                  
   
   encoderButton.setReleasedHandler(buttonReleasedHandler);                      // fires when button is released
 
-  randomSeed(micros() * micros() ^ analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator
+  randomSeed(micros()*micros()^analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator
 
   Wire.begin();
   Wire.setClock(KHZ_4000);
@@ -2027,7 +2028,7 @@ void setup() {                                                                  
   }
 
   if (getResetFlag != MEMORY_INITIALIZED_FLAG) {                                // if memory has never been initialized, initialize it.
-    loginFailures = loginAttempts + 1;                                          // so that a condition inside of EVENT_RESET evaluates to true and the reset 
+    loginFailures = loginAttempts + 99;                                         // so that a condition inside of EVENT_RESET evaluates to true and the reset 
     FactoryReset();
   };
   
@@ -2039,7 +2040,7 @@ void setup() {                                                                  
 
   setBlue();                                                                    // not yet authenticated
   
-  loginFailures = getLoginFailures;                                             // getLoginFailures returns a byte.
+  RGBLEDIntensity = getLoginFailures;                                             // getLoginFailures returns a byte.
   if (loginFailures == INITIAL_MEMORY_STATE_BYTE ) {                            // if loginFailures has never been written too
     loginFailures = 0;                                                          // set it to zero
     writeLoginFailures();                                                       // and write it to EEprom.
@@ -3462,7 +3463,6 @@ void ProcessEvent() {                                                           
       if (confirmChars[position] == 'Y') {
         DisplayToHelp("Factory resetting.");
         FactoryReset();
-        DisplayToHelp("Finished reset.");
       } else {
         BlankLine4();
         position = FIND_FAVORITE;
@@ -3617,13 +3617,15 @@ void ProcessEvent() {                                                           
       while (pos < MASTER_PASSWORD_SIZE) newPassword[pos++] = NULL_TERM;        // "           "              "
       if (strlen(newPassword) > 0) {                                            // only change the master password if a new password was entered
         ChangeMasterPassword(newPassword);
+        ShowSuspend();
+        event = EVENT_SUSPEND;
       } else {
         DisplayToHelp("Pass not > 0 char");
+        position = SETTINGS;
+        BlankLine2();
+        BlankLine3();
+        event = EVENT_SHOW_MAIN_MENU;
       }
-      position = SETTINGS;
-      BlankLine2();
-      BlankLine3();
-      event = EVENT_SHOW_MAIN_MENU;
     } else if (STATE_EDIT_ACCOUNT == machineState) {                            // EVENT_LONG_CLICK
       ProcessAttributeInput(  accountName,
                               ACCOUNT_SIZE,
@@ -4279,13 +4281,16 @@ void ProcessEvent() {                                                           
       DimDisplay(true);                                                         // dim the display
       DisplayToStatus("Logged out");
       InitializeGlobals();                                                      // prevent peeking in memory after a logout
-      event = EVENT_SHOW_MAIN_MENU;
+      ShowSuspend();
+      event = EVENT_SUSPEND;
     } else {
       DisplayToStatus("Not logged in");
+      BlankLine2();
       event = EVENT_SHOW_MAIN_MENU;
     }
-    BlankLine2();
     
+  } else if (event == EVENT_SUSPEND) {                                        // scroll forward through something depending on state...
+    while (1 == 1);
   } else {
     DisplayToError("ERR: 007");
   }
@@ -4852,89 +4857,79 @@ void FactoryReset() {
     BlankLine2();
     BlankLine3();
     InitializeEEProm();                                                         // sets all of memory = INITIAL_MEMORY_STATE_BYTE, 0xFF/255/0b11111111
-    CopyEEPromToBackup();                                                       // wipe out data on the secondary EEProm
     writeResetFlag(MEMORY_INITIALIZED_FLAG);                                    // setting the last byte in external EEprom to 0x01 signals that all other 
                                                                                 // memory has been initialized to INITIAL_MEMORY_STATE_BYTE and that Initialize
                                                                                 // doesn't need to execute at startup.
+    CopyEEPromToBackup();                                                       // wipe out data on the secondary EEProm
+
     setBlue();                                                                  // we are no longer logged in
-    loginFailures = 0;                                                          // set login failures back to zero, this also serves as a flag to indicate if 
-                                                                                // it's the first power on
+    loginFailures = INITIAL_MEMORY_STATE_BYTE;                                  // set login failures back to zero, this also serves as a flag to indicate if it's the first power on
     writeLoginFailures();                                                       // write login failure count back to EEprom
-    showPasswordsFlag = true;                                                   // to match the out of box setting (true / 255)
+
+    showPasswordsFlag = INITIAL_MEMORY_STATE_BYTE;                              // to match the out of box setting (true / 255)
     writeShowPasswordsFlag();                                                   // write show passwords flag back to EEprom
 
-    keyboardFlag = false;
+    keyboardFlag = INITIAL_MEMORY_STATE_BYTE;
     writeKeyboardFlag();
 
-    decoyPassword = true;
+    decoyPassword = INITIAL_MEMORY_STATE_BYTE;
     writeDecoyPWFlag();
 
-    RGBLEDIntensity = RGB_LED_DEFAULT;
+    RGBLEDIntensity = INITIAL_MEMORY_STATE_BYTE;
     writeRGBLEDIntensity();
-    setBlue();
     
-    logoutTimeout = LOGOUT_TIMEOUT_DEFAULT;
+    logoutTimeout = INITIAL_MEMORY_STATE_BYTE;
     writeLogoutTimeout();
 
-    loginAttempts = ATTEMPTS_DEFAULT;                                           // set it to ATTEMPTS_DEFAULT (10)
+    loginAttempts = INITIAL_MEMORY_STATE_BYTE;                                  // set it to ATTEMPTS_DEFAULT (10)
     writeLoginAttempts();                                                       // and write it to EEprom
+    
+    write_eeprom_byte(GET_ADDR_CATEGORY_1, INITIAL_MEMORY_STATE_BYTE);          // for group status
+		
+    //initializeAllGroupCategories();
+		//readGroupCategories();
+		//loadGroupMenu();
 
-		initializeAllGroupCategories();
-		readGroupCategories();
-		loadGroupMenu();
-
-    encoderType = ENCODER_DEFAULT;
-    switch (encoderType) {
-      case ENCODER_NORMAL:
-        rotaryPin1 = 9;
-        rotaryPin2 = 7;
-        break;
-      case ENCODER_LEFTY:
-        rotaryPin1 = 7;
-        rotaryPin2 = 9;
-        break;
-      default:
-        encoderType = ENCODER_NORMAL;
-        rotaryPin1 = 9;
-        rotaryPin2 = 7;
-        DisplayToError("ERR: 046");
-        break;
-    }
+    //switch (ENCODER_DEFAULT) {
+    //  case ENCODER_NORMAL:
+    //    rotaryPin1 = 9;
+    //    rotaryPin2 = 7;
+    //    break;
+    //  case ENCODER_LEFTY:
+    //    rotaryPin1 = 7;
+    //    rotaryPin2 = 9;
+    //    break;
+    //}
+    encoderType = INITIAL_MEMORY_STATE_BYTE;
     writeEncoderType();
 
-    font = DEFAULT_FONT;
+    font = INITIAL_MEMORY_STATE_BYTE;
     writeFont();
-    oled.setFont(System5x7);
+    oled.setFont(System5x7);                                                    // System5x7 is the default font
 
-    orientation = DEFAULT_ORIENT;
+    orientation = INITIAL_MEMORY_STATE_BYTE;
     writeOrientation();
-    switch (orientation) {
+    switch (DEFAULT_ORIENT) {
       case ORIENT_LEFTY:
         oled.displayRemap(ORIENT_LEFTY);
         break;
       case ORIENT_RIGHTY:
         oled.displayRemap(ORIENT_RIGHTY);
         break;
-      default:
-        oled.displayRemap(DEFAULT_ORIENT);
-        DisplayToError("ERR: 048");
-        break;
     }
 
-  	randomSeed(micros() * micros() ^ analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator
-
-		event = EVENT_NONE;
-    machineState = STATE_SHOW_MAIN_MENU;
-		position = ENTER_MASTER_PASSWORD;
-
-    keyboardType = KEYBOARD_DEFAULT;
+    keyboardType = INITIAL_MEMORY_STATE_BYTE;
 		writeKeyboardType();
-    changeKeyboardAttempts += 1;
-    if (changeKeyboardAttempts < 3) {
-      Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
-    }
+    //keyboardType = KEYBOARD_DEFAULT;
+    //changeKeyboardAttempts += 1;
+    //if (changeKeyboardAttempts < 3) {
+    //  Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);               // US is the default keyboard
+    //}
 
-    ShowSplashScreen();
+  	//randomSeed(micros() * micros() ^ analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator
+    ShowSuspend();
+		event = EVENT_SUSPEND;
+
   }
 }
 
@@ -5027,6 +5022,14 @@ void ShowSplashScreen() {
     DisplayBuffer();
 //  delayNoBlock(ONE_SECOND * 3);                                               // Show the splash screen for 3 seconds
 //  BlankLine3();
+}
+
+void ShowSuspend() {
+    strcpy(line1DispBuff, " Press reset on the ");
+    strcpy(line2DispBuff, "   bottom of the    ");
+    strcpy(line3DispBuff, "  PasswordPump to   ");
+    strcpy(line4DispBuff, "     continue.      ");
+    DisplayBuffer();
 }
 
 //- Button
