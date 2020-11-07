@@ -899,6 +899,7 @@
   053 - Infinite loop when searching for list tail
   054 - Infinite loop when counting accounts
   055 - Invalid style specified
+  056 - Invalid login attempt count
 
   Finally, the Program 
   ==============================================================================
@@ -1740,49 +1741,55 @@ char *unquote(char *);
 
 enum                                                                            // Commands for CMDMessenger
 {
-  kAcknowledge          ,
-  kStrAcknowledge       ,
-  pyReadAccountName     ,
-  pyReadUserName        ,
-  pyReadPassword        ,
-  pyReadOldPassword     ,
-  pyReadURL             ,
-  pyReadStyle           ,
-  pyReadGroup           ,
-  pyUpdateAccountName   ,
-  pyUpdateUserName      ,
-  pyUpdatePassword      ,
-  pyUpdateURL           ,
-  pyUpdateURL_1         ,
-  pyUpdateURL_2         ,
-  pyUpdateURL_3         ,
-  pyUpdateStyle         ,
-  pyUpdateGroup         ,
-  pyUpdateOldPassword   ,
-  pyGetNextPos          ,
-  pyGetPrevPos          ,
-  pyGetAcctPos          ,
-  pyReadHead            ,
-  pyReadTail            ,
-  pyGetNextFreePos      ,
-  kError                ,                                                       // Command to message that an error has occurred
-  pyDeleteAccount       ,
-  pyExit                ,
-  pyBackup              ,
-  pyFactoryReset        ,
-  pyFixCorruptLinkedList,
-  pyRestore             ,
-  pyGetAccountCount     ,
-  pyDecoyPassword       ,
-  pyShowPasswords       ,
-	pyReadGroup1Name			,
-	pyReadGroup2Name			,
-	pyReadGroup3Name			,
-	pyReadGroup4Name			,
-	pyReadGroup5Name			,
-	pyReadGroup6Name			,
-	pyReadGroup7Name			,
-  pyUpdateCategoryName  ,
+  kAcknowledge            ,
+  kStrAcknowledge         ,
+  pyReadAccountName       ,
+  pyReadUserName          ,
+  pyReadPassword          ,
+  pyReadOldPassword       ,
+  pyReadURL               ,
+  pyReadStyle             ,
+  pyReadGroup             ,
+  pyUpdateAccountName     ,
+  pyUpdateUserName        ,
+  pyUpdatePassword        ,
+  pyUpdateURL             ,
+  pyUpdateURL_1           ,
+  pyUpdateURL_2           ,
+  pyUpdateURL_3           ,
+  pyUpdateStyle           ,
+  pyUpdateGroup           ,
+  pyUpdateOldPassword     ,
+  pyGetNextPos            ,
+  pyGetPrevPos            ,
+  pyGetAcctPos            ,
+  pyReadHead              ,
+  pyReadTail              ,
+  pyGetNextFreePos        ,
+  kError                  ,                                                      // Command to message that an error has occurred
+  pyDeleteAccount         ,
+  pyExit                  ,
+  pyBackup                ,
+  pyFactoryReset          ,
+  pyFixCorruptLinkedList  ,
+  pyRestore               ,
+  pyGetAccountCount       ,
+  pyDecoyPassword         ,
+  pyShowPasswords         ,
+	pyReadGroup1Name			  ,
+	pyReadGroup2Name			  ,
+	pyReadGroup3Name			  ,
+	pyReadGroup4Name			  ,
+	pyReadGroup5Name			  ,
+	pyReadGroup6Name			  ,
+	pyReadGroup7Name			  ,
+  pyUpdateCategoryName    ,
+  pyUpdateRGBLEDIntensity ,
+  pyUpdateLoginMinutes    ,
+  pyUpdateLoginAttempts   ,
+  pyGetRGBLEDIntensity    ,
+  pyGetLoginMinutes       ,
+  pyGetLoginAttempts      ,
   pyChangeMasterPass    
 };
 
@@ -1966,6 +1973,9 @@ void OnReadStyle();
 void OnReadOldPassword();
 void OnUpdateAccountName();
 void OnUpdateCategoryName();
+void OnUpdateRGBLEDIntensity();
+void OnUpdateLoginMinutes();
+void OnUpdateLoginAttempts();
 void OnUpdateUserName();
 void OnUpdatePassword();
 void OnUpdateURL();
@@ -1978,6 +1988,10 @@ void OnGetNextFreePos();
 void OnDeleteAccount();
 void initializeAllGroupCategories();																						// sets all group categories to their default values
 uint8_t findListHeadPosition();                                                 // returns the position of the first element in the linked list
+void OnGetRGBLEDIntensity();
+void OnGetLoginMinutes();
+void OnGetLoginAttempts();
+void OnChangeMasterPass();
 
 Keyboard_ Keyboard;                                                             // define the keyboard object
 
@@ -5090,7 +5104,7 @@ void deleteAccount(uint8_t position) {
 void generatePassword(char *uuid, uint8_t size, uint8_t appendNullTerm) {
   //DebugLN("generatePassword()");
 
-  for (uint8_t i = 0; i < (size - 1); i++) {
+  for (uint8_t i = 0; i < size; i++) {
     uuid[i] = random(33,126);                                                   // maybe we should use allChars here instead? We're generating PWs w/ chars that we can't input...
                                                                                 // 32 = space, 127 = <DEL>, so we want to choose from everything in between.
     while(uuid[i] == ','  ||                                                    // trips up CSV imports
@@ -5106,7 +5120,7 @@ void generatePassword(char *uuid, uint8_t size, uint8_t appendNullTerm) {
           uuid[i] == '/'    )                                                   // escape character
       uuid[i] = random(33,126);
   }
-  if (appendNullTerm) uuid[size - 1] = NULL_TERM;
+  if (appendNullTerm) uuid[size] = NULL_TERM;
 }
 
 void setSalt(char *uuid, uint8_t size) {
@@ -7541,47 +7555,53 @@ void attachCommandCallbacks()                                                   
 {
   // Attach callback methods
   cmdMessenger.attach(OnUnknownCommand);
-  cmdMessenger.attach(pyReadAccountName     , OnReadAccountName);
-  cmdMessenger.attach(pyReadUserName        , OnReadUserName);
-  cmdMessenger.attach(pyReadPassword        , OnReadPassword);
-  cmdMessenger.attach(pyReadOldPassword     , OnReadOldPassword);
-  cmdMessenger.attach(pyReadURL             , OnReadURL);
-  cmdMessenger.attach(pyReadStyle           , OnReadStyle);
-  cmdMessenger.attach(pyReadGroup           , OnReadGroup);
-  cmdMessenger.attach(pyUpdateAccountName   , OnUpdateAccountName);
-  cmdMessenger.attach(pyUpdateUserName      , OnUpdateUserName);
-  cmdMessenger.attach(pyUpdatePassword      , OnUpdatePassword);
-  cmdMessenger.attach(pyUpdateURL           , OnUpdateURL);
-  cmdMessenger.attach(pyUpdateURL_1         , OnUpdateURL_1);
-  cmdMessenger.attach(pyUpdateURL_2         , OnUpdateURL_2);
-  cmdMessenger.attach(pyUpdateURL_3         , OnUpdateURL_3);
-  cmdMessenger.attach(pyUpdateStyle         , OnUpdateStyle);
-  cmdMessenger.attach(pyUpdateGroup         , OnUpdateGroup);
-  cmdMessenger.attach(pyUpdateOldPassword   , OnUpdateOldPassword);
-  cmdMessenger.attach(pyGetNextPos          , OnGetNextPos);
-  cmdMessenger.attach(pyGetPrevPos          , OnGetPrevPos);
-  cmdMessenger.attach(pyGetAcctPos          , OnGetAcctPos);
-  cmdMessenger.attach(pyReadHead            , OnReadHead);
-  cmdMessenger.attach(pyReadTail            , OnReadTail);
-  cmdMessenger.attach(pyGetNextFreePos      , OnGetNextFreePos);
-  cmdMessenger.attach(pyDeleteAccount       , OnDeleteAccount);
-  cmdMessenger.attach(pyExit                , OnExit);
-  cmdMessenger.attach(pyBackup              , OnBackup);
-  cmdMessenger.attach(pyFactoryReset        , OnFactoryReset);
-  cmdMessenger.attach(pyFixCorruptLinkedList, OnFixCorruptLinkedList);
-  cmdMessenger.attach(pyRestore             , OnRestore);
-  cmdMessenger.attach(pyGetAccountCount     , OnGetAccountCount);
-  cmdMessenger.attach(pyDecoyPassword       , OnDecoyPassword);
-  cmdMessenger.attach(pyShowPasswords       , OnShowPasswords);
-  cmdMessenger.attach(pyReadGroup1Name      , OnReadGroup1Name);
-  cmdMessenger.attach(pyReadGroup2Name      , OnReadGroup2Name);
-  cmdMessenger.attach(pyReadGroup3Name      , OnReadGroup3Name);
-  cmdMessenger.attach(pyReadGroup4Name      , OnReadGroup4Name);
-  cmdMessenger.attach(pyReadGroup5Name      , OnReadGroup5Name);
-  cmdMessenger.attach(pyReadGroup6Name      , OnReadGroup6Name);
-  cmdMessenger.attach(pyReadGroup7Name      , OnReadGroup7Name);
-  cmdMessenger.attach(pyUpdateCategoryName  , OnUpdateCategoryName);
-  cmdMessenger.attach(pyChangeMasterPass    , OnChangeMasterPass);
+  cmdMessenger.attach(pyReadAccountName       , OnReadAccountName);
+  cmdMessenger.attach(pyReadUserName          , OnReadUserName);
+  cmdMessenger.attach(pyReadPassword          , OnReadPassword);
+  cmdMessenger.attach(pyReadOldPassword       , OnReadOldPassword);
+  cmdMessenger.attach(pyReadURL               , OnReadURL);
+  cmdMessenger.attach(pyReadStyle             , OnReadStyle);
+  cmdMessenger.attach(pyReadGroup             , OnReadGroup);
+  cmdMessenger.attach(pyUpdateAccountName     , OnUpdateAccountName);
+  cmdMessenger.attach(pyUpdateUserName        , OnUpdateUserName);
+  cmdMessenger.attach(pyUpdatePassword        , OnUpdatePassword);
+  cmdMessenger.attach(pyUpdateURL             , OnUpdateURL);
+  cmdMessenger.attach(pyUpdateURL_1           , OnUpdateURL_1);
+  cmdMessenger.attach(pyUpdateURL_2           , OnUpdateURL_2);
+  cmdMessenger.attach(pyUpdateURL_3           , OnUpdateURL_3);
+  cmdMessenger.attach(pyUpdateStyle           , OnUpdateStyle);
+  cmdMessenger.attach(pyUpdateGroup           , OnUpdateGroup);
+  cmdMessenger.attach(pyUpdateOldPassword     , OnUpdateOldPassword);
+  cmdMessenger.attach(pyGetNextPos            , OnGetNextPos);
+  cmdMessenger.attach(pyGetPrevPos            , OnGetPrevPos);
+  cmdMessenger.attach(pyGetAcctPos            , OnGetAcctPos);
+  cmdMessenger.attach(pyReadHead              , OnReadHead);
+  cmdMessenger.attach(pyReadTail              , OnReadTail);
+  cmdMessenger.attach(pyGetNextFreePos        , OnGetNextFreePos);
+  cmdMessenger.attach(pyDeleteAccount         , OnDeleteAccount);
+  cmdMessenger.attach(pyExit                  , OnExit);
+  cmdMessenger.attach(pyBackup                , OnBackup);
+  cmdMessenger.attach(pyFactoryReset          , OnFactoryReset);
+  cmdMessenger.attach(pyFixCorruptLinkedList  , OnFixCorruptLinkedList);
+  cmdMessenger.attach(pyRestore               , OnRestore);
+  cmdMessenger.attach(pyGetAccountCount       , OnGetAccountCount);
+  cmdMessenger.attach(pyDecoyPassword         , OnDecoyPassword);
+  cmdMessenger.attach(pyShowPasswords         , OnShowPasswords);
+  cmdMessenger.attach(pyReadGroup1Name        , OnReadGroup1Name);
+  cmdMessenger.attach(pyReadGroup2Name        , OnReadGroup2Name);
+  cmdMessenger.attach(pyReadGroup3Name        , OnReadGroup3Name);
+  cmdMessenger.attach(pyReadGroup4Name        , OnReadGroup4Name);
+  cmdMessenger.attach(pyReadGroup5Name        , OnReadGroup5Name);
+  cmdMessenger.attach(pyReadGroup6Name        , OnReadGroup6Name);
+  cmdMessenger.attach(pyReadGroup7Name        , OnReadGroup7Name);
+  cmdMessenger.attach(pyUpdateCategoryName    , OnUpdateCategoryName);
+  cmdMessenger.attach(pyUpdateRGBLEDIntensity , OnUpdateRGBLEDIntensity);
+  cmdMessenger.attach(pyUpdateLoginMinutes    , OnUpdateLoginMinutes);
+  cmdMessenger.attach(pyUpdateLoginAttempts   , OnUpdateLoginAttempts);
+  cmdMessenger.attach(pyGetRGBLEDIntensity    , OnGetRGBLEDIntensity);
+  cmdMessenger.attach(pyGetLoginMinutes       , OnGetLoginMinutes);
+  cmdMessenger.attach(pyGetLoginAttempts      , OnGetLoginAttempts);
+  cmdMessenger.attach(pyChangeMasterPass      , OnChangeMasterPass);
 }
 
 uint8_t calcAcctPositionReceive(uint8_t accountPosition) {
@@ -7983,6 +8003,177 @@ void OnUpdateCategoryName(){
       break;
   }
   cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
+  setPurple();
+}
+
+void OnUpdateRGBLEDIntensity() {
+  setGreen();
+  uint8_t RGBLEDIntensityIndex = cmdMessenger.readBinArg<uint8_t>();
+  switch(RGBLEDIntensityIndex - 1) {                                            // subtract one because there is a problem sending zero
+    case RGB_INTENSITY_HIGH:
+      RGBLEDIntensity = RGB_LED_HIGH;
+      break;
+    case RGB_INTENSITY_MED:
+      RGBLEDIntensity = RGB_LED_MEDIUM;
+      break;
+    case RGB_INTENSITY_LOW:
+      RGBLEDIntensity = RGB_LED_LOW;
+      break;
+    case RGB_INTENSITY_OFF:
+      RGBLEDIntensity = RGB_LED_OFF;
+      break;
+    default:
+      RGBLEDIntensity = RGB_LED_MEDIUM;
+      DisplayToError("ERR: 016");
+      break;
+  }
+  writeRGBLEDIntensity();
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // sending a single byte 
+  setPurple();
+}
+
+void OnUpdateLoginMinutes() {
+  setGreen();
+  uint8_t loginMinutesIndex = cmdMessenger.readBinArg<uint8_t>();
+  switch(loginMinutesIndex - 1) {                                               // subtract one because there is a problem sending zero
+    case LOGOUT_TIMEOUT_30:
+      logoutTimeout = LOGOUT_TIMEOUT_VAL_30;
+      break;
+    case LOGOUT_TIMEOUT_60:
+      logoutTimeout = LOGOUT_TIMEOUT_VAL_60;
+      break;
+    case LOGOUT_TIMEOUT_90:
+      logoutTimeout = LOGOUT_TIMEOUT_VAL_90;
+      break;
+    case LOGOUT_TIMEOUT_120:
+      logoutTimeout = LOGOUT_TIMEOUT_VAL_120;
+      break;
+    case LOGOUT_TIMEOUT_240:
+      logoutTimeout = LOGOUT_TIMEOUT_VAL_240;
+      break;
+    case LOGOUT_TIMEOUT_1:
+      logoutTimeout = LOGOUT_TIMEOUT_VAL_1;
+      break;
+    case LOGOUT_TIMEOUT_0:
+      logoutTimeout = LOGOUT_TIMEOUT_VAL_0;
+      break;
+    default:
+      logoutTimeout = LOGOUT_TIMEOUT_VAL_60;
+      DisplayToError("ERR: 018");
+      break;
+  }
+  writeLogoutTimeout();
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // sending a single byte 
+  setPurple();
+}
+
+void OnUpdateLoginAttempts() {
+  setGreen();
+  uint8_t loginAttemptsIndex = cmdMessenger.readBinArg<uint8_t>();
+  switch(loginAttemptsIndex - 1) {                                              // subtract one because there is a problem sending zero
+    case LOGIN_ATTEMPTS_3:
+      loginAttempts =  ATTEMPTS_3;
+      break;
+    case LOGIN_ATTEMPTS_5:
+      loginAttempts = ATTEMPTS_5;
+      break;
+    case LOGIN_ATTEMPTS_10:
+      loginAttempts = ATTEMPTS_10;
+      break;
+    case LOGIN_ATTEMPTS_25:
+      loginAttempts = ATTEMPTS_25;
+      break;
+    default:
+      loginAttempts = ATTEMPTS_10;
+      DisplayToError("ERR: 056");
+      break;
+  }
+  writeLoginAttempts();
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // sending a single byte 
+  setPurple();
+}
+
+void OnGetRGBLEDIntensity() {
+  setGreen();
+  uint8_t returnIntensity;
+  switch(RGBLEDIntensity) {
+    case RGB_LED_HIGH:
+      returnIntensity = RGB_INTENSITY_HIGH;
+      break;
+    case RGB_LED_MEDIUM:
+      returnIntensity = RGB_INTENSITY_MED;
+      break;
+    case RGB_LED_LOW:
+      returnIntensity = RGB_INTENSITY_LOW;
+      break;
+    case RGB_LED_OFF:
+      returnIntensity = RGB_INTENSITY_OFF;
+      break;
+    default:
+      returnIntensity = RGB_INTENSITY_MED;
+      DisplayToError("ERR: 016");
+      break;
+  }
+  cmdMessenger.sendBinCmd(kAcknowledge, uint8_t (returnIntensity + 1));         // sending a single byte 
+  setPurple();
+}
+
+void OnGetLoginMinutes() {
+  setGreen();
+  uint8_t logoutTimeoutReturn;
+  switch (logoutTimeout) {
+    case LOGOUT_TIMEOUT_VAL_30:
+      logoutTimeoutReturn = LOGIN_ATTEMPTS_3;
+      break;
+    case LOGOUT_TIMEOUT_VAL_60:
+      logoutTimeoutReturn = LOGOUT_TIMEOUT_60;
+      break;
+    case LOGOUT_TIMEOUT_VAL_90:
+      logoutTimeoutReturn = LOGOUT_TIMEOUT_90;
+      break;
+    case LOGOUT_TIMEOUT_VAL_120:
+      logoutTimeoutReturn = LOGOUT_TIMEOUT_120;
+      break;
+    case LOGOUT_TIMEOUT_VAL_240:
+      logoutTimeoutReturn = LOGOUT_TIMEOUT_240;
+      break;
+    case LOGOUT_TIMEOUT_VAL_1:
+      logoutTimeoutReturn = LOGOUT_TIMEOUT_1;
+      break;
+    case LOGOUT_TIMEOUT_VAL_0:
+      logoutTimeoutReturn = LOGOUT_TIMEOUT_0;
+      break;
+    default:
+      logoutTimeoutReturn = LOGOUT_TIMEOUT_60;
+      DisplayToError("ERR: 018");
+      break;
+  }
+  cmdMessenger.sendBinCmd(kAcknowledge, uint8_t (logoutTimeoutReturn + 1));     // sending a single byte 
+  setPurple();
+}
+
+void OnGetLoginAttempts() {
+  setGreen();
+  uint8_t loginAttemptsReturn;
+  switch (loginAttempts) {
+    case 3:
+      loginAttemptsReturn = LOGIN_ATTEMPTS_3;
+      break;
+    case 5:
+      loginAttemptsReturn = LOGIN_ATTEMPTS_5;
+      break;
+    case 10:
+      loginAttemptsReturn = LOGIN_ATTEMPTS_10;
+      break;
+    case 25:
+      loginAttemptsReturn = LOGIN_ATTEMPTS_25;
+      break;
+    default:
+      loginAttemptsReturn = LOGIN_ATTEMPTS_10;
+      DisplayToError("ERR: 009");
+      break;
+  }
+  cmdMessenger.sendBinCmd(kAcknowledge, uint8_t (loginAttemptsReturn + 1));     // sending a single byte 
   setPurple();
 }
 

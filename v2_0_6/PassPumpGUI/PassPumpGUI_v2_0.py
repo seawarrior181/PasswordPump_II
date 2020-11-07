@@ -85,13 +85,16 @@
 #   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
+# - Select a Font via PasswordPumpGUI
+# - Set the Orientation via PasswordPumpGUI
+# - Set the Encoder Type via PasswordPumpGUI
+# - Set the Keyboard Language via PasswordPumpGUI
 # - Rename account
-# - Settings (RGB LED Intensity, Timeout Minutes, Login Attempts)
 # - Configurable Generate Password length
-# * Fix corrupt account list
-# * Custom group names
+# * Settings (RGB LED Intensity, Timeout Minutes, Login Attempts)
 # * Settings (Show Password, Decoy Password, Change Master Password,
-#   Factory Reset)
+#   Factory Reset, Fix Corrupt Linked List, Customize Groups)
+# * Custom group names
 # * Respect the show password setting
 # * Add old password to PasswordPump format
 # * Save to old password
@@ -219,6 +222,93 @@ lbl_style.grid(column=1, row=7)
 
 translation_table = dict.fromkeys(map(ord, ',|~"'), '#')
 
+def ShowSettingsWindow():
+    global cbRGBIntensity
+    global cbTimout
+    global cbLoginAttempts
+
+    currentIntensity = 0
+    c.send("pyGetRGBLEDIntensity")
+    try:
+        response = c.receive()
+        response_list = response[1] # fails here
+        currentIntensity = response_list[0] - 1
+    except Exception as e:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetRGBLEDIntensity:\r\n" + str(e))
+        currentIntensity = 0
+
+    currentTimeoutMinutes = 0
+    c.send("pyGetLoginMinutes")
+    try:
+        response = c.receive()
+        response_list = response[1]
+        currentTimeoutMinutes = response_list[0] - 1
+    except Exception as e:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetLoginMinutes:\r\n" + str(e))
+        currentTimeoutMinutes = 0
+
+    currentLoginAttempts = 0
+    c.send("pyGetLoginAttempts")
+    try:
+        response = c.receive()
+        response_list = response[1]
+        currentLoginAttempts = response_list[0] - 1
+    except Exception as e:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetLoginAttempts:\r\n" + str(e))
+        currentLoginAttempts = 0
+
+    settings = Toplevel()
+    settings.title("More Settings")
+    settings.geometry('350x200')
+
+    lbl_rgb_intensity = Label(settings, text="RGB Intensity", anchor=E, justify=RIGHT, width=15)
+    lbl_rgb_intensity.pack()
+
+    cbRGBIntensity = Combobox(settings, justify=LEFT, width=37)
+    cbRGBIntensity['values'] = ( 'High',
+                                 'Medium',
+                                 'Low',
+                                 'Off')
+    cbRGBIntensity.bind('<<ComboboxSelected>>', on_rgb_intensity_select)
+    cbRGBIntensity.current(newindex=currentIntensity)
+    cbRGBIntensity.pack()
+
+    lbl_space1 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
+    lbl_space1.pack()
+
+    lbl_timeout = Label(settings, text="Timeout Minutes", anchor=E, justify=RIGHT, width=15)
+    lbl_timeout.pack()
+
+    cbTimout = Combobox(settings, justify=LEFT, width=37)
+    cbTimout['values'] = (       '30',
+                                 '60',
+                                 '90',
+                                 '120',
+                                 '240',
+                                 '1',
+                                 'Never')
+    cbTimout.bind('<<ComboboxSelected>>', on_timeout_minutes_select)
+    cbTimout.current(newindex=currentTimeoutMinutes)
+    cbTimout.pack()
+
+    lbl_space2 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
+    lbl_space2.pack()
+
+    lbl_login_attempts = Label(settings, text="Login Attempts", anchor=E, justify=RIGHT, width=15)
+    lbl_login_attempts.pack()
+
+    cbLoginAttempts = Combobox(settings, justify=LEFT, width=37)
+    cbLoginAttempts['values'] = ('3',
+                                 '5',
+                                 '10',
+                                 '25')
+    cbLoginAttempts.bind('<<ComboboxSelected>>', on_login_attempts)
+    cbLoginAttempts.current(newindex=currentLoginAttempts)
+    cbLoginAttempts.pack()
+
+    button = Button(settings, text="Close", command=settings.destroy)
+    button.pack(side=BOTTOM)
+
 def stripBadChars(unicode_line):
     unicode_line = unicode_line.translate(translation_table)
     return(unicode_line.strip("/"))
@@ -302,6 +392,12 @@ def clickedOpen():
                 ["pyReadGroup6Name",""],
                 ["pyReadGroup7Name",""],
                 ["pyUpdateCategoryName","bs"],
+                ["pyUpdateRGBLEDIntensity","b"],
+                ["pyUpdateLoginMinutes","b"],
+                ["pyUpdateLoginAttempts","b"],
+                ["pyGetRGBLEDIntensity",""],
+                ["pyGetLoginMinutes",""],
+                ["pyGetLoginAttempts",""],
                 ["pyChangeMasterPass", "s"]]
 
     global c                                                                   # Initialize the messenger
@@ -1016,6 +1112,51 @@ def on_select(event=None):
 
 def on_style_select(event=None):
     clickedStyle()
+
+def on_rgb_intensity_select(event=None):
+    updateDirections("Selected RGB Intensity")
+    resSelection = cbRGBIntensity.current()
+    if ((resSelection < 0) or (resSelection > 3)):                              # RGB LED Intensity must be 0 - 3
+        resSelection = 1                                                        # default is 1, Medium
+    resSelection += 1                                                           # cheap way around a problem sending 0
+    c.send("pyUpdateRGBLEDIntensity", resSelection)
+    response = c.receive()
+    #print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])
+    directions = """Updated RGB LED Intensity."""
+    updateDirections(directions)
+    window.update()
+
+def on_timeout_minutes_select(event=None):
+    updateDirections("Selected timeout minutes")
+    resSelection = cbTimout.current()
+    if ((resSelection < 0) or (resSelection > 6)):                              # Timout must be 0 - 6
+        resSelection = 1                                                        # default is 1, 60 minutes
+    resSelection += 1                                                           # cheap way around a problem sending 0
+    c.send("pyUpdateLoginMinutes", resSelection)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])
+    directions = """Updated timeout minutes."""
+    updateDirections(directions)
+    window.update()
+
+def on_login_attempts(event=None):
+    updateDirections("Selected login attempts")
+    resSelection = cbLoginAttempts.current()
+    if ((resSelection < 0) or (resSelection > 3)):                              # Login attempts must be 0 - 3
+        resSelection = 2                                                        # default is 2, 10 minutes
+    resSelection += 1                                                           # cheap way around a problem sending 0
+    c.send("pyUpdateLoginAttempts", resSelection)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])
+    directions = """Updated login attempts."""
+    updateDirections(directions)
+    window.update()
 
 def BackupEEprom():
     if tkinter.messagebox.askyesno("Backup", "Backup the primary EEprom?"):
@@ -1797,6 +1938,7 @@ groupsMenu.add_command(label = groupName6, command = customizeGroup6)
 groupsMenu.add_command(label = groupName7, command = customizeGroup7)
 settings.add_command(label = 'Factory Reset', command = FactoryReset)
 settings.add_command(label = 'Fix corrupt account list', command = FixCorruptLinkedList)
+settings.add_command(label = 'More settings...', command = ShowSettingsWindow)
 menubar.add_cascade(label = 'Settings', menu = settings)
 
 menubar.entryconfig('File', state='disabled')
