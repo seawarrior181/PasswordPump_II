@@ -1,22 +1,25 @@
 #!/usr/bin/env python
-#  ___                              _ ___
-# | _ \__ _ _______ __ _____ _ _ __| | _ \_  _ _ __  _ __
-# |  _/ _` (_-<_-< V  V / _ \ '_/ _` |  _/ || | '  \| '_ \
-# |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
-# Author:       Daniel J. Murphy                    |_|
+#                ___                              _ ___
+#               | _ \__ _ _______ __ _____ _ _ __| | _ \_  _ _ __  _ __
+#               |  _/ _` (_-<_-< V  V / _ \ '_/ _` |  _/ || | '  \| '_ \
+#               |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
+# Author:       Daniel J. Murphy                                  |_|
 # File:         PassPumpGUI_v2_0.py
 # Version:      2.0.6
-# Date:         2019/07/26 - 2020/10/18
+# Date:         2019/07/26 - 2020/11/08
 # Language:     Python
 #
 # Purpose
 # =======
 # This is the client side of the PasswordPump.  This program's job is to
 # allow the user to edit the credentials that are stored inside the EEprom
-# chips that reside on the PasswordPump device.
+# chips that reside on the PasswordPump device.  With this program you can also
+# edit may other attributes of the PasswordPump.
 #
 # Documentation
 # =============
+# To view the Users Guide:
+#   https://github.com/seawarrior181/PasswordPump_II/blob/master/Password%20Pump%20II%20Users%20Guide.pdf
 # For more information about this project visit
 #   https://www.5volts.org/post/passwordpump-v2-0.
 # To see the source code in GitHub point your browser to
@@ -28,11 +31,10 @@
 #
 # Copyright
 # =========
-# Copyright ©2018, ©2019, ©2020 Daniel J Murphy <dan-murphy@comcast.net>
+# Copyright ©2018, ©2019, ©2020, ©2021 Daniel J Murphy <dan-murphy@comcast.net>
 #
 # Built on Python 3.8
 #
-
 # Defects and Enhancements
 # ========================
 # Key:
@@ -89,6 +91,8 @@
 # - Set the Orientation via PasswordPumpGUI
 # - Set the Encoder Type via PasswordPumpGUI
 # - Set the Keyboard Language via PasswordPumpGUI
+# - Set generated password length on device and for PasswordPumpGUI
+# - Make lock PC screen on automatic logout configurable
 # - Rename account
 # - Configurable Generate Password length
 # * Settings (RGB LED Intensity, Timeout Minutes, Login Attempts)

@@ -12,6 +12,7 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 # Change Log
 unreleased v2.0.6
  Note: please use v2.0.5 unless you're adventurous.  
+  * Enforced a rule that device generated passwords must pass the same compexity check as the PasswordPumpGUI generated passwords.
   * Added the ability to edit RGB LED intensity, login attempts before logout, and  minutes before automatic logout from the PasswordPumpGUI.
   * Changed the behavior of sending a password so that a <TAB> character is sent before the <CR> carriage return character is sent.  This helps with automatically logging all the way into certain sites.
   * Added a feature whereby after 1 minute of inactivity the time remaining before automatic logout is displayed on the device.
