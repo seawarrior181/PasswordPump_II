@@ -5,7 +5,7 @@
   Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
   Version:      2.0.6
-  Date:         2019/07/26 - 2020/11/08
+  Date:         2019/07/26 - 2020/11/21
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy  M0 Express‎ or Adafruit  ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit  Cortex M0+  or  ATSAMD51J19 32-bit Cortex M4
@@ -1023,6 +1023,7 @@
 #define INITIAL_MEMORY_STATE_CHAR -1                                            // 11111111 binary twos complement, -1 decimal, 0xFF hex.  When factory fresh all bytes in EEprom memory = 0xFF.  char is signed by default. byte is unsigned.
 #define INITIAL_MEMORY_STATE_BYTE 0xFF                                          // 11111111 binary twos complement, -1 decimal, 0xFF hex.  When factory fresh all bytes in EEprom memory = 0xFF. 255 unsigned decimal.
 #define NULL_TERM                 0x00                                          // The null terminator, NUL, ASCII 0, or '\0'                 
+#define DEFAULT_STYLE_CHAR        0x31                                          // '1'
 
 #define SPI_SS_PRIMARY            11                                            // chip select primary (copy source)  (SPI)
 #define SPI_SS_SECONDARY          10                                            // chip select secondary (copy target)  (SPI)
@@ -2315,7 +2316,7 @@ void ProcessEvent() {                                                           
     EnableInterrupts();
     if (++iterationCount == MAX_ITERATION_COUNT) {                              // we don't want to call millis() every single time through the loop
       milliseconds = millis();
-      iterationCount = 0;                                                       // necessary?  won't we just wrap around?
+      iterationCount = 0;                                                       // 
       if (logoutTimeout && authenticated) {                                     // if logoutTimeout != 0, i.e. there is a logout timeout set.
         unsigned long logoutTime = lastActivityTime +                           // logoutTimeout = 30, 60, 90, etc.; 
                          (logoutTimeout * MILLISECONDS_IN_A_MINUTE);            // convert logoutTimeout to milliseconds by multiplying by 1000 milliseconds in a second * 60 seconds in a minute.
@@ -2330,7 +2331,7 @@ void ProcessEvent() {                                                           
               uint8_t roundMinutesTillLogout = (timeLeft - (roundHoursTillLogout * SECONDS_IN_AN_HOUR)) / SECONDS_IN_A_MINUTE;
               uint8_t roundSecondsTillLogout = ((timeLeft - (roundHoursTillLogout * SECONDS_IN_AN_HOUR)) - (roundMinutesTillLogout * SECONDS_IN_A_MINUTE));
               char sTimeTillLogout[21];
-              sprintf(sTimeTillLogout, "Time Left: %02u:%02u:%02u", roundHoursTillLogout, roundMinutesTillLogout, roundSecondsTillLogout);
+              sprintf(sTimeTillLogout, "Time Left:  %2u:%02u:%02u", roundHoursTillLogout, roundMinutesTillLogout, roundSecondsTillLogout);
               DisplayToHelp(sTimeTillLogout);
             }
           }
@@ -2339,7 +2340,7 @@ void ProcessEvent() {                                                           
               uint8_t oldRGBLEDIntensity = RGBLEDIntensity;
               RGBLEDIntensity = RGB_LED_HIGH;
               setRed();
-              delayNoBlock(100UL);
+              delayNoBlock(100UL);                                              // Flash bright red to warn that we're going to be logging out
               RGBLEDIntensity = oldRGBLEDIntensity;
               setGreen();
              }
@@ -5818,7 +5819,11 @@ void readStyleFromEEProm(uint8_t pos, char *buf) {
   } else {
     buf[0] = NULL_TERM;
   }
-  if (buf[0] == (char) INITIAL_MEMORY_STATE_CHAR) buf[0] = NULL_TERM;
+  if (buf[0] == (char) INITIAL_MEMORY_STATE_CHAR) {                             // if style isn't set, set it to the default
+    buf[0] = DEFAULT_STYLE_CHAR;
+    buf[1] = NULL_TERM;
+    eeprom_write_bytes(GET_ADDR_STYLE(pos), buf, STYLE_SIZE);
+  }
 }
 
 void readPassFromEEProm(uint8_t pos, char *buf) {                               // TODO: reduce readPassFromEEProm, readUserFromEEProm and readAcctFromEEProm to a single function.
@@ -6943,6 +6948,17 @@ void OnReadStyle(){
   char style[STYLE_SIZE];
   acctPosition = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
   readStyleFromEEProm(acctPosition, style);
+  switch(style[0]) {                                                            // Make sure style is in the valid range.
+    case '0':
+      break;
+    case '1':
+      break;
+    case '2':
+      break;
+    default:
+      style[0] = DEFAULT_STYLE_CHAR;
+      break;
+  }
   cmdMessenger.sendCmd(kStrAcknowledge, style);
   setPurple();
 }

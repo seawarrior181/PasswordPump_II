@@ -4,6 +4,8 @@ This is v2.0 of the PasswordPump, a USB device that manages credentials for up t
 
 The purpose of this repository on GitHub is to disseminate software for and information about the PasswordPump v2.0.  See the Password Pump II Users Guide.pdf and https://5volts.org for details.  
 
+If you are simply wanting to download the latest version of the PasswordPump software onto your PasswordPump device follow the instructions provided in the "Burning Firmware From the BOSSA GUI" section of the Users Guide.
+
 It is always wise to download the latest version of the PasswordPumpGUI when you are downloading the latest version of PasswordPump_v_2_0.ino.
 
 Note about v2.0.5 of the PasswordPump:
@@ -12,6 +14,9 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 # Change Log
 unreleased v2.0.6
  Note: please use v2.0.5 unless you're adventurous.  
+  * Added encryption and decryption of PasswordPump export files produced in PasswordPumpGUI
+  * Added a dialog box used on exit to confirm exit from PasswordPumpGUI
+  * Fixed an issue with style default value sometimes not getting handled correctly in PasswordPumpGUI
   * Enforced a rule that device generated passwords must pass the same compexity check as the PasswordPumpGUI generated passwords.
   * Added the ability to edit RGB LED intensity, login attempts before logout, and  minutes before automatic logout from the PasswordPumpGUI.
   * Changed the behavior of sending a password so that a <TAB> character is sent before the <CR> carriage return character is sent.  This helps with automatically logging all the way into certain sites.

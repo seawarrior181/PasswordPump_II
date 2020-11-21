@@ -51,6 +51,8 @@
 # - After adding a new account, if the style isn't specified (or left on the
 #   default), ValueError: invalid literal for int() with base 10: '' occurs
 #   on subsequent visits to that account.
+# * After exporting to PasswordPump format: ValueError in pyReadStyle; invalid
+#   literal for int() with base 10: ''
 # * Before the port is open you can navigate to and edit fields, resulting in
 #   error messages displaying.
 # * Change the 0 / 1 for Tab and Return to just Tab and Return.  Select tab
@@ -95,6 +97,8 @@
 # - Make lock PC screen on automatic logout configurable
 # - Rename account
 # - Configurable Generate Password length
+# - Enable decryption functionality before connecting to a PasswordPump
+# * Encrypt the files from the GUI
 # * Settings (RGB LED Intensity, Timeout Minutes, Login Attempts)
 # * Settings (Show Password, Decoy Password, Change Master Password,
 #   Factory Reset, Fix Corrupt Linked List, Customize Groups)
@@ -125,8 +129,9 @@
 #   sudo apt-get install python3-tk
 # - powned
 #   pip install powned
-#
-#  License                                                                       
+# - cryptography
+#   sudo pip3 install cryptography
+#  License
 #  =======
 #  Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
 #  (CC BY-NC-SA 4.0). https://creativecommons.org/licenses/by-nc-sa/4.0/
@@ -166,7 +171,9 @@ from tkinter import *
 from tkinter.ttk import *
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
+from cryptography.fernet import Fernet
 
+import base64
 import tkinter.simpledialog
 import tkinter.messagebox
 import PyCmdMessenger
@@ -176,6 +183,9 @@ from serial.tools.list_ports import comports
 #import argparse
 import csv
 import time
+from shutil import copyfile
+import os
+import re
 from tendo import singleton
 #import string
 from random import *
@@ -480,6 +490,8 @@ def clickedOpen():
     menubar.entryconfig('File', state='normal')
     menubar.entryconfig('Backup/Restore', state='normal')
     menubar.entryconfig('Settings', state='normal')
+    file.entryconfig('Import', state='normal')
+    file.entryconfig('Export', state='normal')
     window.config(cursor="")
     updateDirections("Opened port")
 
@@ -713,17 +725,21 @@ def clickedUrl_New():                                                           
     window.update()
 
 def clickedClose():
-    global arduinoAttached
-    if (arduinoAttached == 1):
-        try:
-            c.send("pyExit")
-            response = c.receive()
-            #print(response)
-            response_list = response[1]
-            acctCount = calcAcctPositionReceive(response_list[0])              # not used
-        except Exception as e:
-            updateDirections("There was an error closing the\r\napplication:\r\n" + str(e))
-    sys.exit(1)
+    MsgBox = tkinter.messagebox.askquestion('Exit PasswordPumpGUI', 'Are you sure you want to exit the PasswordPumpGUI?',
+                                       icon='warning')
+    if MsgBox == 'yes':
+        global arduinoAttached
+        if (arduinoAttached == 1):
+            try:
+                c.send("pyExit")
+                response = c.receive()
+                #print(response)
+                response_list = response[1]
+                acctCount = calcAcctPositionReceive(response_list[0])              # not used
+            except Exception as e:
+                updateDirections("There was an error closing the\r\napplication:\r\n" + str(e))
+        sys.exit(1)
+
 
 def clickedPrevious():
     global position
@@ -961,7 +977,7 @@ def clickedDelete():
         updateDirections("Record deleted.")
 
 def clickedChangeMasterPass():
-    newMasterPass = tkinter.simpledialog.askstring("Change Master Password", "New Master Password")
+    newMasterPass = tkinter.simpledialog.askstring("Change Master Password", "New Master Password", parent=window)
     if newMasterPass is not None:
         window.config(cursor="watch")
         window.update();
@@ -1227,10 +1243,10 @@ def RestoreEEprom():
         response = c.receive()
         #print(response)
         response_list = response[1]
-        position = calcAcctPositionReceive(response_list[0])                   # returns head position
-        loadListBox()                                                          # postion is set to head as a side effect
-        getRecord()                                                            # get the head record
-        lb.select_clear(selection)                                             # Removes one or more items from the selection.
+        position = calcAcctPositionReceive(response_list[0])                    # returns head position
+        loadListBox()                                                           # postion is set to head as a side effect
+        getRecord()                                                             # get the head record
+        lb.select_clear(selection)                                              # Removes one or more items from the selection.
         selection = 0
         lb.select_set(selection)
         lb.see(selection)
@@ -1242,14 +1258,14 @@ def ImportFileChrome():
     global state
     state = "Imorting"
     if (platform.system() == "Windows"):
-        name = askopenfilename(initialdir="C:/",                               # TODO: make this work cross platform
+        name = askopenfilename(initialdir="C:/",                                # TODO: make this work cross platform
                                filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
                                title = "Choose a file."
                               )
-    elif (platform.system() == "Darwin"):                                      # Macintosh
+    elif (platform.system() == "Darwin"):                                       # Macintosh
         name = askopenfilename(title = "Choose a file."
                               )
-    elif (platform.system() == "Linux"):                                       # Linux
+    elif (platform.system() == "Linux"):                                        # Linux
         name = askopenfilename(title = "Choose a file."
                               )
     else:
@@ -1258,7 +1274,7 @@ def ImportFileChrome():
     window.config(cursor="watch")
     updateDirections(name)
     global position
-    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
+    try:                                                                        # Using try in case user types in unknown file or closes without choosing a file.
         with open(name, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             try:
@@ -1272,15 +1288,15 @@ def ImportFileChrome():
                     txt_pass.insert(0,stripBadChars(row['password']))
                     txt_url.insert(0,stripBadChars(row['url']))
                     window.update()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
-                    clickedAcct()                                              # sets position = FindAccountPos()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                            # to eliminate intermittent failure
+                    clickedAcct()                                               # sets position = FindAccountPos()
+                    time.sleep(0.15)                                            # to eliminate intermittent failure
                     clickedUser()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                            # to eliminate intermittent failure
                     clickedPass()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                            # to eliminate intermittent failure
                     clickedStyle()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
+                    time.sleep(0.15)                                            # to eliminate intermittent failure
                     clickedUrl_New()
                     updateDirections("Record saved.")
                 updateDirections("All records saved.")
@@ -1289,72 +1305,6 @@ def ImportFileChrome():
                 updateDirections("Error encountered reading file in ImportFileChrome; "+ str(e))
     except Exception as ex:
         updateDirections("Error encountered in ImportFileChrome; " + str(ex))
-    window.config(cursor="")
-    window.update()
-    state = "None"
-
-def ImportFilePasswordPump():
-    global state
-    state = "Importing"
-    if (platform.system() == "Windows"):
-        name = askopenfilename(initialdir="C:/",                               # TODO: make this work cross platform
-                               filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
-                               title = "Choose a file."
-                              )
-    elif (platform.system() == "Darwin"):                                      # Macintosh
-        name = askopenfilename(title = "Choose a file."
-                              )
-    elif (platform.system() == "Linux"):                                       # Linux
-        name = askopenfilename(title = "Choose a file."
-                              )
-    else:
-        name = askopenfilename(title = "Choose a file."
-                              )
-    window.config(cursor="watch")
-    updateDirections (name)
-    global position
-    global group
-    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
-        with open(name, newline='') as csvfile:
-            fieldnames = ['accountname', 'username', 'password', 'oldpassword', 'url', 'style', 'group']
-            reader = csv.DictReader(csvfile, fieldnames=fieldnames)
-            try:
-                for row in reader:
-                    txt_acct.delete(0, END)
-                    txt_user.delete(0, END)
-                    txt_pass.delete(0, END)
-                    txt_old_pass.delete(0, END)
-                    txt_url.delete(0, END)
-                    txt_acct.insert(0,stripBadChars(row['accountname']))
-                    if (txt_acct.get() != 'accountname'):                      # to skip the header if there is one
-                        txt_user.insert(0,stripBadChars(row['username']))
-                        txt_pass.insert(0,stripBadChars(row['password']))
-                        txt_old_pass.insert(0,stripBadChars(row['oldpassword']))
-                        txt_url.insert(0,stripBadChars(row['url']))
-                        group = int(row['group'])
-                        SetGroupCheckBoxes()
-                        window.update()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedAcct()                                          # sets position = FindAccountPos()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedUser()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedPass()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedOldPass()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedStyle()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedUrl_New()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        updateGroup()
-                        updateDirections("Record saved.")
-                updateDirections("All records saved.")
-                loadListBox()
-            except Exception as e:
-                updateDirections("Error encountered reading file in ImportFilePasswordPump; "+ str(e))
-    except Exception as ex:
-        updateDirections("Error encountered in ImportFilePasswordPump; " + ex)
     window.config(cursor="")
     window.update()
     state = "None"
@@ -1414,11 +1364,90 @@ def ImportFileKeePass():
     window.update()
     state = "None"
 
+def ImportFilePasswordPump():
+    global state
+    state = "Importing"
+    if (platform.system() == "Windows"):
+        name = askopenfilename(initialdir="C:/",                                # TODO: make this work cross platform
+                               filetypes =(("Encrypted Files","*.csvenc"),("CSV File", "*.csv"),("All Files","*.*")),
+                               title = "Choose a file."
+                              )
+    elif (platform.system() == "Darwin"):                                       # Macintosh
+        name = askopenfilename(title = "Choose a file."
+                              )
+    elif (platform.system() == "Linux"):                                        # Linux
+        name = askopenfilename(title = "Choose a file."
+                              )
+    else:
+        name = askopenfilename(title = "Choose a file."
+                              )
+    updateDirections(name)
+    if name.endswith(".csvenc"):                                                # if the filename ends in .csvenc it is encrypted
+        key = ask_root_password(window)                                         # get the password
+        if key is not None:
+            window.config(cursor="watch")
+            uenc_name = name.replace('.csvenc','.csv')
+            copyfile(name, uenc_name)
+            decrypt(uenc_name, key)                                             # decrypt the file
+            updateDirections(name + " was decrypted.")
+    else:
+        uenc_name = name
+    global position
+    global group
+    window.config(cursor="watch")
+    try:                                                                        # Using try in case user types in unknown file or closes without choosing a file.
+        with open(uenc_name, newline='') as csvfile:
+            fieldnames = ['accountname', 'username', 'password', 'oldpassword', 'url', 'style', 'group']
+            reader = csv.DictReader(csvfile, fieldnames=fieldnames)
+            try:
+                for row in reader:
+                    txt_acct.delete(0, END)
+                    txt_user.delete(0, END)
+                    txt_pass.delete(0, END)
+                    txt_old_pass.delete(0, END)
+                    txt_url.delete(0, END)
+                    txt_acct.insert(0,stripBadChars(row['accountname']))
+                    if (txt_acct.get() != 'accountname'):                      # to skip the header if there is one
+                        txt_user.insert(0,stripBadChars(row['username']))
+                        txt_pass.insert(0,stripBadChars(row['password']))
+                        txt_old_pass.insert(0,stripBadChars(row['oldpassword']))
+                        txt_url.insert(0,stripBadChars(row['url']))
+                        group = int(row['group'])
+                        SetGroupCheckBoxes()
+                        window.update()
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
+                        clickedAcct()                                          # sets position = FindAccountPos()
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
+                        clickedUser()
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
+                        clickedPass()
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
+                        clickedOldPass()
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
+                        clickedStyle()
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
+                        clickedUrl_New()
+                        time.sleep(0.15)                                       # to eliminate intermittent failure
+                        updateGroup()
+                        updateDirections("Record saved.")
+                updateDirections("All records saved.")
+                loadListBox()
+            except Exception as e:
+                updateDirections("Error encountered reading file in ImportFilePasswordPump; "+ str(e))
+    except Exception as ex:
+        updateDirections("Error encountered in ImportFilePasswordPump; " + ex)
+    state = "None"
+    if name.endswith(".csvenc"):                                                # if the filename ends in enc it was encrypted
+        os.remove(uenc_name)                                                    # for safety remove the unencrypted file
+    window.config(cursor="")
+    window.update()
+
 def ExportFile():
+    inifilename = time.strftime("PasswordPumpExport%Y%m%d-%H%M%S.csv")
     if (platform.system() == "Windows"):
         name = asksaveasfilename(initialdir="C:/",  # TODO: make this work cross platform
                                  filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
-                                 initialfile='PasswordPumpExport.csv',
+                                 initialfile=inifilename,
                                  title="Create a file."
                                  )
     elif (platform.system() == "Darwin"):                                      # Macintosh
@@ -1530,7 +1559,8 @@ def ExportFile():
                         updateDirections("UnicodeDecodeError in pyReadStyle; " + str(e))
                         style = 1
                     except ValueError as ve:
-                        updateDirections("ValueError in pyReadStyle; " + str(ve))
+                        updateDirections("ValueError in pyReadStyle; " + str(ve) + " Position: " + str(position))
+                        # invalid literal for int() with base 10: ''
                         style = 1
                     except Exception as e:
                         updateDirections("Exception in pyReadStyle; " + str(e))
@@ -1572,8 +1602,18 @@ def ExportFile():
                 head = 0
     except:
         updateDirections("No file exists")
+    updateDirections("Don't forget to\r\nencrypt the file\r\nwith a password.")
     window.config(cursor="")
     window.update()
+    # ask if the user wants to encrypt the file here and encrypt it if necessary
+    key = ask_root_password(window)                                             # TODO: the user should enter the password twice, not just once.
+    if key is not None:
+        window.config(cursor="watch")
+        copyfile(name, name + "enc")
+        encrypt(name + "enc", key)
+        os.remove(name)
+        updateDirections(name + "enc\r\nwas encrypted.\r\n" + name + "\r\nwas removed.")
+        window.config(cursor="")
 
 def OnFavorites():
     global group
@@ -1780,7 +1820,7 @@ def SetGroupCheckBoxes():
 def customizeGroup1():
     global groupName1
     groupNameTemp = groupName1
-    groupName1 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName1)
+    groupName1 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName1, parent=window)
     if not groupName1:
         groupName1 = groupNameTemp
     c.send("pyUpdateCategoryName", 1, groupName1)
@@ -1794,7 +1834,7 @@ def customizeGroup1():
 def customizeGroup2():
     global groupName2
     groupNameTemp = groupName2
-    groupName2 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName2)
+    groupName2 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName2, parent=window)
     if not groupName2:
         groupName2 = groupNameTemp
     c.send("pyUpdateCategoryName", 2, groupName2)
@@ -1808,7 +1848,7 @@ def customizeGroup2():
 def customizeGroup3():
     global groupName3
     groupNameTemp = groupName3
-    groupName3 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName3)
+    groupName3 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName3, parent=window)
     if not groupName3:
         groupName3 = groupNameTemp
     c.send("pyUpdateCategoryName", 3, groupName3)
@@ -1822,7 +1862,7 @@ def customizeGroup3():
 def customizeGroup4():
     global groupName4
     groupNameTemp = groupName4
-    groupName4 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName4)
+    groupName4 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName4, parent=window)
     if not groupName4:
         groupName4 = groupNameTemp
     c.send("pyUpdateCategoryName", 4, groupName4)
@@ -1836,7 +1876,7 @@ def customizeGroup4():
 def customizeGroup5():
     global groupName5
     groupNameTemp = groupName5
-    groupName5 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName5)
+    groupName5 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName5, parent=window)
     if not groupName5:
         groupName5 = groupNameTemp
     c.send("pyUpdateCategoryName", 5, groupName5)
@@ -1850,7 +1890,7 @@ def customizeGroup5():
 def customizeGroup6():
     global groupName6
     groupNameTemp = groupName6
-    groupName6 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName6)
+    groupName6 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName6, parent=window)
     if not groupName6:
         groupName6 = groupNameTemp
     c.send("pyUpdateCategoryName", 6, groupName6)
@@ -1864,7 +1904,7 @@ def customizeGroup6():
 def customizeGroup7():
     global groupName7
     groupNameTemp = groupName7
-    groupName7 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName7)
+    groupName7 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName7, parent=window)
     if not groupName7:
         groupName7 = groupNameTemp
     c.send("pyUpdateCategoryName", 7, groupName7)
@@ -1874,6 +1914,116 @@ def customizeGroup7():
     position = calcAcctPositionReceive(response_list[0])  # returns head position
     textboxCustom.config(text=groupName7)
     groupsMenu.entryconfig(7, label = groupName7)
+
+def encrypt(filename, password):
+    """
+    Given a filename (str) and key (bytes), it encrypts the file and write it
+    """
+    with open(filename, "rb") as file:
+        file_data = file.read()                                                 # read all file data
+    password += "================================"
+    password = password[0:32]
+    key = str.encode(password)
+    missing_padding = len(key) % 4
+    if missing_padding:
+        key += b'='* (4 - missing_padding)
+    key = base64.urlsafe_b64encode(key)
+    f = Fernet(key)                                                             # ValueError: Fernet key must be 32 url-safe base64-encoded bytes.
+    encrypted_data = f.encrypt(file_data)                                       # encrypt data
+    with open(filename, "wb") as file:                                          # write the encrypted file
+        file.write(encrypted_data)
+
+def decrypt(filename, password):
+    """
+    Given a filename (str) and key (bytes), it decrypts the file and write it
+    """
+
+    password += "================================"
+    password = password[0:32]
+    key = str.encode(password)
+    missing_padding = len(key) % 4
+    if missing_padding:
+        key += b'='* (4 - missing_padding)
+    key = base64.urlsafe_b64encode(key)
+    f = Fernet(key)
+    with open(filename, "rb") as file:
+        encrypted_data = file.read()                                            # read the encrypted data
+    decrypted_data = f.decrypt(encrypted_data)                                  # decrypt data
+    with open(filename, "wb") as file:                                          # write the original file
+        file.write(decrypted_data)
+
+def encryptFile():
+    if (platform.system() == "Windows"):
+        filename = askopenfilename(initialdir="C:/",                            # TODO: make this work cross platform
+                               filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
+                               title = "Choose a file to encrypt."
+                              )
+    elif (platform.system() == "Darwin"):                                       # Macintosh
+        filename = askopenfilename(title = "Choose a file to encrypt."
+                              )
+    elif (platform.system() == "Linux"):                                        # Linux
+        filename = askopenfilename(title = "Choose a file to encrypt."
+                              )
+    else:
+        filename = askopenfilename(title = "Choose a file to encrypt."
+                                  )
+    if filename == "":
+        filename = None
+    if filename is not None:
+        key = ask_root_password(window)
+        if key is not None:
+            window.config(cursor="watch")
+            encrypt(filename, key)
+            updateDirections(filename + " was encrypted.")
+            window.config(cursor="")
+
+
+def decryptFile():
+    if (platform.system() == "Windows"):
+        filename = askopenfilename(initialdir="C:/",                            # TODO: make this work cross platform
+                                   filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
+                                   title="Choose a file to encrypt."
+                                   )
+    elif (platform.system() == "Darwin"):                                       # Macintosh
+        filename = askopenfilename(title="Choose a file to encrypt."
+                                   )
+    elif (platform.system() == "Linux"):                                        # Linux
+        filename = askopenfilename(title="Choose a file to encrypt."
+                                   )
+    else:
+        filename = askopenfilename(title="Choose a file to encrypt."
+                                   )
+    if filename == "":
+        filename = None
+    if filename is not None:
+        key = ask_root_password(window)
+        if key is not None:
+            window.config(cursor="watch")
+            decrypt(filename, key)
+            updateDirections(filename + " was decrypted.")
+            window.config(cursor="")
+
+
+def ask_root_password(parent=None):
+    """
+    Shows a window dialog that asks for the file password
+    :return: the correct file password if inserted correctly, None otherwise
+    """
+
+    if parent is None:
+        root_password = tkinter.simpledialog.askstring("Enter Password to Encrypt", "Enter password:", show='*')
+    else:
+        root_password = tkinter.simpledialog.askstring("Enter Password to Encrypt", "Enter password:", parent=parent, show='*')
+
+    if root_password is None:
+        return None
+    if root_password == "":
+        return None
+    if len(str.strip(root_password)) == 0:
+        return None
+
+    return root_password
+
 
 txt_acct = Entry(window, width=40)
 txt_acct.grid(column=2, row=2)
@@ -1919,6 +2069,8 @@ file.add_cascade(label = 'Export', menu=exportMenu)
 exportMenu.add_cascade(label = 'Export to PasswordPump', command = ExportFile)
 #file.add_command(label = 'Insert', command = clickedInsert)
 #file.add_command(label = 'Delete', command = clickedDelete)
+file.add_command(label = 'Encrypt File...', command = encryptFile)
+file.add_command(label = 'Decrypt File...', command = decryptFile)
 file.add_command(label = 'Exit', command = clickedClose)
 menubar.add_cascade(label = 'File', menu = file)
 
@@ -1945,7 +2097,10 @@ settings.add_command(label = 'Fix corrupt account list', command = FixCorruptLin
 settings.add_command(label = 'More settings...', command = ShowSettingsWindow)
 menubar.add_cascade(label = 'Settings', menu = settings)
 
-menubar.entryconfig('File', state='disabled')
+menubar.entryconfig('File', state='normal')
+file.entryconfig('Import', state='disabled')
+file.entryconfig('Export', state='disabled')
+
 menubar.entryconfig('Backup/Restore', state='disabled')
 menubar.entryconfig('Settings', state='disabled')
 
