@@ -2024,6 +2024,7 @@ def ask_root_password(parent=None):
 
     return root_password
 
+window.protocol("WM_DELETE_WINDOW", clickedClose)
 
 txt_acct = Entry(window, width=40)
 txt_acct.grid(column=2, row=2)
