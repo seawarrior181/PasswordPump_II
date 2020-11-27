@@ -51,6 +51,8 @@
 # - After adding a new account, if the style isn't specified (or left on the
 #   default), ValueError: invalid literal for int() with base 10: '' occurs
 #   on subsequent visits to that account.
+# * During file export if you cancel out of the operation an unencrypted file
+#   is written anyhow.  Present 11/24/2020 - 11/27/2020.
 # * After exporting to PasswordPump format: ValueError in pyReadStyle; invalid
 #   literal for int() with base 10: ''
 # * Before the port is open you can navigate to and edit fields, resulting in
@@ -167,32 +169,29 @@
 #  necessary for your intended use. For example, other rights such as publicity,
 #  privacy, or moral rights may limit how you use the material.
 
+from cryptography.fernet import Fernet
+from random import *
+from serial.tools.list_ports import comports
+from shutil import copyfile
+from tendo import singleton
 from tkinter import *
 from tkinter.ttk import *
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
-from cryptography.fernet import Fernet
 
 import base64
-import tkinter.simpledialog
-import tkinter.messagebox
+import csv
+import os
+import platform
+import powned
 import PyCmdMessenger
 import serial
 import serial.tools.list_ports
-from serial.tools.list_ports import comports
-#import argparse
-import csv
 import time
-from shutil import copyfile
-import os
-import re
-from tendo import singleton
-#import string
-from random import *
-import platform
-import powned
+import tkinter.messagebox
+import tkinter.simpledialog
 
-me = singleton.SingleInstance()                                                # will sys.exit(-1) if other instance is running
+me = singleton.SingleInstance()                                                # will sys.exit(-1) if another instance is running
 
 global c
 window = Tk()
@@ -493,7 +492,7 @@ def clickedOpen():
     file.entryconfig('Import', state='normal')
     file.entryconfig('Export', state='normal')
     window.config(cursor="")
-    updateDirections("Opened port")
+    updateDirections("Connected.")
 
     ReadGroupNames()
 
@@ -1443,6 +1442,7 @@ def ImportFilePasswordPump():
     window.update()
 
 def ExportFile():
+    global selection
     inifilename = time.strftime("PasswordPumpExport%Y%m%d-%H%M%S.csv")
     if (platform.system() == "Windows"):
         name = asksaveasfilename(initialdir="C:/",  # TODO: make this work cross platform
@@ -1459,161 +1459,173 @@ def ExportFile():
     else:
         name = asksaveasfilename(initialdir="C:/",
                                  )
-    window.config(cursor="watch")
-    updateDirections(name)
-    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
-        with open(name, mode='w') as pp_file:
-            pp_writer = csv.writer(pp_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-            pp_writer.writerow(['accountname', 'username', 'password', 'oldpassword', 'url', 'style', 'group'])
-            global position
-            global head
-            c.send("pyReadHead")  # Get the list head
-            try:
-                response = c.receive()
-                #print(response)
-                response_list = response[1]
-                head = calcAcctPositionReceive(response_list[0])
-                position = head
-                while position < 255:  # '<' not supported between instances of 'str' and 'int'
-                    c.send("pyReadAccountName", calcAcctPositionSend(position))
-                    try:
-                        response = c.receive()
-                        accountName_list = response[1]
-                        accountName = stripBadChars(accountName_list[0])
-                    except UnicodeDecodeError as e:
-                        updateDirections("UnicodeDecodeError in pyReadAccountName; " + str(e))
-                        accountName = "UnicodeDecodeError"
-                    except ValueError as ve:
-                        updateDirections("ValueError in pyReadAccountName; " + str(ve))
-                        accountName = "ValueError"
-                    except Exception as e:
-                        updateDirections("Exception in pyReadAccountName; " + str(e))
-                        accountName = "Exception"
 
-                    c.send("pyReadUserName", calcAcctPositionSend(position))
-                    try:
-                        response = c.receive()
-                        userName_list = response[1]
-                        userName = stripBadChars(userName_list[0])
-                    except UnicodeDecodeError as e:
-                        updateDirections("UnicodeDecodeError in pyReadUserName; " + str(e))
-                        userName = "UnicodeDecodeError"
-                    except ValueError as ve:
-                        updateDirections("ValueError in pyReadUserName; " + str(ve))
-                        userName = "ValueError"
-                    except Exception as e:
-                        updateDirections("Exception in pyReadUserName; " + str(e))
-                        userName = "Exception"
-
-                    c.send("pyReadPassword", calcAcctPositionSend(position))
-                    try:
-                        response = c.receive()
-                        password_list = response[1]
-                        password = stripBadChars(password_list[0])
-                    except UnicodeDecodeError as e:
-                        updateDirections("UnicodeDecodeError in pyReadPassword; " + str(e))
-                        password = "UnicodeDecodeError"
-                    except ValueError as ve:
-                        updateDirections("ValueError in pyReadPassword; " + str(ve))
-                        password = "ValueError"
-                    except Exception as e:
-                        updateDirections("Exception in pyReadPassword; " + str(e))
-                        password = "Exception"
-
-                    c.send("pyReadOldPassword", calcAcctPositionSend(position))
-                    try:
-                        response = c.receive()
-                        oldpassword_list = response[1]
-                        oldpassword = stripBadChars(oldpassword_list[0])
-                    except UnicodeDecodeError as e:
-                        updateDirections("UnicodeDecodeError in pyReadOldPassword; " + str(e))
-                        oldpassword = "UnicodeDecodeError"
-                    except ValueError as ve:
-                        updateDirections("ValueError in pyReadOldPassword; " + str(ve))
-                        oldpassword = "ValueError"
-                    except Exception as e:
-                        updateDirections("Exception in pyReadOldPassword; " + str(e))
-                        oldpassword = "Exception"
-
-                    c.send("pyReadURL", calcAcctPositionSend(position))
-                    try:
-                        response = c.receive()
-                        url_list = response[1]
-                        url = stripBadChars(url_list[0])
-                    except UnicodeDecodeError as e:
-                        updateDirections("UnicodeDecodeError in pyReadURL; " + str(e))
-                        url = "UnicodeDecodeError"
-                    except ValueError as ve:
-                        updateDirections("ValueError in pyReadURL; " + str(ve))
-                        url = "ValueError"
-                    except Exception as e:
-                        updateDirections("Exception in pyReadURL; " + str(e))
-                        url = "Exception"
-
-                    c.send("pyReadStyle", calcAcctPositionSend(position))
-                    try:
-                        response = c.receive()
-                        style_list = response[1]
-                        style = int(stripBadChars(style_list[0]))
-                    except UnicodeDecodeError as e:
-                        updateDirections("UnicodeDecodeError in pyReadStyle; " + str(e))
-                        style = 1
-                    except ValueError as ve:
-                        updateDirections("ValueError in pyReadStyle; " + str(ve) + " Position: " + str(position))
-                        # invalid literal for int() with base 10: ''
-                        style = 1
-                    except Exception as e:
-                        updateDirections("Exception in pyReadStyle; " + str(e))
-                        style = 1
-
-                    c.send("pyReadGroup", calcAcctPositionSend(position))
-                    try:
-                        response = c.receive()
-                        group_list = response[1]
-                        group = group_list[0]
-                    except UnicodeDecodeError as e:
-                        updateDirections("UnicodeDecodeError in pyReadGroup; " + str(e))
-                        group = 0
-                    except ValueError as ve:
-                        updateDirections("ValueError in pyReadGroup; " + str(ve))
-                        group = 0
-                    except Exception as e:
-                        updateDirections("Exception in pyReadGroup; " + str(e))
-                        group = 0
-
-                    pp_writer.writerow([accountName, userName, password, oldpassword, url, style, group])
-
-                    c.send("pyGetNextPos", calcAcctPositionSend(position))  # calls getNextPtr(acctPosition) in C program
-                    try:
-                        response = c.receive()
-                        response_list = response[1]
-                        position = calcAcctPositionReceive(response_list[0])
-                    except ValueError as ve:
-                        updateDirections("Error in pyGetNextPos; " + str(ve))
-                        raise ve
-                    except Exception as e:
-                        updateDirections("Exception in pyGetNextPos; " + str(e))
-                        raise e
-            except ValueError as ve:
-                updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
-                head = 0
-            except Exception as e:
-                updateDirections("Exception in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(e))
-                head = 0
-    except:
-        updateDirections("No file exists")
-    updateDirections("Don't forget to\r\nencrypt the file\r\nwith a password.")
-    window.config(cursor="")
-    window.update()
-    # ask if the user wants to encrypt the file here and encrypt it if necessary
-    key = ask_root_password(window)                                             # TODO: the user should enter the password twice, not just once.
-    if key is not None:
+    if len(name.strip()) > 0:
         window.config(cursor="watch")
-        copyfile(name, name + "enc")
-        encrypt(name + "enc", key)
-        os.remove(name)
-        updateDirections(name + "enc\r\nwas encrypted.\r\n" + name + "\r\nwas removed.")
+        updateDirections(name)
+        try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
+            with open(name, mode='w') as pp_file:
+                pp_writer = csv.writer(pp_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+                pp_writer.writerow(['accountname', 'username', 'password', 'oldpassword', 'url', 'style', 'group'])
+                global position
+                global head
+                c.send("pyReadHead")  # Get the list head
+                try:
+                    response = c.receive()
+                    #print(response)
+                    response_list = response[1]
+                    head = calcAcctPositionReceive(response_list[0])
+                    position = head
+                    while position < 255:  # '<' not supported between instances of 'str' and 'int'
+                        c.send("pyReadAccountName", calcAcctPositionSend(position))
+                        try:
+                            response = c.receive()
+                            accountName_list = response[1]
+                            accountName = stripBadChars(accountName_list[0])
+                        except UnicodeDecodeError as e:
+                            updateDirections("UnicodeDecodeError in pyReadAccountName; " + str(e))
+                            accountName = "UnicodeDecodeError"
+                        except ValueError as ve:
+                            updateDirections("ValueError in pyReadAccountName; " + str(ve))
+                            accountName = "ValueError"
+                        except Exception as e:
+                            updateDirections("Exception in pyReadAccountName; " + str(e))
+                            accountName = "Exception"
+
+                        c.send("pyReadUserName", calcAcctPositionSend(position))
+                        try:
+                            response = c.receive()
+                            userName_list = response[1]
+                            userName = stripBadChars(userName_list[0])
+                        except UnicodeDecodeError as e:
+                            updateDirections("UnicodeDecodeError in pyReadUserName; " + str(e))
+                            userName = "UnicodeDecodeError"
+                        except ValueError as ve:
+                            updateDirections("ValueError in pyReadUserName; " + str(ve))
+                            userName = "ValueError"
+                        except Exception as e:
+                            updateDirections("Exception in pyReadUserName; " + str(e))
+                            userName = "Exception"
+
+                        c.send("pyReadPassword", calcAcctPositionSend(position))
+                        try:
+                            response = c.receive()
+                            password_list = response[1]
+                            password = stripBadChars(password_list[0])
+                        except UnicodeDecodeError as e:
+                            updateDirections("UnicodeDecodeError in pyReadPassword; " + str(e))
+                            password = "UnicodeDecodeError"
+                        except ValueError as ve:
+                            updateDirections("ValueError in pyReadPassword; " + str(ve))
+                            password = "ValueError"
+                        except Exception as e:
+                            updateDirections("Exception in pyReadPassword; " + str(e))
+                            password = "Exception"
+
+                        c.send("pyReadOldPassword", calcAcctPositionSend(position))
+                        try:
+                            response = c.receive()
+                            oldpassword_list = response[1]
+                            oldpassword = stripBadChars(oldpassword_list[0])
+                        except UnicodeDecodeError as e:
+                            updateDirections("UnicodeDecodeError in pyReadOldPassword; " + str(e))
+                            oldpassword = "UnicodeDecodeError"
+                        except ValueError as ve:
+                            updateDirections("ValueError in pyReadOldPassword; " + str(ve))
+                            oldpassword = "ValueError"
+                        except Exception as e:
+                            updateDirections("Exception in pyReadOldPassword; " + str(e))
+                            oldpassword = "Exception"
+
+                        c.send("pyReadURL", calcAcctPositionSend(position))
+                        try:
+                            response = c.receive()
+                            url_list = response[1]
+                            url = stripBadChars(url_list[0])
+                        except UnicodeDecodeError as e:
+                            updateDirections("UnicodeDecodeError in pyReadURL; " + str(e))
+                            url = "UnicodeDecodeError"
+                        except ValueError as ve:
+                            updateDirections("ValueError in pyReadURL; " + str(ve))
+                            url = "ValueError"
+                        except Exception as e:
+                            updateDirections("Exception in pyReadURL; " + str(e))
+                            url = "Exception"
+
+                        c.send("pyReadStyle", calcAcctPositionSend(position))
+                        try:
+                            response = c.receive()
+                            style_list = response[1]
+                            style = int(stripBadChars(style_list[0]))
+                        except UnicodeDecodeError as e:
+                            updateDirections("UnicodeDecodeError in pyReadStyle; " + str(e))
+                            style = 1
+                        except ValueError as ve:
+                            updateDirections("ValueError in pyReadStyle; " + str(ve) + " Position: " + str(position))
+                            # invalid literal for int() with base 10: ''
+                            style = 1
+                        except Exception as e:
+                            updateDirections("Exception in pyReadStyle; " + str(e))
+                            style = 1
+
+                        c.send("pyReadGroup", calcAcctPositionSend(position))
+                        try:
+                            response = c.receive()
+                            group_list = response[1]
+                            group = group_list[0]
+                        except UnicodeDecodeError as e:
+                            updateDirections("UnicodeDecodeError in pyReadGroup; " + str(e))
+                            group = 0
+                        except ValueError as ve:
+                            updateDirections("ValueError in pyReadGroup; " + str(ve))
+                            group = 0
+                        except Exception as e:
+                            updateDirections("Exception in pyReadGroup; " + str(e))
+                            group = 0
+
+                        pp_writer.writerow([accountName, userName, password, oldpassword, url, style, group])
+
+                        c.send("pyGetNextPos", calcAcctPositionSend(position))  # calls getNextPtr(acctPosition) in C program
+                        try:
+                            response = c.receive()
+                            response_list = response[1]
+                            position = calcAcctPositionReceive(response_list[0])
+                        except ValueError as ve:
+                            updateDirections("Error in pyGetNextPos; " + str(ve))
+                            raise ve
+                        except Exception as e:
+                            updateDirections("Exception in pyGetNextPos; " + str(e))
+                            raise e
+                except ValueError as ve:
+                    updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
+                    head = 0
+                except Exception as e:
+                    updateDirections("Exception in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(e))
+                    head = 0
+        except:
+            updateDirections("No file exists")
+        updateDirections("Don't forget to\r\nencrypt the file\r\nwith a password.")
         window.config(cursor="")
+        window.update()
+        # ask if the user wants to encrypt the file here and encrypt it if necessary
+        key = ask_root_password(window)                                             # TODO: the user should enter the password twice, not just once.
+        if key is not None:
+            window.config(cursor="watch")
+            copyfile(name, name + "enc")
+            encrypt(name + "enc", key)
+            os.remove(name)
+            updateDirections(name + "enc\r\nwas encrypted.\r\n" + name + "\r\nwas removed.")
+            window.config(cursor="")
+    else:
+        updateDirections("User cancelled.")
+        window.update()
+    position = head
+    getRecord()  # get the head record
+    lb.select_clear(selection)  # Removes one or more items from the selection.
+    selection = 0
+    lb.select_set(selection)
+    lb.see(selection)
+    lb.activate(selection)
 
 def OnFavorites():
     global group
