@@ -48,9 +48,10 @@
 # - If an account name contains a comma, and you visit the field, after
 #   exiting the GUI and reloading all of the accounts, the comma has changed
 #   into a hashtag and all of the remaining fields are blank.
-# - After adding a new account, if the style isn't specified (or left on the
+# X After adding a new account, if the style isn't specified (or left on the
 #   default), ValueError: invalid literal for int() with base 10: '' occurs
 #   on subsequent visits to that account.
+# * Unable so save exported PasswordPump format file under Linux.
 # * During file export if you cancel out of the operation an unencrypted file
 #   is written anyhow.  Present 11/24/2020 - 11/27/2020.
 # * After exporting to PasswordPump format: ValueError in pyReadStyle; invalid
@@ -1454,7 +1455,10 @@ def ExportFile():
         name = asksaveasfilename(title="Create a file."
                                  )
     elif (platform.system() == "Linux"):                                       # Linux
-        name = asksaveasfilename(initialdir="C:/",
+        name = asksaveasfilename(initialdir="/home",
+                                 filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
+                                 initialfile=inifilename,
+                                 title="Create a file."
                                  )
     else:
         name = asksaveasfilename(initialdir="C:/",
@@ -2079,7 +2083,7 @@ importMenu.add_command(label = 'Import from Chrome', command = ImportFileChrome)
 importMenu.add_command(label = 'Import from KeePass', command = ImportFileKeePass)
 importMenu.add_command(label = 'Import from PasswordPump', command = ImportFilePasswordPump)
 file.add_cascade(label = 'Export', menu=exportMenu)
-exportMenu.add_cascade(label = 'Export to PasswordPump', command = ExportFile)
+exportMenu.add_command(label = 'Export to PasswordPump', command = ExportFile)
 #file.add_command(label = 'Insert', command = clickedInsert)
 #file.add_command(label = 'Delete', command = clickedDelete)
 file.add_command(label = 'Encrypt File...', command = encryptFile)
