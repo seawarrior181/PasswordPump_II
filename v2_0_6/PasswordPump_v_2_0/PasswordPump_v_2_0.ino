@@ -291,10 +291,13 @@
     ! = will not implement
     x = implemented but not tested  
     * = implemented and tested
+  - On Linux machine you have to press "GUI key + Escape" to log out, rather 
+    than "GUI key + L" as on Windows. Logout and lock feature should be able to 
+    logout of a Linux machine.
   - Make the size of the generated password configurable.
   - Somehow signal to the user when entering the master password for the first 
     time.
-  - Create an excellent case.
+  - Create an excellent case or enclosure.
   - Confirm that the lock bits are correctly set.
   - Add the ability to pump a single tab or a single carriage return from the 
     menu.
@@ -4925,7 +4928,7 @@ void FactoryReset() {
     //keyboardType = KEYBOARD_DEFAULT;
     //changeKeyboardAttempts += 1;
     //if (changeKeyboardAttempts < 3) {
-    //  Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);               // US is the default keyboard
+    //  Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);             // US is the default keyboard
     //}
 
   	//randomSeed(micros() * micros() ^ analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN2));	// seed the random number generator

@@ -417,16 +417,6 @@ def clickedOpen():
     global c                                                                   # Initialize the messenger
     c = PyCmdMessenger.CmdMessenger(arduino, commands, field_separator='~', command_separator='|', escape_separator='\\')
 
-    #txt_acct.bind("<Return>",(lambda _: clickedAcctParam(txt_acct)))          # When the user clicks on return save the edited item
-    #txt_user.bind("<Return>",(lambda _: clickedUserParam(txt_user)))
-    #txt_pass.bind("<Return>",(lambda _: clickedPassParam(txt_pass)))
-    #txt_url.bind("<Return>",(lambda _: clickedUrlParam(txt_url)))
-
-    #txt_acct.bind("<Tab>",(lambda _: clickedAcctParam(txt_acct)))             # When the user tabs off of the field save the edited item
-    #txt_user.bind("<Tab>",(lambda _: clickedUserParam(txt_user)))
-    #txt_pass.bind("<Tab>",(lambda _: clickedPassParam(txt_pass)))
-    #txt_url.bind("<Tab>",(lambda _: clickedUrlParam(txt_url)))
-
     txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the user clicks off of the field save the edited item
     txt_user.bind("<FocusOut>",(lambda _: clickedUserParam(txt_user)))
     txt_pass.bind("<FocusOut>",(lambda _: clickedPassParam(txt_pass)))
