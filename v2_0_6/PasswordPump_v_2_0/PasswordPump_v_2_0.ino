@@ -5,7 +5,7 @@
   Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
   Version:      2.0.6
-  Date:         2019/07/26 - 2020/11/21
+  Date:         2019/07/26 - 2020/12/08
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy  M0 Express‎ or Adafruit  ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit  Cortex M0+  or  ATSAMD51J19 32-bit Cortex M4
@@ -906,6 +906,7 @@
   055 - Invalid style specified
   056 - Invalid login attempt count
   057 - Unknown command from PasswordPumpGUI
+  058 - Invalid generated password size
 
   Finally, the Program 
   ==============================================================================
@@ -970,6 +971,7 @@
 #define getLoginAttempts          read_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM)    // The number of login attempts before we factory reset
 #define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
 #define getGroupStatus						read_eeprom_byte(GET_ADDR_CATEGORY_1)
+#define getGenPasswordSize        read_eeprom_byte(GET_ADDR_GEN_PW_SIZE)
 
 //#if defined(__SAMD51__) && defined(SERIAL_PORT_USBVIRTUAL)                    // Required for Serial on Zero based boards
 //  #define Serial SERIAL_PORT_USBVIRTUAL
@@ -1133,6 +1135,7 @@
 #define ENCODER_TYPE_SIZE         0X0001                                        // 1 byte
 #define FONT_SIZE                 0x0001                                        // 1 byte, designates the desired font
 #define ORIENTATION_SIZE          0x0001                                        // 1 byte, screen orientation, lefty (0) or righty (1)
+#define GENERATED_PASSWORD_SIZE   0x0001                                        // 1 byte
 //------------------------------------------------------------------------------
 #define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (101 total, rounding up to 256)
 //==============================================================================// 65536 - 256 = 32512/256 = 255 CREDS_ACCOMIDATED
@@ -1153,6 +1156,7 @@
 #define GET_ADDR_ENCODER_TYPE     (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE) // store the setting for the keyboard type setting
 #define GET_ADDR_FONT             (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE) // store the setting for the font setting
 #define GET_ADDR_ORIENTATION      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE + FONT_SIZE) // store the setting for the orientation setting
+#define GET_ADDR_GEN_PW_SIZE      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE + FONT_SIZE + ORIENTATION_SIZE) // store the setting for default password size
 #define GET_ADDR_CATEGORY_1				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 1) // place the categories on the second to last page on EEprom
 #define GET_ADDR_CATEGORY_2				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 2)
 #define GET_ADDR_CATEGORY_3				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 3)
@@ -1195,6 +1199,7 @@
 #define EVENT_SHOW_ENCODER_MENU   34
 #define EVENT_SHOW_FONT_MENU      35
 #define EVENT_SHOW_ORIENT_MENU    36
+#define EVENT_SHOW_GEN_PW_SZ_MENU 37
 #define EVENT_SUSPEND             99                                            // event to set when you want to suspend processing, like after calling factory reset.
                                                                                 // Not using an enum here to save memory.  
 //- States                                                                      
@@ -1251,6 +1256,7 @@
 #define STATE_MENU_ENCODER        50
 #define STATE_MENU_FONT           51
 #define STATE_MENU_ORIENT         52
+#define STATE_MENU_SHOW_GEN_PW_SZ 53
 
 //- I2C Address
 
@@ -1349,7 +1355,7 @@ const char * const enterMenu[] =  {
 #define SAVE_OLD_PASSWORD         7
 
 #define SETTINGS_MENU_NUMBER      3
-#define SETTINGS_MENU_ELEMENTS    12                                             // the number of selections in the menu for changing settings
+#define SETTINGS_MENU_ELEMENTS    13                                             // the number of selections in the menu for changing settings
 
 char *settingsMenu[] =                {
                                                  "Show Password",               // determines if passwords are displayed or masked with asterisk
@@ -1358,12 +1364,13 @@ char *settingsMenu[] =                {
                                                  "Timeout minutes",             // set the timeout for automatic logout in minutes
                                                  "Login Attempts",              // the number of login attempts allowed before a factory reset occurs
 																								 "Rename Groups",								// allows the user to rename the group categories
-                                                 "Change Master Psswrd",				// Change the master password
+                                                 "Change Master Pass",   				// Change the master password
                                                  "Keyboard Language",           // Change the keyboard language
                                                  "Encoder Type",                // Change the encoder type
                                                  "Font",                        // Change the font
                                                  "Orientation",                 // Change display orientation
                                                  "Keyboard",                    // flag that determines if the input by keyboard feature is on or off
+                                                 "Generated pass len",          // determines the size of the generated password
                                                  ""                           };
 
 #define SETTINGS_SET_SHOW_PW      0
@@ -1378,6 +1385,7 @@ char *settingsMenu[] =                {
 #define SETTINGS_FONT             9
 #define SETTINGS_ORIENTATION      10
 #define SETTINGS_SET_KEYBOARD     11                                            //
+#define SETTINGS_GEN_PW_SIZE      12
 
 #define LOGOUT_TIMEOUT_MENU_NUMBER    4
 #define LOGOUT_TIMEOUT_MENU_ELEMENTS  7
@@ -1601,6 +1609,29 @@ const char * const orientMenu[] = {
 #define ORIENT_RIGHTY             1
 #define DEFAULT_ORIENT            ORIENT_LEFTY
 
+#define GEN_PW_SIZE_MENU_NUMBER   15
+#define GEN_PW_SIZE_MENU_ELEMENTS 5
+const char * const genPWSizeMenu[] = {       
+                                                 "8",                           // INITIAL_MEMORY_STATE_BYTE
+                                                 "10",
+                                                 "16",
+                                                 "24",
+                                                 "31",
+                                                 ""                           };
+#define GEN_PW_SIZE_8             0                                             
+#define GEN_PW_SIZE_10            1
+#define GEN_PW_SIZE_16            2                                             // default
+#define GEN_PW_SIZE_24            3
+#define GEN_PW_SIZE_31            4
+
+#define DEFAULT_GEN_PW_SIZE       2
+
+#define GEN_PW_SIZE_VAL_8         8
+#define GEN_PW_SIZE_VAL_10        10
+#define GEN_PW_SIZE_VAL_16        16
+#define GEN_PW_SIZE_VAL_24        24
+#define GEN_PW_SIZE_VAL_31        31
+
 #define SCREEN_WIDTH              128                                           // OLED display width, in pixels
 #define SCREEN_HEIGHT             32                                            // OLED display height, in pixels
 #define OLED_RESET                -1                                            // Reset pin # (or -1 if sharing ItsyBitsy reset pin)
@@ -1682,6 +1713,7 @@ uint8_t changeKeyboardAttempts;                                                 
 uint8_t encoderType;
 uint8_t font;
 uint8_t orientation;
+uint8_t generatedPasswordSize;
 uint8_t rotaryPin1  = 9;
 uint8_t rotaryPin2  = 7;
 
@@ -2187,6 +2219,12 @@ void setup() {                                                                  
   oled.clear();
   ShowSplashScreen();
   
+  generatedPasswordSize = getGenPasswordSize;
+  if (generatedPasswordSize == INITIAL_MEMORY_STATE_BYTE) {
+    generatedPasswordSize = DEFAULT_GEN_PW_SIZE;
+    writeGenPwSize();
+  }
+  
   keyboardType = getKeyboardType;                                               // Setup the Keyboard Language
 	if (keyboardType == INITIAL_MEMORY_STATE_BYTE) {															// ...and if not initialize them
     keyboardType = KEYBOARD_DEFAULT;
@@ -2425,17 +2463,17 @@ void ProcessEvent() {                                                           
         position++;
         MenuDown(currentMenu);
       }
-    } else if (STATE_MENU_KEYBOARD        == machineState) {									  // event == EVENT_ROTATE_CW
+    } else if (STATE_MENU_KEYBOARD       == machineState) {									    // event == EVENT_ROTATE_CW
       if (position < KEYBOARD_MENU_ELEMENTS - 1) {                        
         position++;
         MenuDown(currentMenu);
       }
-    } else if (STATE_MENU_ENCODER         == machineState) {									  // event == EVENT_ROTATE_CW
+    } else if (STATE_MENU_ENCODER        == machineState) {									    // event == EVENT_ROTATE_CW
       if (position < ENCODER_MENU_ELEMENTS - 1) {                        
         position++;
         MenuDown(currentMenu);
       }
-    } else if (STATE_MENU_FONT         == machineState) {									      // event == EVENT_ROTATE_CW
+    } else if (STATE_MENU_FONT           == machineState) {									    // event == EVENT_ROTATE_CW
       if (position < FONT_MENU_ELEMENTS - 1) {                        
         position++;
         MenuDown(currentMenu);
@@ -2445,12 +2483,17 @@ void ProcessEvent() {                                                           
         position++;
         MenuDown(currentMenu);
       }
-    } else if (STATE_MENU_RGB_INTENSITY   == machineState) {									  // event == EVENT_ROTATE_CW
+    } else if (STATE_MENU_SHOW_GEN_PW_SZ == machineState) {									    // event == EVENT_ROTATE_CW
+      if (position < GEN_PW_SIZE_MENU_ELEMENTS - 1) {                        
+        position++;
+        MenuDown(currentMenu);
+      }
+    } else if (STATE_MENU_RGB_INTENSITY  == machineState) {									    // event == EVENT_ROTATE_CW
       if (position < RGB_INTENSITY_MENU_ELEMENTS - 1) {                         
         position++;
         MenuDown(currentMenu);
       }
-    } else if (STATE_MENU_LOGOUT_TIMEOUT  == machineState) {									  // event == EVENT_ROTATE_CW
+    } else if (STATE_MENU_LOGOUT_TIMEOUT == machineState) {									    // event == EVENT_ROTATE_CW
       if (position < LOGOUT_TIMEOUT_MENU_ELEMENTS - 1) {                        
         position++;
         MenuDown(currentMenu);
@@ -2577,6 +2620,7 @@ void ProcessEvent() {                                                           
                (STATE_MENU_ENCODER        == machineState) ||
                (STATE_MENU_FONT           == machineState) ||
                (STATE_MENU_ORIENT         == machineState) ||
+               (STATE_MENU_SHOW_GEN_PW_SZ == machineState) ||
                (STATE_EDIT_STYLE          == machineState)) {                   // EVENT_ROTATE_CC
       if (position > 0) {
         position--;
@@ -2837,7 +2881,7 @@ void ProcessEvent() {                                                           
               encrypt32Bytes(buffer, oldPassword);                              // encrypt it before you write it
               eeprom_write_bytes(GET_ADDR_OLD_PASS(acctPosition), buffer, PASSWORD_SIZE);// write the current password to old password in EEprom
             }            
-            generatePassword(password, PASSWORD_SIZE - 1, true);                // put a UUID in the password char array, - 1 accomodates null terminator
+            generatePassword(password, getGenPasswordSize, true);                // put a UUID in the password char array, - 1 accomodates null terminator
             BlankLine2();
             machineState = STATE_EDIT_PASSWORD;                                 // pretend we're entering the password
             event = EVENT_LONG_CLICK;                                           // and trigger long click to write the password to eeprom.
@@ -3043,6 +3087,7 @@ void ProcessEvent() {                                                           
                (STATE_MENU_ENCODER        == machineState) ||
                (STATE_MENU_FONT           == machineState) ||
                (STATE_MENU_ORIENT         == machineState) ||
+               (STATE_MENU_SHOW_GEN_PW_SZ == machineState) ||
                (STATE_EDIT_STYLE          == machineState)) {
       BlankLine4();
       switch (machineState) {                                                   // TODO: this is a weird way to do this... fix it.
@@ -3350,6 +3395,37 @@ void ProcessEvent() {                                                           
           writeOrientation();
           DisplayToStatus("Orientation saved.");
           break;
+        case STATE_MENU_SHOW_GEN_PW_SZ:                                         // EVENT_SINGLE_CLICK
+          switch (position) {
+            case GEN_PW_SIZE_8:
+              generatedPasswordSize = GEN_PW_SIZE_8;
+              DisplayToHelp("Saved size 8.");
+              break;
+            case GEN_PW_SIZE_10:
+              generatedPasswordSize = GEN_PW_SIZE_10;
+              DisplayToHelp("Saved size 10.");
+              break;
+            case GEN_PW_SIZE_16:
+              generatedPasswordSize = GEN_PW_SIZE_16;
+              DisplayToHelp("Saved size 16.");
+              break;
+            case GEN_PW_SIZE_24:
+              generatedPasswordSize = GEN_PW_SIZE_24;
+              DisplayToHelp("Saved size 24.");
+              break;
+            case GEN_PW_SIZE_31:
+              generatedPasswordSize = GEN_PW_SIZE_31;
+              DisplayToHelp("Saved size 31.");
+              break;
+            default:
+              generatedPasswordSize = DEFAULT_GEN_PW_SIZE;
+              DisplayToError("ERR: 058");
+              DisplayToHelp("Saved default size.");
+              break;
+          }
+          writeGenPwSize();
+          DisplayToStatus("Password size saved.");
+          break;
         case STATE_EDIT_STYLE:                                                  // EVENT_SINGLE_CLICK
           switch (position) {
             case STYLE_RETURN:
@@ -3562,6 +3638,10 @@ void ProcessEvent() {                                                           
         case SETTINGS_ORIENTATION:
           machineState = STATE_MENU_ORIENT;
           event = EVENT_SHOW_ORIENT_MENU;
+          break;
+        case SETTINGS_GEN_PW_SIZE:
+          machineState = STATE_MENU_SHOW_GEN_PW_SZ;
+          event = EVENT_SHOW_GEN_PW_SZ_MENU;
           break;
         default:
           BlankLine4();
@@ -3807,7 +3887,8 @@ void ProcessEvent() {                                                           
                (STATE_MENU_KEYBOARD       == machineState) ||
                (STATE_MENU_ENCODER        == machineState) ||
                (STATE_MENU_FONT           == machineState) ||
-               (STATE_MENU_ORIENT         == machineState)) {
+               (STATE_MENU_ORIENT         == machineState) ||
+               (STATE_MENU_SHOW_GEN_PW_SZ == machineState)) {
       switch (machineState) {
         case STATE_KEY_ON_OFF_MENU:
           position = SETTINGS_SET_KEYBOARD;
@@ -3841,6 +3922,9 @@ void ProcessEvent() {                                                           
           break;
         case STATE_MENU_ORIENT:
           position = SETTINGS_ORIENTATION;
+          break;
+        case STATE_MENU_SHOW_GEN_PW_SZ:
+          position = SETTINGS_GEN_PW_SIZE;
           break;
         default:
           position = SETTINGS_SET_SHOW_PW;
@@ -3980,6 +4064,9 @@ void ProcessEvent() {                                                           
     //position = 0;                                                             // set focus on the first menu element.
     ShowMenu(position, currentMenu,"      Settings      ");
     DisplayToHelp("Select a setting.");
+    if (position == SETTINGS_GEN_PW_SIZE) {                                     // To overcome a defect in the way the menu is working
+      DisplayToItem("Gened password size");                                     // To overcome a defect in the way the menu is working
+    }                                                                           // To overcome a defect in the way the menu is working
     event = EVENT_NONE;
 
   } else if (event == EVENT_SHOW_FILE_MENU) {                                   // show the backup/restore menu
@@ -4236,6 +4323,19 @@ void ProcessEvent() {                                                           
     DisplayToHelp("Select orientation.");
     event = EVENT_NONE;
 
+  } else if (event == EVENT_SHOW_GEN_PW_SZ_MENU) {
+    menuNumber = GEN_PW_SIZE_MENU_NUMBER;
+    int arraySize = 0;
+    for (uint8_t i = 0; i < MENU_SIZE; i++) {
+      arraySize += sizeof(genPWSizeMenu[i]);
+    }
+    memcpy(currentMenu, genPWSizeMenu, arraySize);
+    elements = GEN_PW_SIZE_MENU_ELEMENTS;
+    position = generatedPasswordSize;
+    ShowMenu(position, currentMenu, "Deflt Gened Pass Sz");  
+    DisplayToHelp("Select size.");
+    event = EVENT_NONE;
+
   } else if (event == EVENT_CHANGE_MASTER) {
     machineState = STATE_CHANGE_MASTER;
     position = DEFAULT_ALPHA_EDIT_POS;                                          // puts the position of the rotary encoder over 'A' for quicker password  entry                     
@@ -4406,11 +4506,16 @@ void setHelpOnSettingsMenu(uint8_t position) {
     case SETTINGS_ORIENTATION:
       DisplayToHelp("Click for orientatn");
       break;
+    case SETTINGS_GEN_PW_SIZE:
+      DisplayToItem("Gened password size");                                     // To overcome a defect in the way the menu is working
+      DisplayToHelp("Click for pw size");
+      break;
     default:
       DisplayToError("ERR: 050");
       break;
   }
 }
+
 void DimDisplay(boolean dim) {
   if (dim) {
 //  oled.dim(true);
@@ -5092,8 +5197,29 @@ void deleteAccount(uint8_t position) {
 
 //- UUID & Salt Generation
 
-void generatePassword(char *uuid, uint8_t size, uint8_t appendNullTerm) {
+void generatePassword(char *uuid, uint8_t genSize, uint8_t appendNullTerm) {
   //DebugLN("generatePassword()");
+  uint8_t size;
+  switch (genSize) {
+    case GEN_PW_SIZE_8:
+      size = GEN_PW_SIZE_VAL_8;
+      break;
+    case GEN_PW_SIZE_10:
+      size = GEN_PW_SIZE_VAL_10;
+      break;
+    case GEN_PW_SIZE_16:
+      size = GEN_PW_SIZE_VAL_16;
+      break;
+    case GEN_PW_SIZE_24:
+      size = GEN_PW_SIZE_VAL_24;
+      break;
+    case GEN_PW_SIZE_31:
+      size = GEN_PW_SIZE_VAL_31;
+      break;
+    default:
+      size = GEN_PW_SIZE_VAL_16;
+      break;
+  }
 
   uint8_t passedCheck = 0;                                                      // set the password complexity check flag to false
   while (!passedCheck) {                                                        // while the password doesn't pass the password complexity check
@@ -5992,6 +6118,11 @@ void writeOrientation() {
 void writeLoginAttempts() {
   //DebugLN("writeLoginAttempts()");
   write_eeprom_byte(GET_ADDR_LOGIN_ATTEM_NUM, loginAttempts);
+}
+
+void writeGenPwSize() {
+  //DebugLN("writeOrientation()");
+  write_eeprom_byte(GET_ADDR_GEN_PW_SIZE, generatedPasswordSize);
 }
 
                                                                                 // This function is used by the other, higher-level functions
