@@ -8,6 +8,8 @@ If you are simply wanting to download the latest version of the PasswordPump sof
 
 It is always wise to download the latest version of the PasswordPumpGUI when you are downloading the latest version of PasswordPump_v_2_0.ino.
 
+If you are interested in printing the case (at https://github.com/seawarrior181/PasswordPump_II/blob/master/3D-Print), take a look here https://github.com/seawarrior181/PasswordPump_II/tree/master/media for pictures and instructions related to how the case can be further modified.
+
 Note about v2.0.5 of the PasswordPump:
 If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will most likely have a "lefty" encoder.  This means that as you turn the rotary encoder clockwise, it proceeds backwards through the alphabet instead of forwards.  Some folks find this counter intuitive.  To fix this you merely need to navigate to Settings->Encoder Type and change it from ‘Normal’ to ‘Lefty’; and don’t worry, the setting is remembered if you power cycle the device.  If you factory reset the device you’ll need to change the Encoder Type to Lefty again.
 

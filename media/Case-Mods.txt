@@ -1,0 +1,8 @@
+Modifications to 3d-printed case:
+
+1. Drilled out mounting holes to 5/64" through the base.
+2. Ground off the plastic standoffs.
+3. Countersunk the holes in base with 3/16" drill.
+4. Mounted M2x5mm M-to-F standoffs with M2x5mm flat head screws.
+5. Mounted Password Pump with #2 hex nuts. Only 3 will go on
+   (due to LED too close to mounting hole)
