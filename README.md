@@ -13,7 +13,8 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 
 # Change Log
 unreleased v2.0.6
- Note: please use v2.0.5 unless you're adventurous.  
+ Note: please use v2.0.5 unless you're adventurous. 
+  * Added the ability to set the default length of the generated password; 8, 10, 16, 24, or 31.
   * Fixed a problem with saving PasswordPump export files on Linux.
   * Added encryption and decryption of PasswordPump export files produced in PasswordPumpGUI.
   * Added a dialog box used on exit to confirm exit from PasswordPumpGUI.
