@@ -950,6 +950,7 @@
 #include <CmdMessenger.h>																												// https://github.com/thijse/Arduino-CmdMessenger 
 
 //#include <stdio.h>                                                            // needed for CSV file program
+//#include <locale.h>
 #include <string.h>                                                             //  "     "       "       "
 #include <stdlib.h>
 #include <assert.h>
@@ -1826,9 +1827,11 @@ enum                                                                            
   pyUpdateRGBLEDIntensity ,
   pyUpdateLoginMinutes    ,
   pyUpdateLoginAttempts   ,
+  pyUpdatePasswordLength  ,
   pyGetRGBLEDIntensity    ,
   pyGetLoginMinutes       ,
   pyGetLoginAttempts      ,
+  pyGetPasswordLength     ,
   pyChangeMasterPass    
 };
 
@@ -2244,6 +2247,7 @@ void setup() {                                                                  
       Keyboard.InitKeyboard(_asciimapFrench, _hidReportDescriptorFrench);
       break;
      case KEYBOARD_GERMAN:
+      //setlocale(LC_ALL, "de_DE");                                             // Set local to Germany
       Keyboard.InitKeyboard(_asciimapGerman, _hidReportDescriptorGerman);
       break;
      case KEYBOARD_NORWEGIAN:
@@ -2259,6 +2263,7 @@ void setup() {                                                                  
       Keyboard.InitKeyboard(_asciimapUK, _hidReportDescriptorUK);
       break;
      case KEYBOARD_US:
+      //setlocale(LC_ALL, "C");
       Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
       break;
     default:
@@ -3236,6 +3241,7 @@ void ProcessEvent() {                                                           
               case KEYBOARD_GERMAN:
                 keyboardType = KEYBOARD_GERMAN;
                 if (keyboardType != originalKeyboardType) {
+                  //setlocale(LC_ALL, "de_DE");                                 // Set local to Germany
                   Keyboard.InitKeyboard(_asciimapGerman, _hidReportDescriptorGerman);
                   DisplayToHelp("Saved German keybrd");
                 }
@@ -3271,6 +3277,7 @@ void ProcessEvent() {                                                           
               case KEYBOARD_US:
                 keyboardType = KEYBOARD_US;
                 if (keyboardType != originalKeyboardType) {
+                  //setlocale(LC_ALL, "C");
                   Keyboard.InitKeyboard(_asciimapUS, _hidReportDescriptorUS);
                   DisplayToHelp("Saved US keyboard");
                 }
@@ -6979,9 +6986,11 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyUpdateRGBLEDIntensity , OnUpdateRGBLEDIntensity);
   cmdMessenger.attach(pyUpdateLoginMinutes    , OnUpdateLoginMinutes);
   cmdMessenger.attach(pyUpdateLoginAttempts   , OnUpdateLoginAttempts);
+  cmdMessenger.attach(pyUpdatePasswordLength  , OnUpdatePasswordLength);
   cmdMessenger.attach(pyGetRGBLEDIntensity    , OnGetRGBLEDIntensity);
   cmdMessenger.attach(pyGetLoginMinutes       , OnGetLoginMinutes);
   cmdMessenger.attach(pyGetLoginAttempts      , OnGetLoginAttempts);
+  cmdMessenger.attach(pyGetPasswordLength     , OnGetPasswordLength);
   cmdMessenger.attach(pyChangeMasterPass      , OnChangeMasterPass);
 }
 
@@ -7486,6 +7495,35 @@ void OnUpdateLoginAttempts() {
   setPurple();
 }
 
+void OnUpdatePasswordLength() {
+  setGreen();
+  uint8_t passwordLengthIndex = cmdMessenger.readBinArg<uint8_t>();
+  switch(passwordLengthIndex - 1) {                                              // subtract one because there is a problem sending zero
+    case GEN_PW_SIZE_8:
+      generatedPasswordSize = GEN_PW_SIZE_8;
+      break;
+    case GEN_PW_SIZE_10:
+      generatedPasswordSize = GEN_PW_SIZE_10;
+      break;
+    case GEN_PW_SIZE_16:
+      generatedPasswordSize = GEN_PW_SIZE_16;
+      break;
+    case GEN_PW_SIZE_24:
+      generatedPasswordSize = GEN_PW_SIZE_24;
+      break;
+    case GEN_PW_SIZE_31:
+      generatedPasswordSize = GEN_PW_SIZE_31;
+      break;
+    default:
+      generatedPasswordSize = GEN_PW_SIZE_16;
+      DisplayToError("ERR: 058");
+      break;
+  }
+  writeGenPwSize();
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // sending a single byte 
+  setPurple();
+}
+
 void OnGetRGBLEDIntensity() {
   setGreen();
   uint8_t returnIntensity;
@@ -7567,6 +7605,34 @@ void OnGetLoginAttempts() {
       break;
   }
   cmdMessenger.sendBinCmd(kAcknowledge, uint8_t (loginAttemptsReturn + 1));     // sending a single byte 
+  setPurple();
+}
+
+void OnGetPasswordLength() {
+  setGreen();
+  uint8_t passwordLengthReturn;
+  switch (generatedPasswordSize) {
+    case GEN_PW_SIZE_8:
+      passwordLengthReturn = GEN_PW_SIZE_8;
+      break;
+    case GEN_PW_SIZE_10:
+      passwordLengthReturn = GEN_PW_SIZE_10;
+      break;
+    case GEN_PW_SIZE_16:
+      passwordLengthReturn = GEN_PW_SIZE_16;
+      break;
+    case GEN_PW_SIZE_24:
+      passwordLengthReturn = GEN_PW_SIZE_24;
+      break;
+    case GEN_PW_SIZE_31:
+      passwordLengthReturn = GEN_PW_SIZE_31;
+      break;
+    default:
+      passwordLengthReturn = GEN_PW_SIZE_16;
+      DisplayToError("ERR: 058");
+      break;
+  }
+  cmdMessenger.sendBinCmd(kAcknowledge, uint8_t (passwordLengthReturn + 1));    // sending a single byte 
   setPurple();
 }
 

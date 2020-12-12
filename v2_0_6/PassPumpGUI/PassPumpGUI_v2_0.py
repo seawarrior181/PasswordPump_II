@@ -240,6 +240,7 @@ def ShowSettingsWindow():
     global cbRGBIntensity
     global cbTimout
     global cbLoginAttempts
+    global cbPasswordLength
 
     currentIntensity = 0
     c.send("pyGetRGBLEDIntensity")
@@ -271,9 +272,19 @@ def ShowSettingsWindow():
         updateDirections("Exception encountered reading\r\nreturn value from pyGetLoginAttempts:\r\n" + str(e))
         currentLoginAttempts = 0
 
+    currentPasswordLength = 0
+    c.send("pyGetPasswordLength")
+    try:
+        response = c.receive()
+        response_list = response[1]
+        currentPasswordLength = response_list[0] - 1
+    except Exception as e:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetPasswordLength:\r\n" + str(e))
+        currentPasswordLength = 0
+
     settings = Toplevel()
     settings.title("More Settings")
-    settings.geometry('350x200')
+    settings.geometry('350x300')
 
     lbl_rgb_intensity = Label(settings, text="RGB Intensity", anchor=E, justify=RIGHT, width=15)
     lbl_rgb_intensity.pack()
@@ -319,6 +330,22 @@ def ShowSettingsWindow():
     cbLoginAttempts.bind('<<ComboboxSelected>>', on_login_attempts)
     cbLoginAttempts.current(newindex=currentLoginAttempts)
     cbLoginAttempts.pack()
+
+    lbl_space3 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
+    lbl_space3.pack()
+
+    lbl_password_length = Label(settings, text="Generated Password Length", anchor=E, justify=RIGHT, width=26)
+    lbl_password_length.pack()
+
+    cbPasswordLength = Combobox(settings, justify=LEFT, width=37)
+    cbPasswordLength['values'] = ('8',
+                                 '10',
+                                 '16',
+                                 '24',
+                                 '31')
+    cbPasswordLength.bind('<<ComboboxSelected>>', on_password_length)
+    cbPasswordLength.current(newindex=currentPasswordLength)
+    cbPasswordLength.pack()
 
     button = Button(settings, text="Close", command=settings.destroy)
     button.pack(side=BOTTOM)
@@ -409,9 +436,11 @@ def clickedOpen():
                 ["pyUpdateRGBLEDIntensity","b"],
                 ["pyUpdateLoginMinutes","b"],
                 ["pyUpdateLoginAttempts","b"],
+                ["pyUpdatePasswordLength","b"],
                 ["pyGetRGBLEDIntensity",""],
                 ["pyGetLoginMinutes",""],
                 ["pyGetLoginAttempts",""],
+                ["pyGetPasswordLength",""],
                 ["pyChangeMasterPass", "s"]]
 
     global c                                                                   # Initialize the messenger
@@ -1168,6 +1197,21 @@ def on_login_attempts(event=None):
     updateDirections(directions)
     window.update()
 
+def on_password_length(event=None):
+    updateDirections("Selected generated password length")
+    resSelection = cbPasswordLength.current()
+    if ((resSelection < 0) or (resSelection > 4)):                              # Password length must be 0 - 4
+        resSelection = 2                                                        # default is 2, 16 characters
+    resSelection += 1                                                           # cheap way around a problem sending 0
+    c.send("pyUpdatePasswordLength", resSelection)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])
+    directions = """Updated generated password length."""
+    updateDirections(directions)
+    window.update()
+
 def BackupEEprom():
     if tkinter.messagebox.askyesno("Backup", "Backup the primary EEprom?"):
         window.config(cursor="watch")
@@ -1700,9 +1744,28 @@ def generatePassword():
         txt_old_pass.delete(0, END)
         txt_old_pass.insert(END, previousPass)
         txt_old_pass.focus()
+    defPWLen = 31
+    c.send("pyGetPasswordLength")
+    try:
+        response = c.receive()
+        response_list = response[1]
+        defPWType = response_list[0] - 1
+    except Exception as e:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetPasswordLength:\r\n" + str(e))
+        defPWType = 2
+    if (  defPWType == 0):
+        defPWLen = 8
+    elif (defPWType == 1):
+        defPWLen = 10
+    elif (defPWType == 2):
+        defPWLen = 16
+    elif (defPWType == 3):
+        defPWLen = 24
+    elif (defPWType == 4):
+        defPWLen = 31
     characters = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%*()?-_=+:;{}[]" # These chars are not generated on the PasswordPump:  , " @ ` \ & ~ | \\ ^ /
     while True:                                                                # emulate a do while loop in python
-        password = "".join(choice(characters) for x in range(31))              # generate passwords until one passes
+        password = "".join(choice(characters) for x in range(defPWLen))        # generate passwords until one passes
         if passwordComplexityCheck(password):                                  # the complexity check.
             break
     txt_pass.delete(0, END)
@@ -1736,8 +1799,8 @@ def passwordComplexityCheck(passwd):
         rejectReason += 'The password length should be\r\nnot be greater than 31.\r\n'
         val = False
 
-    if len(passwd) < 10:
-        rejectReason += 'The password length should be\r\nat least 10.\r\n'
+    if len(passwd) < 8:
+        rejectReason += 'The password length should be\r\nat least 8.\r\n'
         val = False
 
     if not any(char.isdigit() for char in passwd):
