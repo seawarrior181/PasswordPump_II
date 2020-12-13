@@ -79,6 +79,7 @@
   - Configurable RGB LED intensity (high, medium, low, off)
   - Configurable font
   - Configurable display orientation (rotary encoder on the left or the right)
+  - Configurable generated password size; 8, 10, 16, 24 or 31.
   - All passwords (except master password) are encrypted w/ AES-256; master 
     password is hashed w/ SHA-256.
   - Change master password
@@ -911,8 +912,8 @@
   Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                             */
-//#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
-#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
+#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
+//#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 #define ENCODER_NORMAL            0                                             // don't change this.
 #define ENCODER_LEFTY             1                                             // don't change this.
 #define ENCODER_DEFAULT           ENCODER_LEFTY                                 // set the encoder type default based on how the encoder is behaving
