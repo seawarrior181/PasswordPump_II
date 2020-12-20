@@ -123,6 +123,9 @@
     password.
  3- When you import credentials with <CR><LF> in the account name bad things
     happen.
+ 4- When using the PasswordPump with some tablets and phones the input from the
+    PasswordPump seems to fast because characters are dropped.  Add the ability
+    to slow down the input from the PasswordPump to the target device.
   ! If you've set the keyboard language during a session, then you select
     factory reset, the keyboard language is not reset to the default until you 
     press the reset button.
@@ -908,12 +911,13 @@
   056 - Invalid login attempt count
   057 - Unknown command from PasswordPumpGUI
   058 - Invalid generated password size
+  059 - Invalid inter character pause size
 
   Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                             */
-#define __SAMD51__                   			   		  												    // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
-//#define __SAMD21__                 	 						  	  													// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
+//#define __SAMD51__                 			   		  												      // Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
+#define __SAMD21__                   	 						  	  												// Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 #define ENCODER_NORMAL            0                                             // don't change this.
 #define ENCODER_LEFTY             1                                             // don't change this.
 #define ENCODER_DEFAULT           ENCODER_LEFTY                                 // set the encoder type default based on how the encoder is behaving
@@ -974,6 +978,7 @@
 #define getDecoyPWFlag            read_eeprom_byte(GET_ADDR_DECOY_PW)
 #define getGroupStatus						read_eeprom_byte(GET_ADDR_CATEGORY_1)
 #define getGenPasswordSize        read_eeprom_byte(GET_ADDR_GEN_PW_SIZE)
+#define getInterCharPause         read_eeprom_byte(GET_ADDR_INTER_CHAR_PAUSE)
 
 //#if defined(__SAMD51__) && defined(SERIAL_PORT_USBVIRTUAL)                    // Required for Serial on Zero based boards
 //  #define Serial SERIAL_PORT_USBVIRTUAL
@@ -1138,6 +1143,7 @@
 #define FONT_SIZE                 0x0001                                        // 1 byte, designates the desired font
 #define ORIENTATION_SIZE          0x0001                                        // 1 byte, screen orientation, lefty (0) or righty (1)
 #define GENERATED_PASSWORD_SIZE   0x0001                                        // 1 byte
+#define INTER_CHAR_PAUSE_SIZE     0x0001                                        // 1 byte
 //------------------------------------------------------------------------------
 #define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (101 total, rounding up to 256)
 //==============================================================================// 65536 - 256 = 32512/256 = 255 CREDS_ACCOMIDATED
@@ -1159,6 +1165,7 @@
 #define GET_ADDR_FONT             (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE) // store the setting for the font setting
 #define GET_ADDR_ORIENTATION      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE + FONT_SIZE) // store the setting for the orientation setting
 #define GET_ADDR_GEN_PW_SIZE      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE + FONT_SIZE + ORIENTATION_SIZE) // store the setting for default password size
+#define GET_ADDR_INTER_CHAR_PAUSE (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE + FONT_SIZE + ORIENTATION_SIZE + GENERATED_PASSWORD_SIZE) // store the setting inter character pause size
 #define GET_ADDR_CATEGORY_1				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 1) // place the categories on the second to last page on EEprom
 #define GET_ADDR_CATEGORY_2				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 2)
 #define GET_ADDR_CATEGORY_3				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 3)
@@ -1202,6 +1209,7 @@
 #define EVENT_SHOW_FONT_MENU      35
 #define EVENT_SHOW_ORIENT_MENU    36
 #define EVENT_SHOW_GEN_PW_SZ_MENU 37
+#define EVENT_SHOW_INT_CHAR_MENU  38
 #define EVENT_SUSPEND             99                                            // event to set when you want to suspend processing, like after calling factory reset.
                                                                                 // Not using an enum here to save memory.  
 //- States                                                                      
@@ -1259,6 +1267,7 @@
 #define STATE_MENU_FONT           51
 #define STATE_MENU_ORIENT         52
 #define STATE_MENU_SHOW_GEN_PW_SZ 53
+#define STATE_MENU_INT_CHAR_PAUSE 54
 
 //- I2C Address
 
@@ -1276,7 +1285,7 @@
 #define KBD_MENU_O_POS            10                                            // where to append "FF" or "N" on the "Keyboard O" menu item in settings
 #define SH_PW_MENU_O_POS          15                                            // where to append "FF" or "N" on the  "Show Password O" menu item in settings
 #define SH_DC_MENU_O_POS          16                                            // where to append "FF" or "N" on the "Decoy Password O" menu item in settings
-#define MENU_SIZE                 12                                            // selections in the menu
+#define MENU_SIZE                 14                                            // selections in the menu
 
 #define MAIN_MENU_NUMBER          0
 #define MAIN_MENU_ELEMENTS        11                                            // number of selections in the main menu
@@ -1357,13 +1366,13 @@ const char * const enterMenu[] =  {
 #define SAVE_OLD_PASSWORD         7
 
 #define SETTINGS_MENU_NUMBER      3
-#define SETTINGS_MENU_ELEMENTS    13                                             // the number of selections in the menu for changing settings
+#define SETTINGS_MENU_ELEMENTS    14                                             // the number of selections in the menu for changing settings
 
 char *settingsMenu[] =                {
                                                  "Show Password",               // determines if passwords are displayed or masked with asterisk
                                                  "Decoy Password",              // Determines if a decoy password can be entered to automatically factory reset the device
                                                  "RGB LED Intensity",           // Setting the RGB LED's intensity High, Medium, Low, Off
-                                                 "Timeout minutes",             // set the timeout for automatic logout in minutes
+                                                 "Timeout Minutes",             // set the timeout for automatic logout in minutes
                                                  "Login Attempts",              // the number of login attempts allowed before a factory reset occurs
 																								 "Rename Groups",								// allows the user to rename the group categories
                                                  "Change Master Pass",   				// Change the master password
@@ -1372,7 +1381,8 @@ char *settingsMenu[] =                {
                                                  "Font",                        // Change the font
                                                  "Orientation",                 // Change display orientation
                                                  "Keyboard",                    // flag that determines if the input by keyboard feature is on or off
-                                                 "Generated pass len",          // determines the size of the generated password
+                                                 "Generated Pass Len",          // determines the size of the generated password
+                                                 "Inter Char Delay",            // set the delay between characters when sent
                                                  ""                           };
 
 #define SETTINGS_SET_SHOW_PW      0
@@ -1388,6 +1398,7 @@ char *settingsMenu[] =                {
 #define SETTINGS_ORIENTATION      10
 #define SETTINGS_SET_KEYBOARD     11                                            //
 #define SETTINGS_GEN_PW_SIZE      12
+#define SETTINGS_CHAR_DELAY       13
 
 #define LOGOUT_TIMEOUT_MENU_NUMBER    4
 #define LOGOUT_TIMEOUT_MENU_ELEMENTS  7
@@ -1634,6 +1645,29 @@ const char * const genPWSizeMenu[] = {
 #define GEN_PW_SIZE_VAL_24        24
 #define GEN_PW_SIZE_VAL_31        31
 
+#define CHAR_DELAY_MENU_NUMBER    15
+#define CHAR_DELAY_MENU_ELEMENTS  5
+const char * const charDelayMenu[] = {       
+                                                 "0",                           // INITIAL_MEMORY_STATE_BYTE
+                                                 "10",
+                                                 "25",
+                                                 "100",
+                                                 "250",
+                                                 ""                           };
+#define CHAR_DELAY_0              0                                             
+#define CHAR_DELAY_10             1                                             // default
+#define CHAR_DELAY_25             2                                             
+#define CHAR_DELAY_100            3
+#define CHAR_DELAY_250            4
+
+#define DEFAULT_CHAR_DELAY   0
+
+#define CHAR_DELAY_VAL_0          0UL
+#define CHAR_DELAY_VAL_10         10
+#define CHAR_DELAY_VAL_25         25
+#define CHAR_DELAY_VAL_100        100
+#define CHAR_DELAY_VAL_250        250
+
 #define SCREEN_WIDTH              128                                           // OLED display width, in pixels
 #define SCREEN_HEIGHT             32                                            // OLED display height, in pixels
 #define OLED_RESET                -1                                            // Reset pin # (or -1 if sharing ItsyBitsy reset pin)
@@ -1718,6 +1752,8 @@ uint8_t orientation;
 uint8_t generatedPasswordSize;
 uint8_t rotaryPin1  = 9;
 uint8_t rotaryPin2  = 7;
+unsigned long interCharPause;
+uint8_t interCharPauseVal;
 
 const uint8_t HSVlights[61] =                                                   // used to change the color of the RGB LED when logged out
 {0, 4, 8, 13, 17, 21, 25, 30, 34, 38, 42, 47, 51, 55, 59, 64, 68, 72, 76,
@@ -2158,6 +2194,36 @@ void setup() {                                                                  
       break;
   }
 
+  interCharPause = getInterCharPause;                                           
+  if (interCharPause == INITIAL_MEMORY_STATE_BYTE) {
+    interCharPause = DEFAULT_CHAR_DELAY;
+    writeEncoderType();
+  }
+
+  switch (interCharPause) {
+    case CHAR_DELAY_0:
+      interCharPauseVal = CHAR_DELAY_VAL_0;
+      break;
+    case CHAR_DELAY_10:
+      interCharPauseVal = CHAR_DELAY_VAL_10;
+      break;
+    case CHAR_DELAY_25:
+      interCharPauseVal = CHAR_DELAY_VAL_25;
+      break;
+    case CHAR_DELAY_100:
+      interCharPauseVal = CHAR_DELAY_VAL_100;
+      break;
+    case CHAR_DELAY_250:
+      interCharPauseVal = CHAR_DELAY_VAL_250;
+      break;
+    default:                                                                   
+      interCharPause = DEFAULT_CHAR_DELAY;
+      interCharPauseVal = CHAR_DELAY_VAL_0;
+      writeInterCharPause();
+      DisplayToError("ERR: 059");
+      break;
+  }
+
   font = getFont;                                                               // Setup the Font
   if (font == INITIAL_MEMORY_STATE_BYTE) {
     font = DEFAULT_FONT;
@@ -2494,6 +2560,11 @@ void ProcessEvent() {                                                           
         position++;
         MenuDown(currentMenu);
       }
+    } else if (STATE_MENU_INT_CHAR_PAUSE == machineState) {									    // event == EVENT_ROTATE_CW
+      if (position < CHAR_DELAY_MENU_ELEMENTS - 1) {                        
+        position++;
+        MenuDown(currentMenu);
+      }
     } else if (STATE_MENU_RGB_INTENSITY  == machineState) {									    // event == EVENT_ROTATE_CW
       if (position < RGB_INTENSITY_MENU_ELEMENTS - 1) {                         
         position++;
@@ -2627,6 +2698,7 @@ void ProcessEvent() {                                                           
                (STATE_MENU_FONT           == machineState) ||
                (STATE_MENU_ORIENT         == machineState) ||
                (STATE_MENU_SHOW_GEN_PW_SZ == machineState) ||
+               (STATE_MENU_INT_CHAR_PAUSE == machineState) ||
                (STATE_EDIT_STYLE          == machineState)) {                   // EVENT_ROTATE_CC
       if (position > 0) {
         position--;
@@ -3094,6 +3166,7 @@ void ProcessEvent() {                                                           
                (STATE_MENU_FONT           == machineState) ||
                (STATE_MENU_ORIENT         == machineState) ||
                (STATE_MENU_SHOW_GEN_PW_SZ == machineState) ||
+               (STATE_MENU_INT_CHAR_PAUSE == machineState) ||
                (STATE_EDIT_STYLE          == machineState)) {
       BlankLine4();
       switch (machineState) {                                                   // TODO: this is a weird way to do this... fix it.
@@ -3434,6 +3507,43 @@ void ProcessEvent() {                                                           
           writeGenPwSize();
           DisplayToStatus("Password size saved.");
           break;
+        case STATE_MENU_INT_CHAR_PAUSE:                                         // EVENT_SINGLE_CLICK
+          switch (position) {
+            case CHAR_DELAY_0:
+              interCharPause = CHAR_DELAY_0;
+              interCharPauseVal = CHAR_DELAY_VAL_0;
+              DisplayToHelp("Saved delay 0.");
+              break;
+            case CHAR_DELAY_10:
+              interCharPause = CHAR_DELAY_10;
+              interCharPauseVal = CHAR_DELAY_VAL_10;
+              DisplayToHelp("Saved delay 10.");
+              break;
+            case CHAR_DELAY_25:
+              interCharPause = CHAR_DELAY_25;
+              interCharPauseVal = CHAR_DELAY_VAL_25;
+              DisplayToHelp("Saved delay 25.");
+              break;
+            case CHAR_DELAY_100:
+              interCharPause = CHAR_DELAY_100;
+              interCharPauseVal = CHAR_DELAY_VAL_100;
+              DisplayToHelp("Saved delay 100.");
+              break;
+            case CHAR_DELAY_250:
+              interCharPause = CHAR_DELAY_250;
+              interCharPauseVal = CHAR_DELAY_VAL_250;
+              DisplayToHelp("Saved delay 250.");
+              break;
+            default:
+              interCharPause = DEFAULT_CHAR_DELAY;
+              interCharPauseVal = CHAR_DELAY_VAL_0;
+              DisplayToError("ERR: 059");
+              DisplayToHelp("Saved delay 0.");
+              break;
+          }
+          writeInterCharPause();
+          DisplayToStatus("Intr chr pause saved");
+          break;
         case STATE_EDIT_STYLE:                                                  // EVENT_SINGLE_CLICK
           switch (position) {
             case STYLE_RETURN:
@@ -3650,6 +3760,10 @@ void ProcessEvent() {                                                           
         case SETTINGS_GEN_PW_SIZE:
           machineState = STATE_MENU_SHOW_GEN_PW_SZ;
           event = EVENT_SHOW_GEN_PW_SZ_MENU;
+          break;
+        case SETTINGS_CHAR_DELAY:
+          machineState = STATE_MENU_INT_CHAR_PAUSE;
+          event = EVENT_SHOW_INT_CHAR_MENU;
           break;
         default:
           BlankLine4();
@@ -3896,7 +4010,8 @@ void ProcessEvent() {                                                           
                (STATE_MENU_ENCODER        == machineState) ||
                (STATE_MENU_FONT           == machineState) ||
                (STATE_MENU_ORIENT         == machineState) ||
-               (STATE_MENU_SHOW_GEN_PW_SZ == machineState)) {
+               (STATE_MENU_SHOW_GEN_PW_SZ == machineState) ||
+               (STATE_MENU_INT_CHAR_PAUSE == machineState)) {
       switch (machineState) {
         case STATE_KEY_ON_OFF_MENU:
           position = SETTINGS_SET_KEYBOARD;
@@ -3933,6 +4048,9 @@ void ProcessEvent() {                                                           
           break;
         case STATE_MENU_SHOW_GEN_PW_SZ:
           position = SETTINGS_GEN_PW_SIZE;
+          break;
+        case STATE_MENU_INT_CHAR_PAUSE:
+          position = SETTINGS_CHAR_DELAY;
           break;
         default:
           position = SETTINGS_SET_SHOW_PW;
@@ -4344,6 +4462,19 @@ void ProcessEvent() {                                                           
     DisplayToHelp("Select size.");
     event = EVENT_NONE;
 
+  } else if (event == EVENT_SHOW_INT_CHAR_MENU) {
+    menuNumber = CHAR_DELAY_MENU_NUMBER;
+    int arraySize = 0;
+    for (uint8_t i = 0; i < MENU_SIZE; i++) {
+      arraySize += sizeof(charDelayMenu[i]);
+    }
+    memcpy(currentMenu, charDelayMenu, arraySize);
+    elements = CHAR_DELAY_MENU_ELEMENTS;
+    position = interCharPause;
+    ShowMenu(position, currentMenu, "  Inter Char Pause  ");  
+    DisplayToHelp("Selct intr chr pause");
+    event = EVENT_NONE;
+
   } else if (event == EVENT_CHANGE_MASTER) {
     machineState = STATE_CHANGE_MASTER;
     position = DEFAULT_ALPHA_EDIT_POS;                                          // puts the position of the rotary encoder over 'A' for quicker password  entry                     
@@ -4517,6 +4648,9 @@ void setHelpOnSettingsMenu(uint8_t position) {
     case SETTINGS_GEN_PW_SIZE:
       DisplayToItem("Gened password size");                                     // To overcome a defect in the way the menu is working
       DisplayToHelp("Click for pw size");
+      break;
+    case SETTINGS_CHAR_DELAY:
+      DisplayToHelp("Click to set");
       break;
     default:
       DisplayToError("ERR: 050");
@@ -5298,11 +5432,14 @@ void sendAccount() {
   char accountNameChar[ACCOUNT_SIZE];
   memcpy(accountNameChar,accountName,ACCOUNT_SIZE);                             // TODO: is this necessary?
   Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated user names.
+  delayNoBlock(interCharPauseVal);
   uint8_t pos = 0;
   while (accountNameChar[pos] != NULL_TERM) {
     Keyboard.write(accountNameChar[pos++]);                                     // using Keyboard.println() here doesn't work; the Keyboard.println function appears to generate corrupt output (e.g. ".com" == ".comcast")
+    delayNoBlock(interCharPauseVal);
   }
   Keyboard.println("");                                                         // send <CR> through the keyboard
+  delayNoBlock(interCharPauseVal);
   Keyboard.end();
 }
 
@@ -5312,9 +5449,11 @@ void sendOldPassword() {
   char oldPasswordChar[PASSWORD_SIZE];
   memcpy(oldPasswordChar,oldPassword,PASSWORD_SIZE);                            // TODO: is this necessary?
   Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated user names.
+  delayNoBlock(interCharPauseVal);
   uint8_t pos = 0;
   while (oldPasswordChar[pos] != NULL_TERM) {
-    Keyboard.write(oldPasswordChar[pos++]);                                     // using Keyboard.println() here doesn't work; the Keyboard.println function appears to generate corrupt output (e.g. ".com" == ".comcast")
+    Keyboard.write(oldPasswordChar[pos++]);                                     
+    delayNoBlock(interCharPauseVal);
   }
   Keyboard.end();                                                               // do NOT send <CR> through the keyboard when sending the old password!
 }
@@ -5325,7 +5464,14 @@ void sendUsername() {
   char usernameChar[USERNAME_SIZE];
   memcpy(usernameChar,username,USERNAME_SIZE);
   Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated usernames.
-  Keyboard.print(usernameChar);                                                 // type the user name through the keyboard
+  delayNoBlock(interCharPauseVal);
+  uint8_t pos = 0;
+  while (usernameChar[pos] != NULL_TERM) {
+    Keyboard.write(usernameChar[pos++]);
+    delayNoBlock(interCharPauseVal);
+  }
+  Keyboard.println("");
+  delayNoBlock(interCharPauseVal);
   Keyboard.end();
 }
 
@@ -5335,17 +5481,26 @@ void sendWebSite() {
   char websiteChar[WEBSITE_SIZE];
   memcpy(websiteChar,website,WEBSITE_SIZE);
   Keyboard.begin();                                                             // TODO: can we do a <CTL><A> <BS> here first?  That will clear out pre-populated user names.
-  Keyboard.println(websiteChar);                                                // type the URL through the keyboard
+  delayNoBlock(interCharPauseVal);
+  uint8_t pos = 0;
+  while (websiteChar[pos] != NULL_TERM) {
+    Keyboard.write(websiteChar[pos++]);
+    delayNoBlock(interCharPauseVal);
+  }
+  Keyboard.println("");                                                         // type the URL through the keyboard
+  delayNoBlock(interCharPauseVal);
   Keyboard.end();
 }
 
-void sendGroup() {
-  //DebugLN("sendGroup()");
-  uint8_t group = readGroupFromEEprom(acctPosition);                            // read the group from EEProm
-  Keyboard.begin();                                                             // 
-  Keyboard.println(group);                                                      // type the group through the keyboard
-  Keyboard.end();
-}
+//void sendGroup() {
+//  //DebugLN("sendGroup()");
+//  uint8_t group = readGroupFromEEprom(acctPosition);                            // read the group from EEProm
+//  Keyboard.begin();                                                             // 
+//  delayNoBlock(interCharPauseVal);
+//  Keyboard.println(group);                                                      // type the group through the keyboard
+//  delayNoBlock(interCharPauseVal);
+//  Keyboard.end();
+//}
 
 void sendPassword() {                                                           // TODO: can we do a <CTL><A> <BS> here first? That will clear out pre-populated passwords.
   //DebugLN("sendPassword()");
@@ -5353,37 +5508,48 @@ void sendPassword() {                                                           
   char passwordChar[PASSWORD_SIZE];
   memcpy(passwordChar,password,PASSWORD_SIZE);
   Keyboard.begin();
-  Keyboard.print(passwordChar);                                                 // type the password through the keyboard, then <enter>
+  delayNoBlock(interCharPauseVal);
+  uint8_t pos = 0;
+  while (passwordChar[pos] != NULL_TERM) {
+    Keyboard.write(passwordChar[pos++]);
+    delayNoBlock(interCharPauseVal);
+  }  
   Keyboard.end();
 }
 
 void sendRTN() {
   Keyboard.begin();
+  delayNoBlock(interCharPauseVal);
   Keyboard.println("");                                                         // send a carriage return through the keyboard
+  delayNoBlock(interCharPauseVal);
   Keyboard.end();
 }
 
 void sendTAB() {
   Keyboard.begin();
-  Keyboard.press(TAB_KEY);                                                    // if style isn't default or "0" then send <TAB>
+  delayNoBlock(interCharPauseVal);
+  Keyboard.press(TAB_KEY);                                                      // if style isn't default or "0" then send <TAB>
+  delayNoBlock(interCharPauseVal);
   Keyboard.release(TAB_KEY);
+  delayNoBlock(interCharPauseVal);
   Keyboard.end();
 }
 
 void sendLockAndLogout() {                                                      
   //DebugLN("sendLockAndLogout()");
   Keyboard.begin();
+  delayNoBlock(interCharPauseVal);
   Keyboard.press(KEY_LEFT_GUI);
+  delayNoBlock(interCharPauseVal);
   Keyboard.press('l'); 
+  delayNoBlock(interCharPauseVal);
   Keyboard.releaseAll();                                                        // Hold down the Windows key
+  delayNoBlock(interCharPauseVal);
   Keyboard.end();
 }
 
 void sendUsernameAndPassword() {
   //DebugLN("sendUsernameAndPassword()");
-  readAcctFromEEProm(acctPosition, accountName);                                // TODO: is the read from EEprom necessary at this point?
-  char accountNameChar[ACCOUNT_SIZE];
-  memcpy(accountNameChar,accountName,ACCOUNT_SIZE);
   readUserFromEEProm(acctPosition, username);                                   // read the user name from EEProm
   char usernameChar[USERNAME_SIZE];
   memcpy(usernameChar,username,USERNAME_SIZE);
@@ -5392,30 +5558,49 @@ void sendUsernameAndPassword() {
   memcpy(passwordChar,password,PASSWORD_SIZE);
   readStyleFromEEProm(acctPosition, style);                                     // read the style from EEprom
   Keyboard.begin();
-  uint8_t i = 0;
-  while (usernameChar[i++] != NULL_TERM) {
-    Keyboard.write(usernameChar[i - 1]);                                        // seems to be a problem only with single character user names.
+  delayNoBlock(interCharPauseVal);
+  uint8_t posUser = 0;
+  while (usernameChar[posUser] != NULL_TERM) {
+    Keyboard.write(usernameChar[posUser++]);                                    // seems to be a problem only with single character user names.
+    delayNoBlock(interCharPauseVal);
   }
   if (strcmp(style, "0") == 0) {                                                // 0 = Return (default) 1 = Tab
     Keyboard.println("");                                                       // send <CR> through the keyboard
+    delayNoBlock(interCharPauseVal);
   } else if (strcmp(style, "1") == 0) {
     Keyboard.press(TAB_KEY);                                                    // if style isn't default or "0" then send <TAB>
+    delayNoBlock(interCharPauseVal);
     Keyboard.release(TAB_KEY);
+    delayNoBlock(interCharPauseVal);
   } else if (style[0] == (char) INITIAL_MEMORY_STATE_CHAR) {
     Keyboard.press(TAB_KEY);                                                    // Make <TAB> the default
+    delayNoBlock(interCharPauseVal);
     Keyboard.release(TAB_KEY);
+    delayNoBlock(interCharPauseVal);
   } else {
     Keyboard.press(TAB_KEY);                                                    // if style isn't default or "0" then send <TAB>
+    delayNoBlock(interCharPauseVal);
     Keyboard.release(TAB_KEY);
+    delayNoBlock(interCharPauseVal);
   }
   delayNoBlock(UN_PW_DELAY);
-  Keyboard.print(passwordChar);                                                 // type the password through the keyboard
+
+  uint8_t pos = 0;
+  while (passwordChar[pos] != NULL_TERM) {
+    Keyboard.write(passwordChar[pos++]);
+    delayNoBlock(interCharPauseVal);
+  }  
+
+
   if (strcmp(style, "2") == 0) {
-    Keyboard.press(TAB_KEY);                                                    // Send the <TAB>
+    Keyboard.press(TAB_KEY);                                                    // Send the <TAB> (again)
+    delayNoBlock(interCharPauseVal);
     Keyboard.release(TAB_KEY);
+    delayNoBlock(interCharPauseVal);
   }
   delayNoBlock(PW_RTN_DELAY);
   Keyboard.println("");                                                         // send <CR> through the keyboard
+  delayNoBlock(interCharPauseVal);
   Keyboard.end();
 }
 
@@ -6133,6 +6318,10 @@ void writeGenPwSize() {
   write_eeprom_byte(GET_ADDR_GEN_PW_SIZE, generatedPasswordSize);
 }
 
+void writeInterCharPause() {
+  //DebugLN("writeInterCharPause()");
+  write_eeprom_byte(GET_ADDR_INTER_CHAR_PAUSE, interCharPause);
+}
                                                                                 // This function is used by the other, higher-level functions
                                                                                 // to prevent bugs and runtime errors due to invalid addresses.
 boolean eeprom_is_addr_ok(uint32_t addr) {                                      // Returns true if the address is between the
