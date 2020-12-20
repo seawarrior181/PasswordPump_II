@@ -96,12 +96,15 @@
 # - Set the Orientation via PasswordPumpGUI
 # - Set the Encoder Type via PasswordPumpGUI
 # - Set the Keyboard Language via PasswordPumpGUI
-# - Set generated password length on device and for PasswordPumpGUI
 # - Make lock PC screen on automatic logout configurable
+# - Allow the user to set client type so that logout and lock can work on linux
 # - Rename account
-# - Configurable Generate Password length
 # - Enable decryption functionality before connecting to a PasswordPump
+# * Add setting inter char delay in more settings
+# * Set generated password length on device and for PasswordPumpGUI
+# * Configurable Generate Password length
 # * Encrypt the files from the GUI
+# * Optionally encrypt the PasswordPump export format
 # * Settings (RGB LED Intensity, Timeout Minutes, Login Attempts)
 # * Settings (Show Password, Decoy Password, Change Master Password,
 #   Factory Reset, Fix Corrupt Linked List, Customize Groups)
@@ -134,6 +137,7 @@
 #   pip install powned
 # - cryptography
 #   sudo pip3 install cryptography
+#
 #  License
 #  =======
 #  Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International

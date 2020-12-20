@@ -295,14 +295,12 @@
     ! = will not implement
     x = implemented but not tested  
     * = implemented and tested
+  - In general, vastly improve the international keyboard support.
   - On Linux machine you have to press "GUI key + Escape" to log out, rather 
     than "GUI key + L" as on Windows. Logout and lock feature should be able to 
     logout of a Linux machine.
-  - Make the size of the generated password configurable.
   - Somehow signal to the user when entering the master password for the first 
     time.
-  - Create an excellent case or enclosure.
-  - Confirm that the lock bits are correctly set.
   - Add the ability to pump a single tab or a single carriage return from the 
     menu.
   - Import KeePass .xml file
@@ -320,10 +318,13 @@
     https://github.com/Maiux92/digispark-keyboard-layout-italian/blob/master/scancode-ascii-table.h
   ! Make it work over bluetooth
   ! Make UN_PW_DELAY configurable
+  ! Confirm that the lock bits are correctly set.
   ? Add a feature whereby the unit factory resets after two triple clicks, even
     if not yet authenticated. (commented out, caused problems)
   ? Add a feature whereby the unit logs out after two double clicks. (commented
     out, caused problems)
+  * Create an excellent case or enclosure.
+  * Make the size of the generated password configurable.
   * Implement a password complexity check for generated passwords that matches
     the complexity of passwords generated via PasswordPumpGUI.  It's currently
     possible to generate a password on the device that doesn't pass complexity
