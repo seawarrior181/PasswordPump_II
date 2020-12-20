@@ -241,6 +241,7 @@ def ShowSettingsWindow():
     global cbTimout
     global cbLoginAttempts
     global cbPasswordLength
+    global cbInterCharDelay
 
     currentIntensity = 0
     c.send("pyGetRGBLEDIntensity")
@@ -282,11 +283,21 @@ def ShowSettingsWindow():
         updateDirections("Exception encountered reading\r\nreturn value from pyGetPasswordLength:\r\n" + str(e))
         currentPasswordLength = 0
 
+    currentInterCharDelay = 0
+    c.send("pyGetInterCharDelay")
+    try:
+        response = c.receive()
+        response_list = response[1]
+        currentInterCharDelay = response_list[0] - 1
+    except Exception as e:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetInterCharDelay:\r\n" + str(e))
+        currentInterCharDelay = 0
+
     settings = Toplevel()
     settings.title("More Settings")
-    settings.geometry('350x300')
+    settings.geometry('350x350')
 
-    lbl_rgb_intensity = Label(settings, text="RGB Intensity", anchor=E, justify=RIGHT, width=15)
+    lbl_rgb_intensity = Label(settings, text="RGB Intensity", anchor=E, justify=CENTER, width=15)
     lbl_rgb_intensity.pack()
 
     cbRGBIntensity = Combobox(settings, justify=LEFT, width=37)
@@ -301,7 +312,7 @@ def ShowSettingsWindow():
     lbl_space1 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
     lbl_space1.pack()
 
-    lbl_timeout = Label(settings, text="Timeout Minutes", anchor=E, justify=RIGHT, width=15)
+    lbl_timeout = Label(settings, text="Timeout Minutes", anchor=E, justify=CENTER, width=15)
     lbl_timeout.pack()
 
     cbTimout = Combobox(settings, justify=LEFT, width=37)
@@ -319,7 +330,7 @@ def ShowSettingsWindow():
     lbl_space2 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
     lbl_space2.pack()
 
-    lbl_login_attempts = Label(settings, text="Login Attempts", anchor=E, justify=RIGHT, width=15)
+    lbl_login_attempts = Label(settings, text="Login Attempts", anchor=E, justify=CENTER, width=15)
     lbl_login_attempts.pack()
 
     cbLoginAttempts = Combobox(settings, justify=LEFT, width=37)
@@ -334,7 +345,7 @@ def ShowSettingsWindow():
     lbl_space3 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
     lbl_space3.pack()
 
-    lbl_password_length = Label(settings, text="Generated Password Length", anchor=E, justify=RIGHT, width=26)
+    lbl_password_length = Label(settings, text="Generated Password Length", anchor=E, justify=CENTER, width=26)
     lbl_password_length.pack()
 
     cbPasswordLength = Combobox(settings, justify=LEFT, width=37)
@@ -346,6 +357,22 @@ def ShowSettingsWindow():
     cbPasswordLength.bind('<<ComboboxSelected>>', on_password_length)
     cbPasswordLength.current(newindex=currentPasswordLength)
     cbPasswordLength.pack()
+
+    lbl_space3 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
+    lbl_space3.pack()
+
+    lbl_inter_char_delay = Label(settings, text="Inter Character Delay", anchor=E, justify=CENTER, width=22)
+    lbl_inter_char_delay.pack()
+
+    cbInterCharDelay = Combobox(settings, justify=LEFT, width=37)
+    cbInterCharDelay['values'] = ('0',
+                                  '10',
+                                  '25',
+                                  '100',
+                                  '250')
+    cbInterCharDelay.bind('<<ComboboxSelected>>', on_inter_char_delay)
+    cbInterCharDelay.current(newindex=currentInterCharDelay)
+    cbInterCharDelay.pack()
 
     button = Button(settings, text="Close", command=settings.destroy)
     button.pack(side=BOTTOM)
@@ -437,10 +464,12 @@ def clickedOpen():
                 ["pyUpdateLoginMinutes","b"],
                 ["pyUpdateLoginAttempts","b"],
                 ["pyUpdatePasswordLength","b"],
+                ["pyUpdateInterCharDelay","b"],
                 ["pyGetRGBLEDIntensity",""],
                 ["pyGetLoginMinutes",""],
                 ["pyGetLoginAttempts",""],
                 ["pyGetPasswordLength",""],
+                ["pyGetInterCharDelay",""],
                 ["pyChangeMasterPass", "s"]]
 
     global c                                                                   # Initialize the messenger
@@ -1209,6 +1238,21 @@ def on_password_length(event=None):
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])
     directions = """Updated generated password length."""
+    updateDirections(directions)
+    window.update()
+
+def on_inter_char_delay(event=None):
+    updateDirections("Selected inter char delay")
+    resSelection = cbInterCharDelay.current()
+    if ((resSelection < 0) or (resSelection > 4)):                              # Password length must be 0 - 4
+        resSelection = 0                                                        # default is 0
+    resSelection += 1                                                           # cheap way around a problem sending 0
+    c.send("pyUpdateInterCharDelay", resSelection)
+    response = c.receive()
+    # print(response)
+    response_list = response[1]
+    position = calcAcctPositionReceive(response_list[0])
+    directions = """Updated inter char delay."""
     updateDirections(directions)
     window.update()
 

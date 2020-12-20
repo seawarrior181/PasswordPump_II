@@ -1660,7 +1660,7 @@ const char * const charDelayMenu[] = {
 #define CHAR_DELAY_100            3
 #define CHAR_DELAY_250            4
 
-#define DEFAULT_CHAR_DELAY   0
+#define DEFAULT_CHAR_DELAY        0
 
 #define CHAR_DELAY_VAL_0          0UL
 #define CHAR_DELAY_VAL_10         10
@@ -1865,10 +1865,12 @@ enum                                                                            
   pyUpdateLoginMinutes    ,
   pyUpdateLoginAttempts   ,
   pyUpdatePasswordLength  ,
+  pyUpdateInterCharDelay  ,
   pyGetRGBLEDIntensity    ,
   pyGetLoginMinutes       ,
   pyGetLoginAttempts      ,
   pyGetPasswordLength     ,
+  pyGetInterCharDelay     ,
   pyChangeMasterPass    
 };
 
@@ -7177,10 +7179,12 @@ void attachCommandCallbacks()                                                   
   cmdMessenger.attach(pyUpdateLoginMinutes    , OnUpdateLoginMinutes);
   cmdMessenger.attach(pyUpdateLoginAttempts   , OnUpdateLoginAttempts);
   cmdMessenger.attach(pyUpdatePasswordLength  , OnUpdatePasswordLength);
+  cmdMessenger.attach(pyUpdateInterCharDelay  , OnUpdateInterCharDelay);
   cmdMessenger.attach(pyGetRGBLEDIntensity    , OnGetRGBLEDIntensity);
   cmdMessenger.attach(pyGetLoginMinutes       , OnGetLoginMinutes);
   cmdMessenger.attach(pyGetLoginAttempts      , OnGetLoginAttempts);
   cmdMessenger.attach(pyGetPasswordLength     , OnGetPasswordLength);
+  cmdMessenger.attach(pyGetInterCharDelay     , OnGetInterCharDelay);
   cmdMessenger.attach(pyChangeMasterPass      , OnChangeMasterPass);
 }
 
@@ -7714,6 +7718,41 @@ void OnUpdatePasswordLength() {
   setPurple();
 }
 
+void OnUpdateInterCharDelay() {
+  setGreen();
+  uint8_t interCharDelayIndex = cmdMessenger.readBinArg<uint8_t>();
+  switch(interCharDelayIndex - 1) {                                              // subtract one because there is a problem sending zero
+    case CHAR_DELAY_0:
+      interCharPause = CHAR_DELAY_0;
+      interCharPauseVal = CHAR_DELAY_VAL_0;
+      break;
+    case CHAR_DELAY_10:
+      interCharPause = CHAR_DELAY_10;
+      interCharPauseVal = CHAR_DELAY_VAL_10;
+      break;
+    case CHAR_DELAY_25:
+      interCharPause = CHAR_DELAY_25;
+      interCharPauseVal = CHAR_DELAY_VAL_25;
+      break;
+    case CHAR_DELAY_100:
+      interCharPause = CHAR_DELAY_100;
+      interCharPauseVal = CHAR_DELAY_VAL_100;
+      break;
+    case CHAR_DELAY_250:
+      interCharPause = CHAR_DELAY_250;
+      interCharPauseVal = CHAR_DELAY_VAL_250;
+      break;
+    default:
+      interCharPause = DEFAULT_CHAR_DELAY;
+      interCharPauseVal = CHAR_DELAY_VAL_0;
+      DisplayToError("ERR: 059");
+      break;
+  }
+  writeInterCharPause();
+  cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // sending a single byte 
+  setPurple();
+}
+
 void OnGetRGBLEDIntensity() {
   setGreen();
   uint8_t returnIntensity;
@@ -7801,7 +7840,7 @@ void OnGetLoginAttempts() {
 void OnGetPasswordLength() {
   setGreen();
   uint8_t passwordLengthReturn;
-  switch (generatedPasswordSize) {
+  switch (generatedPasswordSize) {                                              // TODO: This entier switch statement is unnecessary.
     case GEN_PW_SIZE_8:
       passwordLengthReturn = GEN_PW_SIZE_8;
       break;
@@ -7823,6 +7862,12 @@ void OnGetPasswordLength() {
       break;
   }
   cmdMessenger.sendBinCmd(kAcknowledge, uint8_t (passwordLengthReturn + 1));    // sending a single byte 
+  setPurple();
+}
+
+void OnGetInterCharDelay() {
+  setGreen();
+  cmdMessenger.sendBinCmd(kAcknowledge, uint8_t (interCharPause + 1));          // sending a single byte 
   setPurple();
 }
 
