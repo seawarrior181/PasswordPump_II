@@ -98,6 +98,8 @@
 # - Set the Keyboard Language via PasswordPumpGUI
 # - Make lock PC screen on automatic logout configurable
 # - Allow the user to set client type so that logout and lock can work on linux
+# - When exporting a file in PasswordPump format require the re-entry of the
+#   specified password to confirm that it's correct.
 # - Rename account
 # - Enable decryption functionality before connecting to a PasswordPump
 # * Add setting inter char delay in more settings
