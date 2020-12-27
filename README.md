@@ -16,6 +16,7 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 # Change Log
 unreleased v2.0.6
  Note: please use v2.0.5 unless you're adventurous.
+  * Accepted design docs for an exceptionally well done case, here: https://github.com/seawarrior181/PasswordPump_II/tree/master/3D-Print/scootercommuter_Design
   * Added a setting that allows for the introduction of delay between the transmission of each character to the compuer/tablet/phone so that slower devices do not drop characters. 
   * Added the ability to set the default length of the generated password; 8, 10, 16, 24, or 31.
   * Fixed a problem with saving PasswordPump export files on Linux.
