@@ -2,7 +2,7 @@ Here's a redesigned case made by scootercommuter in OpenSCAD.  All dimensions ar
 
 * The cover can be put on, and removed, without removing the knob (easier on the rotary encoder).
 * It has rounded corners, which I personally prefer.
-* The USB cable hole is made to fit the USB cables you supplied.  The top is slotted for the cable also.  Probably most cables will fit.
+* The USB cable hole is made to fit the USB cable supplied by the PasswordPump Store.  The top is slotted for the cable also.  Probably most cables will fit.
 * The fit of the knob hole is dependent on the positioning of the rotary encoder when it is soldered in.  So, he left a lot of slack with the hole size.
 * Only 3 screws can be used due to the positioning of the RGB LED.
 * It needs to be printed with supports enabled, because of the countersink holes and the oval USB hole.
