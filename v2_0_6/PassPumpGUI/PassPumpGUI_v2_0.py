@@ -567,6 +567,8 @@ def clickedOpen():
     groupsMenu.entryconfigure(6, label = groupName6)
     groupsMenu.entryconfigure(7, label = groupName7)
 
+    #updateDirections("1 "+ groupName1 + " 2 " + groupName2 + " 3 " + groupName3 + " 4 " + groupName4 + " 5 " + groupName5 + " 6 " + groupName6 + " 7 " + groupName7)
+
 def updateDirections(directions):
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
@@ -931,6 +933,8 @@ def ReadGroupNames():
         response = c.receive()
         groupName_list = response[1]
         groupName7 = groupName_list[0]
+
+        #updateDirections("1 "+ groupName1 + " 2 " + groupName2 + " 3 " + groupName3 + " 4 " + groupName4 + " 5 " + groupName5 + " 6 " + groupName6 + " 7 " + groupName7)
 
     except UnicodeDecodeError as e:
         updateDirections("UnicodeDecodeError in\r\npyReadGroup1Name:\r\n" + str(e))
@@ -2178,9 +2182,9 @@ groupName7 = "Group7"
 
 menubar = Menu(window)
 window.config(menu=menubar)
-file = Menu(menubar)
-importMenu = Menu(menubar)
-exportMenu = Menu(menubar)
+file = Menu(menubar, tearoff=0)
+importMenu = Menu(menubar, tearoff=0)
+exportMenu = Menu(menubar, tearoff=0)
 file.add_cascade(label = 'Import', menu=importMenu)
 importMenu.add_command(label = 'Import from Chrome', command = ImportFileChrome)
 importMenu.add_command(label = 'Import from KeePass', command = ImportFileKeePass)
@@ -2189,18 +2193,20 @@ file.add_cascade(label = 'Export', menu=exportMenu)
 exportMenu.add_command(label = 'Export to PasswordPump', command = ExportFile)
 #file.add_command(label = 'Insert', command = clickedInsert)
 #file.add_command(label = 'Delete', command = clickedDelete)
+file.add_separator()
 file.add_command(label = 'Encrypt File...', command = encryptFile)
 file.add_command(label = 'Decrypt File...', command = decryptFile)
+file.add_separator()
 file.add_command(label = 'Exit', command = clickedClose)
 menubar.add_cascade(label = 'File', menu = file)
 
-backup = Menu(menubar)
+backup = Menu(menubar, tearoff=0)
 backup.add_command(label = 'Backup EEprom', command = BackupEEprom)
 backup.add_command(label = 'Restore EEprom', command = RestoreEEprom)
 menubar.add_cascade(label = 'Backup/Restore', menu = backup)
 
-settings = Menu(menubar)
-groupsMenu = Menu(menubar)
+settings = Menu(menubar, tearoff=0)
+groupsMenu = Menu(menubar, tearoff=1)                                           # tearoff must be 1 here or defects are introduced in the menu
 settings.add_command(label = 'Change Master Password', command = clickedChangeMasterPass)
 settings.add_command(label = 'Show Password on Device', command = clickedShowPassword)
 settings.add_command(label = 'Decoy Password', command = clickedDecoyPassword)
