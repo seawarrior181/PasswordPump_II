@@ -14,8 +14,13 @@ Note about v2.0.5 of the PasswordPump:
 If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will most likely have a "lefty" encoder.  This means that as you turn the rotary encoder clockwise, it proceeds backwards through the alphabet instead of forwards.  Some folks find this counter intuitive.  To fix this you merely need to navigate to Settings->Encoder Type and change it from ‘Normal’ to ‘Lefty’; and don’t worry, the setting is remembered if you power cycle the device.  If you factory reset the device you’ll need to change the Encoder Type to Lefty again.
 
 # Change Log
-unreleased v2.0.6
- Note: please use v2.0.5 unless you're adventurous.
+
+Unreleased v2.0.8
+ Note: please use v2.0.6 until further notice.
+  * Modified the PCB design to accomodate a joystick instead of a rotary encoder.
+
+2020-12-31 v2.0.6
+  * Made some minor edits to the PasswordPumpGUI menus
   * Accepted design docs for an exceptionally well done case, here: https://github.com/seawarrior181/PasswordPump_II/tree/master/3D-Print/scootercommuter_Design
   * Added a setting that allows for the introduction of delay between the transmission of each character to the compuer/tablet/phone so that slower devices do not drop characters. 
   * Added the ability to set the default length of the generated password; 8, 10, 16, 24, or 31.
