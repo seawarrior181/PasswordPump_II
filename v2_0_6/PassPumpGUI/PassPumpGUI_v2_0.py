@@ -214,6 +214,9 @@ elif (platform.system() == "Linux"):                                           #
 else:
     window.geometry('400x555')
 
+stayOnTop = BooleanVar()                                                        # determines if the Window stays on top of all other windows
+stayOnTop.set(False)                                                            # default when starting is No
+
 lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
 frame = Frame(window, width=200, height=200)
@@ -1842,7 +1845,22 @@ def checkIfPowned():
         window.update();
 
 def openBrowser():
-    webbrowser.open(stripBadChars(txt_url.get()))
+    try:
+        aURL = stripBadChars(txt_url.get())
+        webbrowser.open(aURL)
+        updateDirections("Opened: " + aURL)
+    except Exception as e:
+        updateDirections("There was a problem opening\r\nthe URL:\r\n" +  + str(e))
+    window.call('wm', 'attributes', '.', '-topmost', True)                      # Place this window on the top
+    time.sleep(2)                                                               # Wait two seconds
+    if (stayOnTop.get() == False):
+        window.after_idle(window.call,'wm','attributes', '.', '-topmost', False)# Now allow this window to go to the background
+
+def doStayOnTop():
+    if (stayOnTop.get() == True):
+        window.call('wm', 'attributes', '.', '-topmost', True)
+    else:
+        window.after_idle(window.call, 'wm', 'attributes', '.', '-topmost', False)
 
 # Function to validate the password
 def passwordComplexityCheck(passwd):
@@ -2224,6 +2242,7 @@ groupsMenu.add_command(label = groupName6, command = customizeGroup6)
 groupsMenu.add_command(label = groupName7, command = customizeGroup7)
 settings.add_command(label = 'Factory Reset', command = FactoryReset)
 settings.add_command(label = 'Fix corrupt account list', command = FixCorruptLinkedList)
+settings.add_checkbutton(label='Stay On Top', var=stayOnTop, command=doStayOnTop)
 settings.add_command(label = 'More settings...', command = ShowSettingsWindow)
 menubar.add_cascade(label = 'Settings', menu = settings)
 
