@@ -1099,9 +1099,9 @@ def getRecord():
     global vCustom
     c.send("pyReadAccountName", calcAcctPositionSend(position))
     try:
-        response = c.receive()
+        responseAccount = c.receive()
         #print(response)
-        accountName_list = response[1]
+        accountName_list = responseAccount[1]
         accountName = accountName_list[0]
     except UnicodeDecodeError:
         accountName = ""
@@ -1110,9 +1110,9 @@ def getRecord():
 
     c.send("pyReadUserName", calcAcctPositionSend(position))
     try:
-        response = c.receive()
+        responseUser = c.receive()
         #print (response)
-        userName_list = response[1]
+        userName_list = responseUser[1]
         userName = userName_list[0]
     except UnicodeDecodeError:
         userName = ""
@@ -1121,9 +1121,9 @@ def getRecord():
 
     c.send("pyReadPassword", calcAcctPositionSend(position))
     try:
-        response = c.receive()
+        responsePassword = c.receive()
         #print(response)
-        password_list = response[1]
+        password_list = responsePassword[1]
         password = password_list[0]
     except UnicodeDecodeError:
         password = ""
@@ -1133,9 +1133,9 @@ def getRecord():
 
     c.send("pyReadOldPassword", calcAcctPositionSend(position))
     try:
-        response = c.receive()
+        responseOldPassword = c.receive()
         #print(response)
-        old_password_list = response[1]
+        old_password_list = responseOldPassword[1]
         old_password = old_password_list[0]
     except UnicodeDecodeError:
         old_password = ""
@@ -1144,9 +1144,9 @@ def getRecord():
 
     c.send("pyReadStyle", calcAcctPositionSend(position))
     try:
-        response = c.receive()
+        responseStyle = c.receive()
         #print(response)
-        style_list = response[1]
+        style_list = responseStyle[1]
         style = int(style_list[0])
     except ValueError:                                                          # when style = 255 (i.e. was never written)
         style = 1
@@ -1156,9 +1156,9 @@ def getRecord():
 
     c.send("pyReadURL", calcAcctPositionSend(position))
     try:
-        response = c.receive()
+        responseURL = c.receive()
         #print(response)
-        url_list = response[1]
+        url_list = responseURL[1]
         url = url_list[0]
     except UnicodeDecodeError:
         url = ""
@@ -1167,9 +1167,9 @@ def getRecord():
 
     c.send("pyReadGroup", calcAcctPositionSend(position))
     try:
-        response = c.receive()
+        responseGroup = c.receive()
         #print(response)
-        group_list = response[1]
+        group_list = responseGroup[1]
         group = int(group_list[0])
     except UnicodeDecodeError as ude:
         updateDirections("UnicodeDecodeError during pyReadGroup in getRecord(); " + str(ude))
