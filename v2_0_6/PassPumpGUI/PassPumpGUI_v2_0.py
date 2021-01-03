@@ -197,6 +197,7 @@ import serial.tools.list_ports
 import time
 import tkinter.messagebox
 import tkinter.simpledialog
+import webbrowser
 
 me = singleton.SingleInstance()                                                # will sys.exit(-1) if another instance is running
 
@@ -532,15 +533,16 @@ def clickedOpen():
     btn_delete.config(state='normal')
     btn_generate.config(state='normal')
     btn_powned.config(state='normal')
+    btn_browser.config(state='normal')
     btn_flip_pw.config(state='normal')
     textboxFavorites.config(state='normal')
-    textboxWork.config(state='normal')
-    textboxPersonal.config(state='normal')
-    textboxHome.config(state='normal')
-    textboxSchool.config(state='normal')
-    textboxFinancial.config(state='normal')
-    textboxMail.config(state='normal')
-    textboxCustom.config(state='normal')
+    textboxOne.config(state='normal')
+    textboxTwo.config(state='normal')
+    textboxThree.config(state='normal')
+    textboxFour.config(state='normal')
+    textboxFive.config(state='normal')
+    textboxSix.config(state='normal')
+    textboxSeven.config(state='normal')
     menubar.entryconfig('File', state='normal')
     menubar.entryconfig('Backup/Restore', state='normal')
     menubar.entryconfig('Settings', state='normal')
@@ -551,13 +553,13 @@ def clickedOpen():
 
     ReadGroupNames()
 
-    textboxWork.config(text=groupName1)
-    textboxPersonal.config(text=groupName2)
-    textboxHome.config(text=groupName3)
-    textboxSchool.config(text=groupName4)
-    textboxFinancial.config(text=groupName5)
-    textboxMail.config(text=groupName6)
-    textboxCustom.config(text=groupName7)
+    textboxOne.config(text=groupName1)
+    textboxTwo.config(text=groupName2)
+    textboxThree.config(text=groupName3)
+    textboxFour.config(text=groupName4)
+    textboxFive.config(text=groupName5)
+    textboxSix.config(text=groupName6)
+    textboxSeven.config(text=groupName7)
 
     groupsMenu.entryconfigure(1, label = groupName1)
     groupsMenu.entryconfigure(2, label = groupName2)
@@ -1090,13 +1092,13 @@ def getRecord():
     global position
     global group
     global vFavorites
-    global vWork
-    global vPersonal
-    global vHome
-    global vSchool
-    global vFinancial
-    global vMail
-    global vCustom
+    global vCategoryOne
+    global vCategoryTwo
+    global vCategoryThree
+    global vCategoryFour
+    global vCategoryFive
+    global vCategorySix
+    global vCategorySeven
     c.send("pyReadAccountName", calcAcctPositionSend(position))
     try:
         responseAccount = c.receive()
@@ -1728,64 +1730,64 @@ def OnFavorites():
         group = group & (~1)
     updateGroup()
 
-def OnWork():
+def OnCategoryOne():
     global group
-    global vWork
-    if (vWork.get() == 1):
+    global vCategoryOne
+    if (vCategoryOne.get() == 1):
         group = group | 2
     else:
         group = group & (~2)
     updateGroup()
 
-def OnPersonal():
+def OnCategoryTwo():
     global group
-    global vPersonal
-    if (vPersonal.get() == 1):
+    global vCategoryTwo
+    if (vCategoryTwo.get() == 1):
         group = group | 4
     else:
         group = group & (~4)
     updateGroup()
 
-def OnHome():
+def OnCategoryThree():
     global group
-    global vHome
-    if (vHome.get() == 1):
+    global vCategoryThree
+    if (vCategoryThree.get() == 1):
         group = group | 8
     else:
         group = group & (~8)
     updateGroup()
 
-def OnSchool():
+def OnCategoryFour():
     global group
-    global vSchool
-    if (vSchool.get() == 1):
+    global vCategoryFour
+    if (vCategoryFour.get() == 1):
         group = group | 16
     else:
         group = group & (~16)
     updateGroup()
 
-def OnFinancial():
+def OnCategoryFive():
     global group
-    global vFinancial
-    if (vFinancial.get() == 1):
+    global vCategoryFive
+    if (vCategoryFive.get() == 1):
         group = group | 32
     else:
         group = group & (~32)
     updateGroup()
 
-def OnMail():
+def OnCategorySix():
     global group
-    global vMail
-    if (vMail.get() == 1):
+    global vCategorySix
+    if (vCategorySix.get() == 1):
         group = group | 64
     else:
         group = group & (~64)
     updateGroup()
 
-def OnCustom():
+def OnCategorySeven():
     global group
-    global vCustom
-    if (vCustom.get() == 1):
+    global vCategorySeven
+    if (vCategorySeven.get() == 1):
         group = group | 128
     else:
         group = group & (~128)
@@ -1839,6 +1841,8 @@ def checkIfPowned():
             updateDirections("This password has not been recovered in any data breach.")
         window.update();
 
+def openBrowser():
+    webbrowser.open(stripBadChars(txt_url.get()))
 
 # Function to validate the password
 def passwordComplexityCheck(passwd):
@@ -1846,38 +1850,38 @@ def passwordComplexityCheck(passwd):
     specialSym = ['!','#','$','%','*','(',')','-','_','+','=','{','}','[',']',':',';','.','<','>','?','@']
     # ,"`\/&~|^
     badSym = [',','"','`','\\','/','&','~','|','^']
-    val = True
+    passwordOK = True
     rejectReason = 'Password fails complexity\r\ncheck:\r\n'
 
     if len(passwd) > 31:
         rejectReason += 'The password length should be\r\nnot be greater than 31.\r\n'
-        val = False
+        passwordOK = False
 
     if len(passwd) < 8:
         rejectReason += 'The password length should be\r\nat least 8.\r\n'
-        val = False
+        passwordOK = False
 
     if not any(char.isdigit() for char in passwd):
         rejectReason += 'The password should have at\r\nleast one numeral.\r\n'
-        val = False
+        passwordOK = False
 
     if not any(char.isupper() for char in passwd):
         rejectReason += 'The password should have at\r\nleast one uppercase letter.\r\n'
-        val = False
+        passwordOK = False
 
     if not any(char.islower() for char in passwd):
         rejectReason += 'The password should have at\r\nleast one lowercase letter.\r\n'
-        val = False
+        passwordOK = False
 
     if  any(char in badSym for char in passwd):
         rejectReason += 'The password has a forbidden\r\nsymbol: ,"`\/&~|^ \r\n'
-        val = False
+        passwordOK = False
 
     if not any(char in specialSym for char in passwd):
         rejectReason += 'The password should have at\r\nleast one of these symbols:\r\n!#$%*()-_+={}[]:;.<>?'
-        val = False
+        passwordOK = False
 
-    if not val:
+    if not passwordOK:
         updateDirections(rejectReason)
         txt_pass.config({"foreground": "red"})
     else:
@@ -1885,7 +1889,7 @@ def passwordComplexityCheck(passwd):
         txt_pass.config({"foreground": "black"})
 
     window.update()
-    return val
+    return passwordOK
 
 def flipPassword():
     global showPassword
@@ -1899,45 +1903,45 @@ def flipPassword():
 
 def SetGroupCheckBoxes():
     global vFavorites
-    global vWork
-    global vPersonal
-    global vHome
-    global vSchool
-    global vFinancial
-    global vMail
-    global vCustom
+    global vCategoryOne
+    global vCategoryTwo
+    global vCategoryThree
+    global vCategoryFour
+    global vCategoryFive
+    global vCategorySix
+    global vCategorySeven
     if ((group & 1) == 1):
         vFavorites.set(1)
     else:
         vFavorites.set(0)
     if ((group & 2) == 2):
-        vWork.set(1)
+        vCategoryOne.set(1)
     else:
-        vWork.set(0)
+        vCategoryOne.set(0)
     if ((group & 4) == 4):
-        vPersonal.set(1)
+        vCategoryTwo.set(1)
     else:
-        vPersonal.set(0)
+        vCategoryTwo.set(0)
     if ((group & 8) == 8):
-        vHome.set(1)
+        vCategoryThree.set(1)
     else:
-        vHome.set(0)
+        vCategoryThree.set(0)
     if ((group & 16) == 16):
-        vSchool.set(1)
+        vCategoryFour.set(1)
     else:
-        vSchool.set(0)
+        vCategoryFour.set(0)
     if ((group & 32) == 32):
-        vFinancial.set(1)
+        vCategoryFive.set(1)
     else:
-        vFinancial.set(0)
+        vCategoryFive.set(0)
     if ((group & 64) == 64):
-        vMail.set(1)
+        vCategorySix.set(1)
     else:
-        vMail.set(0)
+        vCategorySix.set(0)
     if ((group & 128) == 128):
-        vCustom.set(1)
+        vCategorySeven.set(1)
     else:
-        vCustom.set(0)
+        vCategorySeven.set(0)
     window.update()
 
 def customizeGroup1():
@@ -1951,7 +1955,7 @@ def customizeGroup1():
     # print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])  # returns head position
-    textboxWork.config(text=groupName1)
+    textboxOne.config(text=groupName1)
     groupsMenu.entryconfigure(1, label = groupName1)
 
 def customizeGroup2():
@@ -1965,7 +1969,7 @@ def customizeGroup2():
     # print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])  # returns head position
-    textboxPersonal.config(text=groupName2)
+    textboxTwo.config(text=groupName2)
     groupsMenu.entryconfigure(2, label = groupName2)
 
 def customizeGroup3():
@@ -1979,7 +1983,7 @@ def customizeGroup3():
     # print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])  # returns head position
-    textboxHome.config(text=groupName3)
+    textboxThree.config(text=groupName3)
     groupsMenu.entryconfigure(3, label = groupName3)
 
 def customizeGroup4():
@@ -1993,7 +1997,7 @@ def customizeGroup4():
     # print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])  # returns head position
-    textboxSchool.config(text=groupName4)
+    textboxFour.config(text=groupName4)
     groupsMenu.entryconfigure(4, label = groupName4)
 
 def customizeGroup5():
@@ -2007,7 +2011,7 @@ def customizeGroup5():
     # print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])  # returns head position
-    textboxFinancial.config(text=groupName5)
+    textboxFive.config(text=groupName5)
     groupsMenu.entryconfigure(5, label = groupName5)
 
 def customizeGroup6():
@@ -2021,7 +2025,7 @@ def customizeGroup6():
     # print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])  # returns head position
-    textboxMail.config(text=groupName6)
+    textboxSix.config(text=groupName6)
     groupsMenu.entryconfigure(6, label = groupName6)
 
 def customizeGroup7():
@@ -2035,7 +2039,7 @@ def customizeGroup7():
     # print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])  # returns head position
-    textboxCustom.config(text=groupName7)
+    textboxSeven.config(text=groupName7)
     groupsMenu.entryconfig(7, label = groupName7)
 
 def encrypt(filename, password):
@@ -2270,6 +2274,10 @@ btn_powned = Button(window, text="Pwned?", command=checkIfPowned)
 btn_powned.grid(column=4, row=5)
 btn_powned.config(state='disabled')
 
+btn_browser = Button(window, text="Open", command=openBrowser)
+btn_browser.grid(column=4, row=6)
+btn_browser.config(state='disabled')
+
 btn_flip_pw = Button(window, text="Password", command=flipPassword)
 btn_flip_pw.grid(column=1, row=4)
 btn_flip_pw.config(state='disabled')
@@ -2283,54 +2291,54 @@ btn_next.config(state='disabled')
 #btn_close.config(state='normal')
 
 vFavorites = IntVar()
-vWork = IntVar()
-vPersonal = IntVar()
-vHome = IntVar()
-vSchool = IntVar()
-vFinancial = IntVar()
-vMail = IntVar()
-vCustom = IntVar()
+vCategoryOne = IntVar()
+vCategoryTwo = IntVar()
+vCategoryThree = IntVar()
+vCategoryFour = IntVar()
+vCategoryFive = IntVar()
+vCategorySix = IntVar()
+vCategorySeven = IntVar()
 
 textboxFavorites = Checkbutton(window, text="Favorites ", variable=vFavorites, command=OnFavorites, onvalue=1, offvalue=0)
 textboxFavorites.var = vFavorites
 textboxFavorites.grid(column=1,row=12)
 
-textboxWork = Checkbutton(window, text=groupName1, variable=vWork, command=OnWork, onvalue=1, offvalue=0)
-textboxWork.var = vWork
-textboxWork.grid(column=1,row=13)
+textboxOne = Checkbutton(window, text=groupName1, variable=vCategoryOne, command=OnCategoryOne, onvalue=1, offvalue=0)
+textboxOne.var = vCategoryOne
+textboxOne.grid(column=1,row=13)
 
-textboxPersonal = Checkbutton(window, text=groupName2, variable=vPersonal, command=OnPersonal, onvalue=1, offvalue=0)
-textboxPersonal.var = vPersonal
-textboxPersonal.grid(column=1,row=14)
+textboxTwo = Checkbutton(window, text=groupName2, variable=vCategoryTwo, command=OnCategoryTwo, onvalue=1, offvalue=0)
+textboxTwo.var = vCategoryTwo
+textboxTwo.grid(column=1,row=14)
 
-textboxHome = Checkbutton(window, text=groupName3, variable=vHome, command=OnHome, onvalue=1, offvalue=0)
-textboxHome.var = vHome
-textboxHome.grid(column=1,row=15)
+textboxThree = Checkbutton(window, text=groupName3, variable=vCategoryThree, command=OnCategoryThree, onvalue=1, offvalue=0)
+textboxThree.var = vCategoryThree
+textboxThree.grid(column=1,row=15)
 
-textboxSchool = Checkbutton(window, text=groupName4, variable=vSchool, command=OnSchool, onvalue=1, offvalue=0)
-textboxSchool.var = vSchool
-textboxSchool.grid(column=2,row=12)
+textboxFour = Checkbutton(window, text=groupName4, variable=vCategoryFour, command=OnCategoryFour, onvalue=1, offvalue=0)
+textboxFour.var = vCategoryFour
+textboxFour.grid(column=2,row=12)
 
-textboxFinancial = Checkbutton(window, text=groupName5, variable=vFinancial, command=OnFinancial, onvalue=1, offvalue=0)
-textboxFinancial.var = vFinancial
-textboxFinancial.grid(column=2,row=13)
+textboxFive = Checkbutton(window, text=groupName5, variable=vCategoryFive, command=OnCategoryFive, onvalue=1, offvalue=0)
+textboxFive.var = vCategoryFive
+textboxFive.grid(column=2,row=13)
 
-textboxMail = Checkbutton(window, text=groupName6, variable=vMail, command=OnMail, onvalue=1, offvalue=0)
-textboxMail.var = vMail
-textboxMail.grid(column=2,row=14)
+textboxSix = Checkbutton(window, text=groupName6, variable=vCategorySix, command=OnCategorySix, onvalue=1, offvalue=0)
+textboxSix.var = vCategorySix
+textboxSix.grid(column=2,row=14)
 
-textboxCustom = Checkbutton(window, text=groupName7, variable=vCustom, command=OnCustom, onvalue=1, offvalue=0)
-textboxCustom.var = vCustom
-textboxCustom.grid(column=2,row=15)
+textboxSeven = Checkbutton(window, text=groupName7, variable=vCategorySeven, command=OnCategorySeven, onvalue=1, offvalue=0)
+textboxSeven.var = vCategorySeven
+textboxSeven.grid(column=2,row=15)
 
 textboxFavorites.config(state='disabled')
-textboxWork.config(state='disabled')
-textboxPersonal.config(state='disabled')
-textboxHome.config(state='disabled')
-textboxSchool.config(state='disabled')
-textboxFinancial.config(state='disabled')
-textboxMail.config(state='disabled')
-textboxCustom.config(state='disabled')
+textboxOne.config(state='disabled')
+textboxTwo.config(state='disabled')
+textboxThree.config(state='disabled')
+textboxFour.config(state='disabled')
+textboxFive.config(state='disabled')
+textboxSix.config(state='disabled')
+textboxSeven.config(state='disabled')
 
 lb.bind("<Down>", OnEntryDown)
 lb.bind("<Up>", OnEntryUp)
