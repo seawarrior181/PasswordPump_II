@@ -728,6 +728,9 @@
   
   Menu Navigation
   ===============
+  Short click (< 0.5 seconds) brings you right, long click (> 0.5 seconds) 
+  brings you left.
+  
   Master Password                  
   Find Favorite
   Find All Accounts
