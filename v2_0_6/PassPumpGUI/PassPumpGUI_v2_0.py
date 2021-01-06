@@ -11,8 +11,8 @@
 #
 # Purpose
 # =======
-# This is the client side of the PasswordPump.  This program's job is to
-# allow the user to edit the credentials that are stored inside the EEprom
+# This is the client side  of  the  PasswordPump.  This  program's  job  is  to
+# allow the user to edit the credentials that  are  stored  inside  the  EEprom
 # chips that reside on the PasswordPump device.  With this program you can also
 # edit may other attributes of the PasswordPump.
 #
@@ -192,6 +192,7 @@ import os
 import platform
 import powned
 import PyCmdMessenger
+import requests
 import serial
 import serial.tools.list_ports
 import time
@@ -245,6 +246,34 @@ lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
 lbl_style.grid(column=1, row=7)
 
 translation_table = dict.fromkeys(map(ord, ',|~"'), '#')
+
+def updateCheck():
+    try:
+        updateWindow = Toplevel()
+        updateWindow.title(string="Update Checker")
+        updateWindow.resizable(False, False)
+        versionContents = 'Version:2.0.6.01'                                                                                # the current version
+        latestVersion = "https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_6/PassPumpGUI/PassPumpGUI_v2_0.py"
+        response = requests.get('https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_6/NewestVersion.txt')    # gets newest version
+        updateContents = response.text
+        verIdx = updateContents.find("Version:")
+        version = updateContents[verIdx:verIdx+16]
+        if version != versionContents:
+            versionLabel = Label(updateWindow, text="\n\n A program update is availible.\n\n    Current "
+                                 + versionContents + "\n    Latest    " + version + "\n\n Download the latest version from:\n\n " +
+                                 latestVersion + " \n\n which has been copied to your system clipboard.\n\n"                       )
+            r=Tk()                                                                  # copy the URL to the global/system clipboard
+            r.withdraw()
+            r.clipboard_clear()                                                     # since this is a potentially destructive action add a button and ask the user if they want to do this.
+            r.clipboard_append(latestVersion)
+            r.update()                                                              # now it stays on the clipboard after the window is closed
+            r.destroy()
+            updateDirections("URL for program on global clipboard.")
+        else:
+            versionLabel = Label(updateWindow, text="\n\n You are running the most up to date version. " + versionContents + " \n\n")
+        versionLabel.pack()
+    except Exception as e:
+        updateDirections("Unable to check the version of the PasswordPumpGUI:\r\n" + str(e))
 
 def ShowSettingsWindow():
     global cbRGBIntensity
@@ -1904,7 +1933,7 @@ def passwordComplexityCheck(passwd):
         txt_pass.config({"foreground": "red"})
     else:
         updateDirections('Password passes complexity\r\nvalidation.')
-        txt_pass.config({"foreground": "black"})
+        txt_pass.config({"foreground": "green"})
 
     window.update()
     return passwordOK
@@ -2244,6 +2273,7 @@ settings.add_command(label = 'Factory Reset', command = FactoryReset)
 settings.add_command(label = 'Fix corrupt account list', command = FixCorruptLinkedList)
 settings.add_checkbutton(label='Stay On Top', var=stayOnTop, command=doStayOnTop)
 settings.add_command(label = 'More settings...', command = ShowSettingsWindow)
+settings.add_command(label = 'Check for Updates', command = updateCheck)
 menubar.add_cascade(label = 'Settings', menu = settings)
 
 menubar.entryconfig('File', state='normal')
