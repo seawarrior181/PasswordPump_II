@@ -18,6 +18,8 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 Unreleased v2.0.8
  Note: please use v2.0.6 until further notice.
   * Modified the PCB design to accomodate a joystick instead of a rotary encoder.
+  * Added the ability to download the latest version of the PasswordPumpGUI to the PasswordPumpGUI.
+  * Added the ability to download the latest versions of the firmware from the PasswordPumpGUI.
 
 2020-12-31 v2.0.6
   * Made some minor edits to the PasswordPumpGUI menus

@@ -5,8 +5,8 @@
 #               |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
 # Author:       Daniel J. Murphy                                  |_|
 # File:         PassPumpGUI_v2_0.py
-# Version:      2.0.6.02
-# Date:         2019/07/26 - 2020/11/08
+# Version:      2.0.8.00
+# Date:         2019/07/26 - 2021/12/10
 # Language:     Python
 #
 # Purpose
@@ -164,14 +164,14 @@
 #  ShareAlike — If you remix, transform, or build upon the material, you must
 #  distribute your contributions under the same license as the original.
 #
-#  No additional restrictions — You may not apply legal terms or technological 
+#  No additional restrictions — You may not apply legal terms or technological
 #  measures that legally restrict others from doing anything the license permits.
 #
 #  Notices:
 #  You do not have to comply with the license for elements of the material in the
 #  public domain or where your use is permitted by an applicable exception or
 #  limitation.
-#  
+#
 #  No warranties are given. The license may not give you all of the permissions
 #  necessary for your intended use. For example, other rights such as publicity,
 #  privacy, or moral rights may limit how you use the material.
@@ -185,6 +185,7 @@ from tkinter import *
 from tkinter.ttk import *
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
+from tkinter.filedialog import askdirectory
 
 import base64
 import csv
@@ -207,7 +208,7 @@ except Exception as e:
 
 global c
 window = Tk()
-window.title("PasswordPump Edit Credentials v2.0.6.02")
+window.title("PasswordPump Edit Credentials v2.0.8.00")
 
 if (platform.system() == "Windows"):                                           # e.g. Windows10
     window.geometry('400x560')
@@ -258,9 +259,9 @@ def updateCheck():
         updateWindow = Toplevel()
         updateWindow.title(string="Update Checker")
         updateWindow.resizable(False, False)
-        versionContents = 'Version:2.0.6.02'                                                                                # the current version
-        latestVersion = "https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_6/PassPumpGUI/PassPumpGUI_v2_0.py"
-        response = requests.get('https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_6/NewestVersion.txt')    # gets newest version
+        versionContents = 'Version:2.0.8.00'                                                                                # the current version
+        latestVersion = "https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py"
+        response = requests.get('https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/NewestVersion.txt')    # gets newest version
         updateContents = response.text
         verIdx = updateContents.find("Version:")
         version = updateContents[verIdx:verIdx+16]
@@ -280,7 +281,7 @@ def updateCheck():
 
 def downloadLatest():
     try:
-        url = 'https://raw.githubusercontent.com/seawarrior181/PasswordPump_II/master/v2_0_6/PassPumpGUI/PassPumpGUI_v2_0.py'
+        url = 'https://raw.githubusercontent.com/seawarrior181/PasswordPump_II/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py'
         req = requests.get(url, allow_redirects=True)
         open(__file__ + ".new", 'wb').write(req.content)
         downloadedLabel = Label(updateWindow,
@@ -302,6 +303,123 @@ def downloadLatest():
         r.destroy()
     except Exception as e:
         updateDirections("Unable to download the latest version of the PasswordPumpGUI:\r\n" + str(e))
+
+def updateFirmwareCheck():
+    global firmwareUpdateWindow
+    global inputType
+    global boardType
+    global urlM0Encoder
+    global urlMoJoystick
+    global urlM4Encoder
+    global urlM0Encoder
+    global urlM4Encoder
+    global urlM0Joystick
+    global urlM4Joystick
+    urlM0Encoder =  "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M0/encoder/PasswordPump_v_2_0.ino.bin"
+    urlM4Encoder =  "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M4/encoder/PasswordPump_v_2_0.ino.bin"
+    urlM0Joystick = "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M0/joystick/PasswordPump_v_2_0.ino.bin"
+    urlM4Joystick = "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M4/joystick/PasswordPump_v_2_0.ino.bin"
+    try:
+        firmwareUpdateWindow = Toplevel()
+        firmwareUpdateWindow.title(string="Firmware Update Checker")
+        firmwareUpdateWindow.resizable(False, False)
+        response = requests.get('https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/NewestVersionFirmware.txt')    # gets newest version
+        updateContents = response.text
+        verIdx = updateContents.find("Version:")
+        version = updateContents[verIdx:verIdx+16]
+        updateDirections(version)
+        firmwareVersion = getFirmwareVersion()
+        updateDirections(firmwareVersion)
+        if version != firmwareVersion:
+            versionLabel = Label(firmwareUpdateWindow,
+                                 text="\n\n A firmware update is availible.\n\n    Current " +
+                                 firmwareVersion + "\n    Latest    " + version + "\n\n Download the latest version from:\n\n " +
+                                 urlM0Encoder + "\n    or\n " + urlM0Joystick + "\n    or\n " + urlM4Encoder +
+                                 "\n    or\n " + urlM4Joystick +
+                                 "\n\n by clicking on the Download button.  " +
+                                 "You will be asked to select the directory to which to download the firmware.\n\n")
+            inputLabel    = Label(firmwareUpdateWindow,
+                                  text="\n My PasswordPump is a:")
+            boardLabel    = Label(firmwareUpdateWindow,
+                                  text="\n My PasswordPump has a:")
+
+            inputType = IntVar()
+            boardType = IntVar()
+            radioButtonBoardM0 = Radiobutton(   firmwareUpdateWindow,
+                                                text="ItsyBitsy M0",
+                                                variable=boardType,
+                                                value=1 )
+            radioButtonBoardM4 = Radiobutton(   firmwareUpdateWindow,
+                                                text="Itsybitsy M4",
+                                                variable=boardType,
+                                                value=2)
+            radioButtonEncoder = Radiobutton(   firmwareUpdateWindow,
+                                                text="Encoder",
+                                                variable=inputType,
+                                                value=1 )
+            radioButtonJoystick = Radiobutton(  firmwareUpdateWindow,
+                                                text="Joystick",
+                                                variable=inputType,
+                                                value=2)
+            downloadButton = Button(firmwareUpdateWindow, text="Download", command=downloadLatestFirmware)
+            versionLabel.pack()
+            inputLabel.pack()
+            radioButtonBoardM0.pack()
+            radioButtonBoardM4.pack()
+            boardLabel.pack()
+            radioButtonEncoder.pack()
+            radioButtonJoystick.pack()
+            downloadButton.pack()
+        else:
+            versionLabel = Label(firmwareUpdateWindow, text="\n\n You are running the most up to date version. " + firmwareVersion + " \n\n")
+            versionLabel.pack()
+    except Exception as e:
+        updateDirections("Unable to check the version of the firmware:\r\n" + str(e))
+
+def downloadLatestFirmware():
+    try:
+        updateDirections("Select a directory for the firmware file.")
+        downloadLocation = 'C:\\temp'
+        if (platform.system() == "Windows"):
+            downloadLocation = askdirectory()
+        elif (platform.system() == "Darwin"):  # Macintosh
+            downloadLocation = askdirectory()
+        elif (platform.system() == "Linux"):  # Linux
+            downloadLocation = askdirectory()
+        else:
+            downloadLocation = askdirectory()
+        if os.path.exists(downloadLocation):
+            url = urlM0Encoder
+            if inputType == 1:
+                if boardType == 1:
+                    url = urlM0Encoder
+                else:
+                    url = urlM4Encoder
+            else:
+                if boardType == 1:
+                    url = urlM0Joystick
+                else:
+                    url = urlM4Joystick
+            downloadFile = downloadLocation + os.sep + 'PasswordPump_v_2_0.ino.bin'
+            req = requests.get(url, allow_redirects=True)
+            open(downloadFile, 'wb').write(req.content)
+            downloadedLabel = Label(firmwareUpdateWindow,
+                                text="\n The latest version of the firmware was downloaded to\n\n" + " " + downloadFile +"\n\n" +
+                                     " Exit the program and run BOSSA to upload the new firmware. \n\n" +
+                                     " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n\n")
+            downloadedLabel.pack()
+            updateDirections("Latest version of\nPasswordPump firmware downloaded.")
+            r=Tk()                                                                  # copy the URL to the global/system clipboard
+            r.withdraw()
+            r.clipboard_clear()                                                     # since this is a potentially destructive action add a button and ask the user if they want to do this.
+            r.clipboard_append(usersGuideLocation)
+            r.update()                                                              # now it stays on the clipboard after the window is closed
+            r.destroy()
+            firmwareUpdateWindow.lift()
+        else:
+            updateDirections("Download location not found.")
+    except Exception as e:
+        updateDirections("Unable to download the latest version of the PasswordPump firmware:\r\n" + str(e))
 
 def ShowSettingsWindow():
     global cbRGBIntensity
@@ -537,6 +655,7 @@ def clickedOpen():
                 ["pyGetLoginAttempts",""],
                 ["pyGetPasswordLength",""],
                 ["pyGetInterCharDelay",""],
+                ["pyGetFirmwareVersion",""],
                 ["pyChangeMasterPass", "s"]]
 
     global c                                                                   # Initialize the messenger
@@ -609,6 +728,7 @@ def clickedOpen():
     menubar.entryconfig('Help', state='normal')
     file.entryconfig('Import', state='normal')
     file.entryconfig('Export', state='normal')
+    help.entryconfig('Check for Firmware Updates', state='normal')
     window.config(cursor="")
     updateDirections("Connected.")
 
@@ -1422,40 +1542,41 @@ def ImportFileChrome():
     else:
         name = askopenfilename(title = "Choose a file."
                               )
-    window.config(cursor="watch")
-    updateDirections(name)
-    global position
-    try:                                                                        # Using try in case user types in unknown file or closes without choosing a file.
-        with open(name, newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            try:
-                for row in reader:
-                    txt_acct.delete(0, END)
-                    txt_user.delete(0, END)
-                    txt_pass.delete(0, END)
-                    txt_url.delete(0, END)
-                    txt_acct.insert(0,stripBadChars(row['name']))
-                    txt_user.insert(0,stripBadChars(row['username']))
-                    txt_pass.insert(0,stripBadChars(row['password']))
-                    txt_url.insert(0,stripBadChars(row['url']))
-                    window.update()
-                    time.sleep(0.15)                                            # to eliminate intermittent failure
-                    clickedAcct()                                               # sets position = FindAccountPos()
-                    time.sleep(0.15)                                            # to eliminate intermittent failure
-                    clickedUser()
-                    time.sleep(0.15)                                            # to eliminate intermittent failure
-                    clickedPass()
-                    time.sleep(0.15)                                            # to eliminate intermittent failure
-                    clickedStyle()
-                    time.sleep(0.15)                                            # to eliminate intermittent failure
-                    clickedUrl_New()
-                    updateDirections("Record saved.")
-                updateDirections("All records saved.")
-                loadListBox()
-            except Exception as e:
-                updateDirections("Error encountered reading file in ImportFileChrome; "+ str(e))
-    except Exception as ex:
-        updateDirections("Error encountered in ImportFileChrome; " + str(ex))
+    if os.path.exists(name):                                                    # make sure the file exists before trying to open it
+        window.config(cursor="watch")
+        updateDirections(name)
+        global position
+        try:                                                                    # Using try in case user types in unknown file or closes without choosing a file.
+            with open(name, newline='') as csvfile:
+                reader = csv.DictReader(csvfile)
+                try:
+                    for row in reader:
+                        txt_acct.delete(0, END)
+                        txt_user.delete(0, END)
+                        txt_pass.delete(0, END)
+                        txt_url.delete(0, END)
+                        txt_acct.insert(0,stripBadChars(row['name']))
+                        txt_user.insert(0,stripBadChars(row['username']))
+                        txt_pass.insert(0,stripBadChars(row['password']))
+                        txt_url.insert(0,stripBadChars(row['url']))
+                        window.update()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedAcct()                                           # sets position = FindAccountPos()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedUser()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedPass()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedStyle()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedUrl_New()
+                        updateDirections("Record saved.")
+                    updateDirections("All records saved.")
+                    loadListBox()
+                except Exception as e:
+                    updateDirections("Error encountered reading file in ImportFileChrome; "+ str(e))
+        except Exception as ex:
+            updateDirections("Error encountered in ImportFileChrome; " + str(ex))
     window.config(cursor="")
     window.update()
     state = "None"
@@ -1477,40 +1598,41 @@ def ImportFileKeePass():
     else:
         name = askopenfilename(title = "Choose a file."
                               )
-    window.config(cursor="watch")
-    updateDirections(name)
-    global position
-    try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
-        with open(name, newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            try:
-                for row in reader:
-                    txt_acct.delete(0, END)
-                    txt_user.delete(0, END)
-                    txt_pass.delete(0, END)
-                    txt_url.delete(0, END)
-                    txt_acct.insert(0,stripBadChars(row['Account']))
-                    txt_user.insert(0,stripBadChars(row['Login Name']))
-                    txt_pass.insert(0,stripBadChars(row['Password']))
-                    txt_url.insert(0,stripBadChars(row['Web Site']))
-                    window.update()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
-                    clickedAcct()                                              # sets position = FindAccountPos()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
-                    clickedUser()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
-                    clickedPass()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
-                    clickedStyle()
-                    time.sleep(0.15)                                           # to eliminate intermittent failure
-                    clickedUrl_New()
-                    updateDirections("Record saved.")
-                updateDirections("All records saved.")
-                loadListBox()
-            except Exception as e:
-                updateDirections("Error encountered processing file in ImportFileKeePass; "+ str(e))
-    except Exception as ex:
-        updateDirections("Error encountered in ImportFileKeePass; " + str(ex))
+    if os.path.exists(name):                                                    # make sure the file exists before trying to open it
+        window.config(cursor="watch")
+        updateDirections(name)
+        global position
+        try:                                                                    # Using try in case user types in unknown file or closes without choosing a file.
+            with open(name, newline='') as csvfile:
+                reader = csv.DictReader(csvfile)
+                try:
+                    for row in reader:
+                        txt_acct.delete(0, END)
+                        txt_user.delete(0, END)
+                        txt_pass.delete(0, END)
+                        txt_url.delete(0, END)
+                        txt_acct.insert(0,stripBadChars(row['Account']))
+                        txt_user.insert(0,stripBadChars(row['Login Name']))
+                        txt_pass.insert(0,stripBadChars(row['Password']))
+                        txt_url.insert(0,stripBadChars(row['Web Site']))
+                        window.update()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedAcct()                                           # sets position = FindAccountPos()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedUser()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedPass()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedStyle()
+                        time.sleep(0.15)                                        # to eliminate intermittent failure
+                        clickedUrl_New()
+                        updateDirections("Record saved.")
+                    updateDirections("All records saved.")
+                    loadListBox()
+                except Exception as e:
+                    updateDirections("Error encountered processing file in ImportFileKeePass; "+ str(e))
+        except Exception as ex:
+            updateDirections("Error encountered in ImportFileKeePass; " + str(ex))
     window.config(cursor="")
     window.update()
     state = "None"
@@ -1546,50 +1668,51 @@ def ImportFilePasswordPump():
     global position
     global group
     window.config(cursor="watch")
-    try:                                                                        # Using try in case user types in unknown file or closes without choosing a file.
-        with open(uenc_name, newline='') as csvfile:
-            fieldnames = ['accountname', 'username', 'password', 'oldpassword', 'url', 'style', 'group']
-            reader = csv.DictReader(csvfile, fieldnames=fieldnames)
-            try:
-                for row in reader:
-                    txt_acct.delete(0, END)
-                    txt_user.delete(0, END)
-                    txt_pass.delete(0, END)
-                    txt_old_pass.delete(0, END)
-                    txt_url.delete(0, END)
-                    txt_acct.insert(0,stripBadChars(row['accountname']))
-                    if (txt_acct.get() != 'accountname'):                      # to skip the header if there is one
-                        txt_user.insert(0,stripBadChars(row['username']))
-                        txt_pass.insert(0,stripBadChars(row['password']))
-                        txt_old_pass.insert(0,stripBadChars(row['oldpassword']))
-                        txt_url.insert(0,stripBadChars(row['url']))
-                        group = int(row['group'])
-                        SetGroupCheckBoxes()
-                        window.update()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedAcct()                                          # sets position = FindAccountPos()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedUser()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedPass()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedOldPass()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedStyle()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        clickedUrl_New()
-                        time.sleep(0.15)                                       # to eliminate intermittent failure
-                        updateGroup()
-                        updateDirections("Record saved.")
-                updateDirections("All records saved.")
-                loadListBox()
-            except Exception as e:
-                updateDirections("Error encountered reading file in ImportFilePasswordPump; "+ str(e))
-    except Exception as ex:
-        updateDirections("Error encountered in ImportFilePasswordPump; " + ex)
-    state = "None"
-    if name.endswith(".csvenc"):                                                # if the filename ends in enc it was encrypted
-        os.remove(uenc_name)                                                    # for safety remove the unencrypted file
+    if os.path.exists(uenc_name):
+        try:                                                                    # Using try in case user types in unknown file or closes without choosing a file.
+            with open(uenc_name, newline='') as csvfile:
+                fieldnames = ['accountname', 'username', 'password', 'oldpassword', 'url', 'style', 'group']
+                reader = csv.DictReader(csvfile, fieldnames=fieldnames)
+                try:
+                    for row in reader:
+                        txt_acct.delete(0, END)
+                        txt_user.delete(0, END)
+                        txt_pass.delete(0, END)
+                        txt_old_pass.delete(0, END)
+                        txt_url.delete(0, END)
+                        txt_acct.insert(0,stripBadChars(row['accountname']))
+                        if (txt_acct.get() != 'accountname'):                   # to skip the header if there is one
+                            txt_user.insert(0,stripBadChars(row['username']))
+                            txt_pass.insert(0,stripBadChars(row['password']))
+                            txt_old_pass.insert(0,stripBadChars(row['oldpassword']))
+                            txt_url.insert(0,stripBadChars(row['url']))
+                            group = int(row['group'])
+                            SetGroupCheckBoxes()
+                            window.update()
+                            time.sleep(0.15)                                    # to eliminate intermittent failure
+                            clickedAcct()                                       # sets position = FindAccountPos()
+                            time.sleep(0.15)                                    # to eliminate intermittent failure
+                            clickedUser()
+                            time.sleep(0.15)                                    # to eliminate intermittent failure
+                            clickedPass()
+                            time.sleep(0.15)                                    # to eliminate intermittent failure
+                            clickedOldPass()
+                            time.sleep(0.15)                                    # to eliminate intermittent failure
+                            clickedStyle()
+                            time.sleep(0.15)                                    # to eliminate intermittent failure
+                            clickedUrl_New()
+                            time.sleep(0.15)                                    # to eliminate intermittent failure
+                            updateGroup()
+                            updateDirections("Record saved.")
+                    updateDirections("All records saved.")
+                    loadListBox()
+                except Exception as e:
+                    updateDirections("Error encountered reading file in ImportFilePasswordPump; "+ str(e))
+        except Exception as ex:
+            updateDirections("Error encountered in ImportFilePasswordPump; " + ex)
+        state = "None"
+        if name.endswith(".csvenc"):                                             # if the filename ends in enc it was encrypted
+            os.remove(uenc_name)                                                 # for safety remove the unencrypted file
     window.config(cursor="")
     window.update()
 
@@ -2125,6 +2248,17 @@ def customizeGroup7():
     textboxSeven.config(text=groupName7)
     groupsMenu.entryconfig(7, label = groupName7)
 
+def getFirmwareVersion():
+    c.send("pyGetFirmwareVersion")
+    try:
+        responseFirmwareVersion = c.receive()
+        firmwareVersionList = responseFirmwareVersion[1]
+        firmwareVersion = firmwareVersionList[0]
+    except UnicodeDecodeError:
+        firmwareVersion = ""
+        updateDirections("Unable to obtain the firmware version")
+    return "Version:" + firmwareVersion
+
 def encrypt(filename, password):
     """
     Given a filename (str) and key (bytes), it encrypts the file and write it
@@ -2315,7 +2449,9 @@ help = Menu(menubar, tearoff=0)
 help.add_command(label = 'Help', command = openHelp)
 help.add_separator()
 help.add_command(label = 'Check for Updates', command = updateCheck)
+help.add_command(label = 'Check for Firmware Updates', command = updateFirmwareCheck)
 menubar.add_cascade(label = 'Help', menu = help)
+help.entryconfig('Check for Firmware Updates', state='disabled')
 
 menubar.entryconfig('File', state='normal')
 file.entryconfig('Import', state='disabled')
