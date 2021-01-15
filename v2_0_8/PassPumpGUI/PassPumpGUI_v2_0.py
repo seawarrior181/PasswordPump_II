@@ -755,7 +755,7 @@ def clickedOpen():
 def updateDirections(directions):
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, directions)
-    #print (directions)
+    print (directions)
     window.update()
 
 def clickedAcctParam(txt_acct_param):
