@@ -204,17 +204,16 @@ import webbrowser
 try:
     me = singleton.SingleInstance()                                             # will sys.exit(-1) if another instance is running
 except Exception as e:
-    print("Another version of the PasswordPumpGUI is already running, quitting.")# TODO: Never reached...
+    print("Another version of the PasswordPumpGUI is already running, quitting.")  # TODO: Never reached...
 
-global c
 window = Tk()
 window.title("PasswordPump Edit Credentials v2.0.8.00")
 
-if (platform.system() == "Windows"):                                           # e.g. Windows10
+if platform.system() == "Windows":                                              # e.g. Windows10
     window.geometry('400x560')
-elif (platform.system() == "Darwin"):                                          # Macintosh
+elif platform.system() == "Darwin":                                             # Macintosh
     window.geometry('580x600')
-elif (platform.system() == "Linux"):                                           # e.g. Ubuntu
+elif platform.system() == "Linux":                                              # e.g. Ubuntu
     window.geometry('580x600')
 else:
     window.geometry('400x555')
@@ -226,7 +225,7 @@ lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
 lbl_port.grid(column=1, row=0)
 frame = Frame(window, width=200, height=200)
 
-frame.grid(column=2,row=1)
+frame.grid(column=2, row=1)
 lb = Listbox(frame, selectmode=SINGLE, justify=LEFT, width=38, bd=0, exportselection=False)
 scrollbar = Scrollbar(frame, orient=VERTICAL)
 scrollbar.pack(side=RIGHT, fill=Y)
@@ -253,31 +252,35 @@ translation_table = dict.fromkeys(map(ord, ',|~"'), '#')
 
 usersGuideLocation = "https://docs.google.com/document/d/1QwUFkCNrrNJYPX6mqauCRvVULn6AmX-2JMsckq2TvfU/edit?usp=sharing"
 
+
 def updateCheck():
     global updateWindow
     try:
         updateWindow = Toplevel()
         updateWindow.title(string="Update Checker")
         updateWindow.resizable(False, False)
-        versionContents = 'Version:2.0.8.00'                                                                                # the current version
+        versionContents = 'Version:2.0.8.00'                                        # the current version
         latestVersion = "https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py"
-        response = requests.get('https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/NewestVersion.txt')    # gets newest version
+        response = requests.get(
+            'https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/NewestVersion.txt')  # gets newest version
         updateContents = response.text
         verIdx = updateContents.find("Version:")
-        version = updateContents[verIdx:verIdx+16]
+        version = updateContents[verIdx:verIdx + 16]
         if version != versionContents:
             versionLabel = Label(updateWindow,
                                  text="\n\n A program update is availible.\n\n    Current "
-                                 + versionContents + "\n    Latest    " + version + "\n\n Download the latest version from:\n\n " +
-                                 latestVersion + "\n\n by clicking on the Download button.\n\n"                       )
+                                      + versionContents + "\n    Latest    " + version + "\n\n Download the latest version from:\n\n " +
+                                      latestVersion + "\n\n by clicking on the Download button.\n\n")
             downloadButton = Button(updateWindow, text="Download", command=downloadLatest)
             versionLabel.pack()
             downloadButton.pack()
         else:
-            versionLabel = Label(updateWindow, text="\n\n You are running the most up to date version. " + versionContents + " \n\n")
+            versionLabel = Label(updateWindow,
+                                 text="\n\n You are running the most up to date version. " + versionContents + " \n\n")
             versionLabel.pack()
-    except Exception as e:
-        updateDirections("Unable to check the version of the PasswordPumpGUI:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Unable to check the version of the PasswordPumpGUI:\r\n" + str(ex))
+
 
 def downloadLatest():
     try:
@@ -285,82 +288,81 @@ def downloadLatest():
         req = requests.get(url, allow_redirects=True)
         open(__file__ + ".new", 'wb').write(req.content)
         downloadedLabel = Label(updateWindow,
-                            text="\n The latest version of PasswordPumpGUI was downloaded to\n\n" + " " + __file__ + ".new\n\n" +
-                                 " Exit the program and rename\n\n" +
-                                 "   " + __file__ + " to\n" +
-                                 "   " + __file__ + ".old\n\n and rename\n\n" +
-                                 "   " + __file__ + ".new to\n" +
-                                 "   " + __file__ + "\n\n then restart the program." +
-                                 "\n\n This is also a good time to update to the latest version of the PasswordPump firmware.\n" +
-                                 " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n\n")
+                                text="\n The latest version of PasswordPumpGUI was downloaded to\n\n" + " " + __file__ + ".new\n\n" +
+                                     " Exit the program and rename\n\n" +
+                                     "   " + __file__ + " to\n" +
+                                     "   " + __file__ + ".old\n\n and rename\n\n" +
+                                     "   " + __file__ + ".new to\n" +
+                                     "   " + __file__ + "\n\n then restart the program." +
+                                     "\n\n This is also a good time to update to the latest version of the PasswordPump firmware.\n" +
+                                     " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n\n")
         downloadedLabel.pack()
         updateDirections("Latest version of\nPasswordPumpGUI downloaded.")
-        r=Tk()                                                                  # copy the URL to the global/system clipboard
+        r = Tk()                                                                # copy the URL to the global/system clipboard
         r.withdraw()
         r.clipboard_clear()                                                     # since this is a potentially destructive action add a button and ask the user if they want to do this.
         r.clipboard_append(usersGuideLocation)
         r.update()                                                              # now it stays on the clipboard after the window is closed
         r.destroy()
-    except Exception as e:
-        updateDirections("Unable to download the latest version of the PasswordPumpGUI:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Unable to download the latest version of the PasswordPumpGUI:\r\n" + str(ex))
+
 
 def updateFirmwareCheck():
     global firmwareUpdateWindow
     global inputType
     global boardType
     global urlM0Encoder
-    global urlMoJoystick
-    global urlM4Encoder
-    global urlM0Encoder
-    global urlM4Encoder
     global urlM0Joystick
+    global urlM4Encoder
     global urlM4Joystick
-    urlM0Encoder =  "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M0/encoder/PasswordPump_v_2_0.ino.bin"
-    urlM4Encoder =  "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M4/encoder/PasswordPump_v_2_0.ino.bin"
+    urlM0Encoder = "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M0/encoder/PasswordPump_v_2_0.ino.bin"
     urlM0Joystick = "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M0/joystick/PasswordPump_v_2_0.ino.bin"
+    urlM4Encoder = "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M4/encoder/PasswordPump_v_2_0.ino.bin"
     urlM4Joystick = "https://github.com/seawarrior181/PasswordPump_II/tree/master/v2_0_8/bin/M4/joystick/PasswordPump_v_2_0.ino.bin"
     try:
         firmwareUpdateWindow = Toplevel()
         firmwareUpdateWindow.title(string="Firmware Update Checker")
         firmwareUpdateWindow.resizable(False, False)
-        response = requests.get('https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/NewestVersionFirmware.txt')    # gets newest version
+        response = requests.get(
+            'https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/NewestVersionFirmware.txt')  # gets newest version
         updateContents = response.text
         verIdx = updateContents.find("Version:")
-        version = updateContents[verIdx:verIdx+16]
+        version = updateContents[verIdx:verIdx + 16]
         updateDirections(version)
         firmwareVersion = getFirmwareVersion()
         updateDirections(firmwareVersion)
         if version != firmwareVersion:
             versionLabel = Label(firmwareUpdateWindow,
                                  text="\n\n A firmware update is availible.\n\n    Current " +
-                                 firmwareVersion + "\n    Latest    " + version + "\n\n Download the latest version from:\n\n " +
-                                 urlM0Encoder + "\n    or\n " + urlM0Joystick + "\n    or\n " + urlM4Encoder +
-                                 "\n    or\n " + urlM4Joystick +
-                                 "\n\n by clicking on the Download button.  " +
-                                 "You will be asked to select the directory to which to download the firmware.\n\n")
-            inputLabel    = Label(firmwareUpdateWindow,
-                                  text="\n My PasswordPump is a:")
-            boardLabel    = Label(firmwareUpdateWindow,
-                                  text="\n My PasswordPump has a:")
+                                      firmwareVersion + "\n    Latest    " + version + "\n\n Download the latest version from:\n\n " +
+                                      urlM0Encoder + "\n    or\n " + urlM0Joystick + "\n    or\n " + urlM4Encoder +
+                                      "\n    or\n " + urlM4Joystick +
+                                      "\n\n by clicking on the Download button.  " +
+                                      "You will be asked to select the directory to which to download the firmware.\n\n")
+            inputLabel = Label(firmwareUpdateWindow,
+                               text="\n My PasswordPump is a:")
+            boardLabel = Label(firmwareUpdateWindow,
+                               text="\n My PasswordPump has a:")
 
             inputType = IntVar()
             boardType = IntVar()
-            radioButtonBoardM0 = Radiobutton(   firmwareUpdateWindow,
-                                                text="ItsyBitsy M0",
-                                                variable=boardType,
-                                                value=1 )
-            radioButtonBoardM4 = Radiobutton(   firmwareUpdateWindow,
-                                                text="Itsybitsy M4",
-                                                variable=boardType,
-                                                value=2)
-            radioButtonEncoder = Radiobutton(   firmwareUpdateWindow,
-                                                text="Encoder",
-                                                variable=inputType,
-                                                value=1 )
-            radioButtonJoystick = Radiobutton(  firmwareUpdateWindow,
-                                                text="Joystick",
-                                                variable=inputType,
-                                                value=2)
+            radioButtonBoardM0 = Radiobutton(firmwareUpdateWindow,
+                                             text="ItsyBitsy M0",
+                                             variable=boardType,
+                                             value=1)
+            radioButtonBoardM4 = Radiobutton(firmwareUpdateWindow,
+                                             text="Itsybitsy M4",
+                                             variable=boardType,
+                                             value=2)
+            radioButtonEncoder = Radiobutton(firmwareUpdateWindow,
+                                             text="Encoder",
+                                             variable=inputType,
+                                             value=1)
+            radioButtonJoystick = Radiobutton(firmwareUpdateWindow,
+                                              text="Joystick",
+                                              variable=inputType,
+                                              value=2)
             downloadButton = Button(firmwareUpdateWindow, text="Download", command=downloadLatestFirmware)
             versionLabel.pack()
             inputLabel.pack()
@@ -371,25 +373,25 @@ def updateFirmwareCheck():
             radioButtonJoystick.pack()
             downloadButton.pack()
         else:
-            versionLabel = Label(firmwareUpdateWindow, text="\n\n You are running the most up to date version. " + firmwareVersion + " \n\n")
+            versionLabel = Label(firmwareUpdateWindow,
+                                 text="\n\n You are running the most up to date version. " + firmwareVersion + " \n\n")
             versionLabel.pack()
-    except Exception as e:
-        updateDirections("Unable to check the version of the firmware:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Unable to check the version of the firmware:\r\n" + str(ex))
+
 
 def downloadLatestFirmware():
     try:
         updateDirections("Select a directory for the firmware file.")
-        downloadLocation = 'C:\\temp'
-        if (platform.system() == "Windows"):
+        if platform.system() == "Windows":
             downloadLocation = askdirectory()
-        elif (platform.system() == "Darwin"):  # Macintosh
+        elif platform.system() == "Darwin":                                     # Macintosh
             downloadLocation = askdirectory()
-        elif (platform.system() == "Linux"):  # Linux
+        elif platform.system() == "Linux":                                      # Linux
             downloadLocation = askdirectory()
         else:
             downloadLocation = askdirectory()
         if os.path.exists(downloadLocation):
-            url = urlM0Encoder
             if inputType == 1:
                 if boardType == 1:
                     url = urlM0Encoder
@@ -404,22 +406,23 @@ def downloadLatestFirmware():
             req = requests.get(url, allow_redirects=True)
             open(downloadFile, 'wb').write(req.content)
             downloadedLabel = Label(firmwareUpdateWindow,
-                                text="\n The latest version of the firmware was downloaded to\n\n" + " " + downloadFile +"\n\n" +
-                                     " Exit the program and run BOSSA to upload the new firmware. \n\n" +
-                                     " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n\n")
+                                    text="\n The latest version of the firmware was downloaded to\n\n" + " " + downloadFile + "\n\n" +
+                                         " Exit the program and run BOSSA to upload the new firmware. \n\n" +
+                                         " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n\n")
             downloadedLabel.pack()
             updateDirections("Latest version of\nPasswordPump firmware downloaded.")
-            r=Tk()                                                                  # copy the URL to the global/system clipboard
+            r = Tk()                                                            # copy the URL to the global/system clipboard
             r.withdraw()
-            r.clipboard_clear()                                                     # since this is a potentially destructive action add a button and ask the user if they want to do this.
+            r.clipboard_clear()                                                 # since this is a potentially destructive action add a button and ask the user if they want to do this.
             r.clipboard_append(usersGuideLocation)
-            r.update()                                                              # now it stays on the clipboard after the window is closed
+            r.update()                                                          # now it stays on the clipboard after the window is closed
             r.destroy()
             firmwareUpdateWindow.lift()
         else:
             updateDirections("Download location not found.")
-    except Exception as e:
-        updateDirections("Unable to download the latest version of the PasswordPump firmware:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Unable to download the latest version of the PasswordPump firmware:\r\n" + str(ex))
+
 
 def ShowSettingsWindow():
     global cbRGBIntensity
@@ -428,97 +431,92 @@ def ShowSettingsWindow():
     global cbPasswordLength
     global cbInterCharDelay
 
-    currentIntensity = 0
     c.send("pyGetRGBLEDIntensity")
     try:
         response = c.receive()
-        response_list = response[1] # fails here
+        response_list = response[1]
         currentIntensity = response_list[0] - 1
-    except Exception as e:
-        updateDirections("Exception encountered reading\r\nreturn value from pyGetRGBLEDIntensity:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetRGBLEDIntensity:\r\n" + str(ex))
         currentIntensity = 0
 
-    currentTimeoutMinutes = 0
     c.send("pyGetLoginMinutes")
     try:
         response = c.receive()
         response_list = response[1]
         currentTimeoutMinutes = response_list[0] - 1
-    except Exception as e:
-        updateDirections("Exception encountered reading\r\nreturn value from pyGetLoginMinutes:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetLoginMinutes:\r\n" + str(ex))
         currentTimeoutMinutes = 0
 
-    currentLoginAttempts = 0
     c.send("pyGetLoginAttempts")
     try:
         response = c.receive()
         response_list = response[1]
         currentLoginAttempts = response_list[0] - 1
-    except Exception as e:
-        updateDirections("Exception encountered reading\r\nreturn value from pyGetLoginAttempts:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetLoginAttempts:\r\n" + str(ex))
         currentLoginAttempts = 0
 
-    currentPasswordLength = 0
     c.send("pyGetPasswordLength")
     try:
         response = c.receive()
         response_list = response[1]
         currentPasswordLength = response_list[0] - 1
-    except Exception as e:
-        updateDirections("Exception encountered reading\r\nreturn value from pyGetPasswordLength:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetPasswordLength:\r\n" + str(ex))
         currentPasswordLength = 0
 
-    currentInterCharDelay = 0
     c.send("pyGetInterCharDelay")
     try:
         response = c.receive()
         response_list = response[1]
         currentInterCharDelay = response_list[0] - 1
-    except Exception as e:
-        updateDirections("Exception encountered reading\r\nreturn value from pyGetInterCharDelay:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetInterCharDelay:\r\n" + str(ex))
         currentInterCharDelay = 0
 
-    settings = Toplevel()
-    settings.title("More Settings")
-    settings.geometry('350x350')
+    settingsWin = Toplevel()
+    settingsWin.title("More Settings")
+    settingsWin.geometry('350x350')
 
-    lbl_rgb_intensity = Label(settings, text="RGB Intensity", anchor=E, justify=CENTER, width=15)
+    lbl_rgb_intensity = Label(settingsWin, text="RGB Intensity", anchor=E, justify=CENTER, width=15)
     lbl_rgb_intensity.pack()
 
-    cbRGBIntensity = Combobox(settings, justify=LEFT, width=37)
-    cbRGBIntensity['values'] = ( 'High',
-                                 'Medium',
-                                 'Low',
-                                 'Off')
+    cbRGBIntensity = Combobox(settingsWin, justify=LEFT, width=37)
+    cbRGBIntensity['values'] = ('High',
+                                'Medium',
+                                'Low',
+                                'Off')
     cbRGBIntensity.bind('<<ComboboxSelected>>', on_rgb_intensity_select)
     cbRGBIntensity.current(newindex=currentIntensity)
     cbRGBIntensity.pack()
 
-    lbl_space1 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
+    lbl_space1 = Label(settingsWin, text=" ", anchor=E, justify=RIGHT, width=15)
     lbl_space1.pack()
 
-    lbl_timeout = Label(settings, text="Timeout Minutes", anchor=E, justify=CENTER, width=15)
+    lbl_timeout = Label(settingsWin, text="Timeout Minutes", anchor=E, justify=CENTER, width=15)
     lbl_timeout.pack()
 
-    cbTimout = Combobox(settings, justify=LEFT, width=37)
-    cbTimout['values'] = (       '30',
-                                 '60',
-                                 '90',
-                                 '120',
-                                 '240',
-                                 '1',
-                                 'Never')
+    cbTimout = Combobox(settingsWin, justify=LEFT, width=37)
+    cbTimout['values'] = ('30',
+                          '60',
+                          '90',
+                          '120',
+                          '240',
+                          '1',
+                          'Never')
     cbTimout.bind('<<ComboboxSelected>>', on_timeout_minutes_select)
     cbTimout.current(newindex=currentTimeoutMinutes)
     cbTimout.pack()
 
-    lbl_space2 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
+    lbl_space2 = Label(settingsWin, text=" ", anchor=E, justify=RIGHT, width=15)
     lbl_space2.pack()
 
-    lbl_login_attempts = Label(settings, text="Login Attempts", anchor=E, justify=CENTER, width=15)
+    lbl_login_attempts = Label(settingsWin, text="Login Attempts", anchor=E, justify=CENTER, width=15)
     lbl_login_attempts.pack()
 
-    cbLoginAttempts = Combobox(settings, justify=LEFT, width=37)
+    cbLoginAttempts = Combobox(settingsWin, justify=LEFT, width=37)
     cbLoginAttempts['values'] = ('3',
                                  '5',
                                  '10',
@@ -527,29 +525,29 @@ def ShowSettingsWindow():
     cbLoginAttempts.current(newindex=currentLoginAttempts)
     cbLoginAttempts.pack()
 
-    lbl_space3 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
+    lbl_space3 = Label(settingsWin, text=" ", anchor=E, justify=RIGHT, width=15)
     lbl_space3.pack()
 
-    lbl_password_length = Label(settings, text="Generated Password Length", anchor=E, justify=CENTER, width=26)
+    lbl_password_length = Label(settingsWin, text="Generated Password Length", anchor=E, justify=CENTER, width=26)
     lbl_password_length.pack()
 
-    cbPasswordLength = Combobox(settings, justify=LEFT, width=37)
+    cbPasswordLength = Combobox(settingsWin, justify=LEFT, width=37)
     cbPasswordLength['values'] = ('8',
-                                 '10',
-                                 '16',
-                                 '24',
-                                 '31')
+                                  '10',
+                                  '16',
+                                  '24',
+                                  '31')
     cbPasswordLength.bind('<<ComboboxSelected>>', on_password_length)
     cbPasswordLength.current(newindex=currentPasswordLength)
     cbPasswordLength.pack()
 
-    lbl_space3 = Label(settings, text=" ", anchor=E, justify=RIGHT, width=15)
+    lbl_space3 = Label(settingsWin, text=" ", anchor=E, justify=RIGHT, width=15)
     lbl_space3.pack()
 
-    lbl_inter_char_delay = Label(settings, text="Inter Character Delay", anchor=E, justify=CENTER, width=22)
+    lbl_inter_char_delay = Label(settingsWin, text="Inter Character Delay", anchor=E, justify=CENTER, width=22)
     lbl_inter_char_delay.pack()
 
-    cbInterCharDelay = Combobox(settings, justify=LEFT, width=37)
+    cbInterCharDelay = Combobox(settingsWin, justify=LEFT, width=37)
     cbInterCharDelay['values'] = ('0',
                                   '10',
                                   '25',
@@ -559,51 +557,56 @@ def ShowSettingsWindow():
     cbInterCharDelay.current(newindex=currentInterCharDelay)
     cbInterCharDelay.pack()
 
-    button = Button(settings, text="Close", command=settings.destroy)
+    button = Button(settingsWin, text="Close", command=settingsWin.destroy)
     button.pack(side=BOTTOM)
+
 
 def stripBadChars(unicode_line):
     unicode_line = unicode_line.translate(translation_table)
-    return(unicode_line.strip("/"))
+    return unicode_line.strip("/")
+
 
 def calcAcctPositionSend(aPosition):
-    if (aPosition < 251):
+    if aPosition < 251:
         aPosition += 4
-    if (aPosition == 92):
+    if aPosition == 92:
         aPosition = 1
-    elif (aPosition == 124):
+    elif aPosition == 124:
         aPosition = 2
-    elif (aPosition == 126):
+    elif aPosition == 126:
         aPosition = 3
-    return(aPosition)
+    return aPosition
+
 
 def calcAcctPositionReceive(aPosition):
-    if (aPosition == 1):
+    if aPosition == 1:
         aPosition = 88
-    elif (aPosition == 2):
+    elif aPosition == 2:
         aPosition = 120
-    elif (aPosition == 3):
+    elif aPosition == 3:
         aPosition = 122
     else:
-        if (aPosition < 255):
+        if aPosition < 255:
             aPosition -= 4
-    return(aPosition)
+    return aPosition
+
 
 def clickedOpen():
     global arduino
     global arduinoAttached
     window.config(cursor="watch")
     updateDirections("Connecting to PasswordPump.")
-    try:                                                                       #
+    try:
         arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=20.0, settle_time=2.0, enable_dtr=False,
                                               int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
         arduinoAttached = 1
     except serial.serialutil.SerialException:
-        updateDirections("Error when attaching to\r\nPasswordPump.  Device not\n\rfound. Power cycle the\n\rPasswordPump and try again.")
+        updateDirections(
+            "Error when attaching to\r\nPasswordPump.  Device not\n\rfound. Power cycle the\n\rPasswordPump and try again.")
 
     global commands
-    commands = [["kAcknowledge","b"],                                          # List of command names (and formats for their associated arguments). These must
-                ["kStrAcknowledge", "s"],                                      # be in the same order as in the Arduino sketch.
+    commands = [["kAcknowledge", "b"],                                          # List of command names (and formats for their associated arguments). These must
+                ["kStrAcknowledge", "s"],                                       # be in the same order as in the Arduino sketch.
                 ["pyReadAccountName", "b"],
                 ["pyReadUserName", "b"],
                 ["pyReadPassword", "b"],
@@ -619,69 +622,69 @@ def clickedOpen():
                 ["pyUpdateURL_2", "s"],
                 ["pyUpdateURL_3", "bs"],
                 ["pyUpdateStyle", "bs"],
-                ["pyUpdateGroup","bb"],
-                ["pyUpdateOldPassword","bs"],
-                ["pyGetNextPos","b"],
-                ["pyGetPrevPos","b"],
-                ["pyGetAcctPos",""],
-                ["pyReadHead",""],
-                ["pyReadTail",""],
-                ["pyGetNextFreePos",""],
-                ["kError",""],
-                ["pyDeleteAccount","b"],
-                ["pyExit",""],
-                ["pyBackup",""],
-                ["pyFactoryReset",""],
-                ["pyFixCorruptLinkedList",""],
-                ["pyRestore",""],
+                ["pyUpdateGroup", "bb"],
+                ["pyUpdateOldPassword", "bs"],
+                ["pyGetNextPos", "b"],
+                ["pyGetPrevPos", "b"],
+                ["pyGetAcctPos", ""],
+                ["pyReadHead", ""],
+                ["pyReadTail", ""],
+                ["pyGetNextFreePos", ""],
+                ["kError", ""],
+                ["pyDeleteAccount", "b"],
+                ["pyExit", ""],
+                ["pyBackup", ""],
+                ["pyFactoryReset", ""],
+                ["pyFixCorruptLinkedList", ""],
+                ["pyRestore", ""],
                 ["pyGetAccountCount", ""],
                 ["pyDecoyPassword", "b"],
                 ["pyShowPasswords", "b"],
-                ["pyReadGroup1Name",""],
-                ["pyReadGroup2Name",""],
-                ["pyReadGroup3Name",""],
-                ["pyReadGroup4Name",""],
-                ["pyReadGroup5Name",""],
-                ["pyReadGroup6Name",""],
-                ["pyReadGroup7Name",""],
-                ["pyUpdateCategoryName","bs"],
-                ["pyUpdateRGBLEDIntensity","b"],
-                ["pyUpdateLoginMinutes","b"],
-                ["pyUpdateLoginAttempts","b"],
-                ["pyUpdatePasswordLength","b"],
-                ["pyUpdateInterCharDelay","b"],
-                ["pyGetRGBLEDIntensity",""],
-                ["pyGetLoginMinutes",""],
-                ["pyGetLoginAttempts",""],
-                ["pyGetPasswordLength",""],
-                ["pyGetInterCharDelay",""],
-                ["pyGetFirmwareVersion",""],
+                ["pyReadGroup1Name", ""],
+                ["pyReadGroup2Name", ""],
+                ["pyReadGroup3Name", ""],
+                ["pyReadGroup4Name", ""],
+                ["pyReadGroup5Name", ""],
+                ["pyReadGroup6Name", ""],
+                ["pyReadGroup7Name", ""],
+                ["pyUpdateCategoryName", "bs"],
+                ["pyUpdateRGBLEDIntensity", "b"],
+                ["pyUpdateLoginMinutes", "b"],
+                ["pyUpdateLoginAttempts", "b"],
+                ["pyUpdatePasswordLength", "b"],
+                ["pyUpdateInterCharDelay", "b"],
+                ["pyGetRGBLEDIntensity", ""],
+                ["pyGetLoginMinutes", ""],
+                ["pyGetLoginAttempts", ""],
+                ["pyGetPasswordLength", ""],
+                ["pyGetInterCharDelay", ""],
+                ["pyGetFirmwareVersion", ""],
                 ["pyChangeMasterPass", "s"]]
 
-    global c                                                                   # Initialize the messenger
-    c = PyCmdMessenger.CmdMessenger(arduino, commands, field_separator='~', command_separator='|', escape_separator='\\')
+    global c                                                                    # Initialize the messenger
+    c = PyCmdMessenger.CmdMessenger(arduino, commands, field_separator='~', command_separator='|',
+                                    escape_separator='\\')
 
-    txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the user clicks off of the field save the edited item
-    txt_user.bind("<FocusOut>",(lambda _: clickedUserParam(txt_user)))
-    txt_pass.bind("<FocusOut>",(lambda _: clickedPassParam(txt_pass)))
-    txt_old_pass.bind("<FocusOut>",(lambda _: clickedOldPassParam(txt_old_pass)))
-    txt_url.bind("<FocusOut>",(lambda _: clickedUrlParam(txt_url)))
+    txt_acct.bind("<FocusOut>",
+                  (lambda _: clickedAcctParam(txt_acct)))                       # When the user clicks off of the field save the edited item
+    txt_user.bind("<FocusOut>", (lambda _: clickedUserParam(txt_user)))
+    txt_pass.bind("<FocusOut>", (lambda _: clickedPassParam(txt_pass)))
+    txt_old_pass.bind("<FocusOut>", (lambda _: clickedOldPassParam(txt_old_pass)))
+    txt_url.bind("<FocusOut>", (lambda _: clickedUrlParam(txt_url)))
 
     c.send("pyReadHead")
     try:
         response = c.receive()
-        #print(response)
         response_list = response[1]
         global head
         head = calcAcctPositionReceive(response_list[0])
-    except Exception as e:
-        updateDirections("Exception encountered reading\r\nreturn value from pyReadHead:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Exception encountered reading\r\nreturn value from pyReadHead:\r\n" + str(ex))
         head = 0
     global position
     position = head
     c.send("pyGetAccountCount")
     response = c.receive()
-    #print(response)
     global acctCount
     global selection
     try:
@@ -696,7 +699,7 @@ def clickedOpen():
     txt_old_pass.config(state='normal')
     txt_url.config(state='normal')
     cbStyle.config(state='normal')
-    if (acctCount > 0):
+    if acctCount > 0:
         loadListBox()
         selection = 0
         getRecord()
@@ -705,7 +708,6 @@ def clickedOpen():
         lb.activate(selection)
     cb.config(state='disabled')
     btn_open.config(state='disabled')
-    #btn_close.config(state='normal')
     btn_next.config(state='normal')
     btn_previous.config(state='normal')
     btn_insert.config(state='normal')
@@ -728,7 +730,7 @@ def clickedOpen():
     menubar.entryconfig('Help', state='normal')
     file.entryconfig('Import', state='normal')
     file.entryconfig('Export', state='normal')
-    help.entryconfig('Check for Firmware Updates', state='normal')
+    pphelp.entryconfig('Check for Firmware Updates', state='normal')
     window.config(cursor="")
     updateDirections("Connected.")
 
@@ -742,50 +744,46 @@ def clickedOpen():
     textboxSix.config(text=groupName6)
     textboxSeven.config(text=groupName7)
 
-    groupsMenu.entryconfigure(1, label = groupName1)
-    groupsMenu.entryconfigure(2, label = groupName2)
-    groupsMenu.entryconfigure(3, label = groupName3)
-    groupsMenu.entryconfigure(4, label = groupName4)
-    groupsMenu.entryconfigure(5, label = groupName5)
-    groupsMenu.entryconfigure(6, label = groupName6)
-    groupsMenu.entryconfigure(7, label = groupName7)
+    groupsMenu.entryconfigure(1, label=groupName1)
+    groupsMenu.entryconfigure(2, label=groupName2)
+    groupsMenu.entryconfigure(3, label=groupName3)
+    groupsMenu.entryconfigure(4, label=groupName4)
+    groupsMenu.entryconfigure(5, label=groupName5)
+    groupsMenu.entryconfigure(6, label=groupName6)
+    groupsMenu.entryconfigure(7, label=groupName7)
 
-    #updateDirections("1 "+ groupName1 + " 2 " + groupName2 + " 3 " + groupName3 + " 4 " + groupName4 + " 5 " + groupName5 + " 6 " + groupName6 + " 7 " + groupName7)
 
-def updateDirections(directions):
+def updateDirections(ppdirections):
     txt_dir.delete('1.0', END)
-    txt_dir.insert(END, directions)
-    #print (directions)
+    txt_dir.insert(END, ppdirections)
     window.update()
 
-def clickedAcctParam(txt_acct_param):
+
+def clickedAcctParam(ignored):
     clickedAcct()
 
+
 def clickedAcct():
-    window.config(cursor="watch")                                              # TODO: this is not working
+    window.config(cursor="watch")                                               # TODO: this is not working
     window.update()
     aResAcct = stripBadChars(txt_acct.get())
     resAcct = aResAcct[0:32]
-    global position                                                            # the position on EEprom, don't confuse with selection
+    global position                                                             # the position on EEprom, don't confuse with selection
     global state
     global selection
-    if (len(resAcct) > 0):                                                     # if the URL doesn't exist don't send it
-        c.send("pyUpdateAccountName", resAcct)                                 # FindAccountPos called on an insert
+    if len(resAcct) > 0:                                                        # if the URL doesn't exist don't send it
+        c.send("pyUpdateAccountName", resAcct)                                  # FindAccountPos called on an insert
         try:
             response = c.receive()
-            #print(response)
             response_list = response[1]
             last_position = position
-            position = calcAcctPositionReceive(response_list[0])               # this position may or may not be populated)
+            position = calcAcctPositionReceive(response_list[0])                # this position may or may not be populated)
             if position == 255:
-                position = last_position                                       # TODO: not sure if this is necessary...
+                position = last_position                                        # TODO: not sure if this is necessary...
             local_position = position
-            #txt_acct.config(state='normal')
-
-    #      if (state == "Inserting"):
-            if (state != "Importing"):
+            if state != "Importing":
                 lb.delete(0, END)
-                loadListBox()                                                  # as a side effect position is changed
+                loadListBox()                                                   # as a side effect position is changed
                 selection = 0
                 for key in accountDict:
                     if accountDict[key] != local_position:
@@ -798,196 +796,194 @@ def clickedAcct():
                 position = local_position                                       # because loadListBox changes position
                 getRecord()
                 updateDirections("Updated account name.")
-        except ValueError as e:
-            updateDirections("Value error encountered in\r\nclickedAcct:\r\n" + str(e))
-        except Exception as ex:
-            updateDirections("Exception encountered in\r\nclickedAcct:\r\n" + str(ex))
+        except ValueError as ex1:
+            updateDirections("Value error encountered in\r\nclickedAcct:\r\n" + str(ex1))
+        except Exception as ex2:
+            updateDirections("Exception encountered in\r\nclickedAcct:\r\n" + str(ex2))
     else:
         updateDirections("Empty account name discarded.")
     window.config(cursor="")
     window.update()
 
-def clickedUserParam(txt_user_param):
+
+def clickedUserParam(ignored):
     clickedUser()
+
 
 def clickedUser():
     global position
     aResUser = stripBadChars(txt_user.get())
     resUser = aResUser[0:32]
-    if (len(resUser) > 0):
+    if len(resUser) > 0:
         c.send("pyUpdateUserName", calcAcctPositionSend(position), resUser)
     else:
         c.send("pyUpdateUserName", calcAcctPositionSend(position), "")
     response = c.receive()
-    #print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])
     txt_user.config(state='normal')
-    directions = """Updated user name."""
-    updateDirections(directions)
+    ppdirections = """Updated user name."""
+    updateDirections(ppdirections)
     window.update()
 
-def clickedPassParam(txt_pass_param):
+
+def clickedPassParam(ignored):
     clickedPass()
+
 
 def clickedPass():
     global position
     aResPass = stripBadChars(txt_pass.get())
     resPass = aResPass[0:32]
-    if (len(resPass) > 0):
+    if len(resPass) > 0:
         c.send("pyUpdatePassword", calcAcctPositionSend(position), resPass)
     else:
         c.send("pyUpdatePassword", calcAcctPositionSend(position), "")
     response = c.receive()
-    #print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])
     txt_pass.config(state='normal')
-    directions = """Updated password."""
-    updateDirections(directions)
+    ppdirections = """Updated password."""
+    updateDirections(ppdirections)
     window.update()
-    passesComplexityCheck = passwordComplexityCheck(aResPass)
+    ignoredPassesComplexityCheck = passwordComplexityCheck(aResPass)
 
-def clickedOldPassParam(txt_old_pass_param):
+
+def clickedOldPassParam(ignored):
     clickedOldPass()
+
 
 def clickedOldPass():
     global position
     aResOldPass = stripBadChars(txt_old_pass.get())
     resOldPass = aResOldPass[0:32]
-    if (len(resOldPass) > 0):
+    if len(resOldPass) > 0:
         c.send("pyUpdateOldPassword", calcAcctPositionSend(position), resOldPass)
     else:
         c.send("pyUpdateOldPassword", calcAcctPositionSend(position), "")
     response = c.receive()
-    #print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])
     txt_old_pass.config(state='normal')
-    directions = """Updated old password."""
-    updateDirections(directions)
+    ppdirections = """Updated old password."""
+    updateDirections(ppdirections)
     window.update()
+
 
 def clickedStyle():
     global position
     resStyle = cbStyle.current()
-    if ((resStyle < 0) or (resStyle > 2)):                                      # style must be 0, 1 or 2
-        resStyle = 1;                                                           # default is 1
+    if (resStyle < 0) or (resStyle > 2):                                        # style must be 0, 1 or 2
+        resStyle = 1                                                            # default is 1
     c.send("pyUpdateStyle", calcAcctPositionSend(position), resStyle)
     response = c.receive()
-    #print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])
-    directions = """Updated style."""
-    updateDirections(directions)
+    ppdirections = """Updated style."""
+    updateDirections(ppdirections)
     window.update()
+
 
 def updateGroup():
     global position
     global group
     c.send("pyUpdateGroup", calcAcctPositionSend(position), group + 3)
     response = c.receive()
-    #print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])
-    directions = """Updated groups."""
-    updateDirections(directions)
+    ppdirections = """Updated groups."""
+    updateDirections(ppdirections)
     window.update()
 
-def clickedUrlParam(txt_url_param):
+
+def clickedUrlParam(ignored):
     clickedUrl_New()
+
 
 def clickedUrl():
     global position
     aURL = stripBadChars(txt_url.get())
     resURL = aURL[0:32]                                                         # max length of a URL is 96 chars
     txt_url.config(state='normal')
-    if (len(resURL) > 0):                                                       # if the URL doesn't exist don't send it
+    if len(resURL) > 0:                                                         # if the URL doesn't exist don't send it
         c.send("pyUpdateURL", calcAcctPositionSend(position), resURL)
     else:
         c.send("pyUpdateURL", calcAcctPositionSend(position), "")
     response = c.receive()
-    #print(response)
     response_list = response[1]
     position = calcAcctPositionReceive(response_list[0])
     txt_url.config(state='normal')
-    directions = """Updated URL."""
-    updateDirections(directions)
+    ppdirections = """Updated URL."""
+    updateDirections(ppdirections)
     window.update()
+
 
 def clickedUrl_New():                                                           # send the website over in 3 chunks instead of all at once to circumvent problems encountered when sending it all at once.
     txt_url.config(state='normal')
     global position
     aURL = stripBadChars(txt_url.get())
     resURL_1 = aURL[0:32]                                                       # max length of a URL is 96 chars
-    if (len(resURL_1) > 0):                                                     # if the URL doesn't exist don't send it
+    if len(resURL_1) > 0:                                                       # if the URL doesn't exist don't send it
         c.send("pyUpdateURL_1", resURL_1)
         response = c.receive()
-        #print(response)
         response_list = response[1]
         position = calcAcctPositionReceive(response_list[0])
         resURL_2 = aURL[32:64]                                                  # max length of a URL is 96 chars
-        if (len(resURL_2) > 0):                                                 # if the URL doesn't exist don't send it
+        if len(resURL_2) > 0:                                                   # if the URL doesn't exist don't send it
             c.send("pyUpdateURL_2", resURL_2)
             response = c.receive()
-            #print(response)
             response_list = response[1]
             position = calcAcctPositionReceive(response_list[0])
             resURL_3 = aURL[64:96]                                              # max length of a URL is 96 chars
-            if (len(resURL_3) > 0):                                             # if the URL doesn't exist don't send it
+            if len(resURL_3) > 0:                                               # if the URL doesn't exist don't send it
                 c.send("pyUpdateURL_3", calcAcctPositionSend(position), resURL_3)
                 response = c.receive()
-                #print(response)
                 response_list = response[1]
                 position = calcAcctPositionReceive(response_list[0])
             else:
                 c.send("pyUpdateURL_3", calcAcctPositionSend(position), "")
                 response = c.receive()
-                #print(response)
                 response_list = response[1]
                 position = calcAcctPositionReceive(response_list[0])
         else:
             c.send("pyUpdateURL", calcAcctPositionSend(position), aURL)
             response = c.receive()
-            #print(response)
             response_list = response[1]
             position = calcAcctPositionReceive(response_list[0])
     else:
         c.send("pyUpdateURL", calcAcctPositionSend(position), "")
         response = c.receive()
-        #print(response)
         response_list = response[1]
         position = calcAcctPositionReceive(response_list[0])
     txt_url.config(state='normal')
-    directions = """Updated URL."""
-    updateDirections(directions)
+    ppdirections = """Updated URL."""
+    updateDirections(ppdirections)
     window.update()
 
+
 def clickedClose():
-    MsgBox = tkinter.messagebox.askquestion('Exit PasswordPumpGUI', 'Are you sure you want to exit the PasswordPumpGUI?',
-                                       icon='warning')
+    MsgBox = tkinter.messagebox.askquestion('Exit PasswordPumpGUI',
+                                            'Are you sure you want to exit the PasswordPumpGUI?',
+                                            icon='warning')
     if MsgBox == 'yes':
         global arduinoAttached
-        if (arduinoAttached == 1):
+        global acctCount
+        if arduinoAttached == 1:
             try:
                 c.send("pyExit")
                 response = c.receive()
-                #print(response)
                 response_list = response[1]
-                acctCount = calcAcctPositionReceive(response_list[0])              # not used
-            except Exception as e:
-                updateDirections("There was an error closing the\r\napplication:\r\n" + str(e))
+                acctCount = calcAcctPositionReceive(response_list[0])
+            except Exception as ex:
+                updateDirections("There was an error closing the\r\napplication:\r\n" + str(ex))
         sys.exit(1)
 
 
 def clickedPrevious():
     global position
     global selection
-    #if (selection > 0):
-    #    selection -= 1
     c.send("pyGetPrevPos", calcAcctPositionSend(position))
     response = c.receive()
-    #print(response)
     response_list = response[1]
     last_position = position
     position = calcAcctPositionReceive(response_list[0])
@@ -998,61 +994,60 @@ def clickedPrevious():
         items = lb.curselection()
         selection = items[0]
         OnEntryUpNoEvent()
-        lb.activate(selection)                                                 # has no effect
-        #updateDirections("Navigated to previous record.")
+        lb.activate(selection)                                                  # has no effect
+
 
 def clickedNext():
     global position
     global selection
     c.send("pyGetNextPos", calcAcctPositionSend(position))
     response = c.receive()
-    #print(response)
     response_list = response[1]
     last_position = position
-    position = calcAcctPositionReceive(response_list[0])                       # used when we call OnEntryDownNoEvent->OnEntryDown->clickedLoad->getRecord
+    position = calcAcctPositionReceive(
+        response_list[0])                                                       # used when we call OnEntryDownNoEvent->OnEntryDown->clickedLoad->getRecord
     if position == 255:
         position = last_position
         updateDirections("Reached the end of the list.")
     else:
-        items = lb.curselection()                                              # Gets a list of the currently selected alternatives.
+        items = lb.curselection()                                               # Gets a list of the currently selected alternatives.
         selection = items[0]
         OnEntryDownNoEvent()
-        lb.activate(selection)                                                 # has no effect
-        #updateDirections("Navigated to next record.")
+        lb.activate(selection)                                                  # has no effect
 
-def loadListBox():                                                             # TODO: reorganize the logic in this function
-    window.config(cursor="watch")                                              # TODO: this is not working
+
+def loadListBox():                                                              # TODO: reorganize the logic in this function
+    window.config(cursor="watch")                                               # TODO: this is not working
     window.update()
-    lb.delete(0,END)                                                           # clear out the listbox
+    lb.delete(0, END)                                                           # clear out the listbox
     global position
     global head
-    c.send("pyReadHead")                                                       # Get the list head
+    c.send("pyReadHead")                                                        # Get the list head
     try:
         response = c.receive()
-        #print(response)
         response_list = response[1]
         head = calcAcctPositionReceive(response_list[0])
         position = head
         global accountDict
-        accountDict = ({})                                                     # Load the dictionary
-        while position < 255:                                                  # '<' not supported between instances of 'str' and 'int'
+        accountDict = ({})                                                      # Load the dictionary
+        while position < 255:                                                   # '<' not supported between instances of 'str' and 'int'
             c.send("pyReadAccountName", calcAcctPositionSend(position))
             try:
                 response = c.receive()
                 accountName_list = response[1]
                 accountName = accountName_list[0]
-            except UnicodeDecodeError as e:
-                updateDirections("UnicodeDecodeError in\r\npyReadAccountName:\r\n" + str(e))
+            except UnicodeDecodeError as ude:
+                updateDirections("UnicodeDecodeError in\r\npyReadAccountName:\r\n" + str(ude))
                 accountName = "UnicodeDecodeError"
             except ValueError as ve:
                 updateDirections("ValueError in\r\npyReadAccountName:\r\n" + str(ve))
                 accountName = "ValueError"
-            except Exception as e:
-                updateDirections("Exception in\r\npyReadAccountName:\r\n" + str(e))
+            except Exception as ex:
+                updateDirections("Exception in\r\npyReadAccountName:\r\n" + str(ex))
                 accountName = "Exception"
             accountDict[accountName] = position
-            lb.insert(END, accountName)                                        # Load the listbox
-            c.send("pyGetNextPos", calcAcctPositionSend(position))             # calls getNextPtr(acctPosition) in C program
+            lb.insert(END, accountName)                                         # Load the listbox
+            c.send("pyGetNextPos", calcAcctPositionSend(position))              # calls getNextPtr(acctPosition) in C program
             try:
                 response = c.receive()
                 response_list = response[1]
@@ -1060,8 +1055,8 @@ def loadListBox():                                                             #
             except ValueError as ve:
                 updateDirections("Error in pyGetNextPos:\r\n" + str(ve))
                 raise ve
-            except Exception as e:
-                updateDirections("Exception in pyGetNextPos:\r\n" + str(e))
+            except Exception as ex:
+                updateDirections("Exception in pyGetNextPos:\r\n" + str(ex))
                 raise e
         position = head
         window.config(cursor="")
@@ -1069,9 +1064,10 @@ def loadListBox():                                                             #
     except ValueError as ve:
         updateDirections("ValueError in pyReadHead,\r\npyReadAccountName or\r\npyGetNextPos:\r\n" + str(ve))
         head = 0
-    except Exception as e:
-        updateDirections("Exception in pyReadHead,\r\npyReadAccountName or\r\npyGetNextPos:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Exception in pyReadHead,\r\npyReadAccountName or\r\npyGetNextPos:\r\n" + str(ex))
         head = 0
+
 
 def ReadGroupNames():
     global groupName1
@@ -1117,78 +1113,83 @@ def ReadGroupNames():
         groupName_list = response[1]
         groupName7 = groupName_list[0]
 
-        #updateDirections("1 "+ groupName1 + " 2 " + groupName2 + " 3 " + groupName3 + " 4 " + groupName4 + " 5 " + groupName5 + " 6 " + groupName6 + " 7 " + groupName7)
-
-    except UnicodeDecodeError as e:
-        updateDirections("UnicodeDecodeError in\r\npyReadGroup1Name:\r\n" + str(e))
+    except UnicodeDecodeError as ude:
+        updateDirections("UnicodeDecodeError in\r\npyReadGroup1Name:\r\n" + str(ude))
         groupName1 = "UnicodeDecodeError"
     except ValueError as ve:
         updateDirections("ValueError in\r\npyReadGroupName:\r\n" + str(ve))
         groupName1 = "ValueError"
-    except Exception as e:
-        updateDirections("Exception in\r\npyReadGroupName:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Exception in\r\npyReadGroupName:\r\n" + str(ex))
         groupName1 = "Exception"
 
 
 def OnEntryDownNoEvent():
     OnEntryDown(0)
 
-def OnEntryDown(event):
+
+def OnEntryDown(ignored):
     global selection
-    if selection < lb.size()-1:
-        lb.select_clear(selection)                                             # Removes one or more items from the selection.
+    if selection < lb.size() - 1:
+        lb.select_clear(selection)                                              # Removes one or more items from the selection.
         selection += 1
-        lb.select_set(selection)                                               # Adds one or more items to the selection.
-        lb.see(selection)                                                      # Makes sure the given list index is visible.
-        clickedLoad()                                                          # calls getRecord()
+        lb.select_set(selection)                                                # Adds one or more items to the selection.
+        lb.see(selection)                                                       # Makes sure the given list index is visible.
+        clickedLoad()                                                           # calls getRecord()
+
 
 def OnEntryUpNoEvent():
     OnEntryUp(0)
 
-def OnEntryUp(event):
+
+def OnEntryUp(ignored):
     global selection
     if selection > 0:
-        lb.select_clear(selection)                                             # Removes one or more items from the selection.
+        lb.select_clear(selection)                                              # Removes one or more items from the selection.
         selection -= 1
-        lb.select_set(selection)                                               # Adds one or more items to the selection.
-        lb.see(selection)                                                      # Makes sure the given list index is visible.
-        clickedLoad()                                                          # calls getRecord()
+        lb.select_set(selection)                                                # Adds one or more items to the selection.
+        lb.see(selection)                                                       # Makes sure the given list index is visible.
+        clickedLoad()                                                           # calls getRecord()
+
 
 def clickedInsert():
     global state
     state = "Inserting"
 
-    txt_acct.bind("<FocusOut>",(lambda _: doNothing(txt_acct)))                # When the user clicks off of the field do nothing
-    txt_user.bind("<FocusOut>",(lambda _: doNothing(txt_user)))
-    txt_pass.bind("<FocusOut>",(lambda _: doNothing(txt_pass)))
-    txt_old_pass.bind("<FocusOut>",(lambda _: doNothing(txt_old_pass)))
-    txt_url.bind("<FocusOut>",(lambda _: doNothing(txt_url)))
+    txt_acct.bind("<FocusOut>", (lambda _: doNothing(txt_acct)))                # When the user clicks off of the field do nothing
+    txt_user.bind("<FocusOut>", (lambda _: doNothing(txt_user)))
+    txt_pass.bind("<FocusOut>", (lambda _: doNothing(txt_pass)))
+    txt_old_pass.bind("<FocusOut>", (lambda _: doNothing(txt_old_pass)))
+    txt_url.bind("<FocusOut>", (lambda _: doNothing(txt_url)))
 
-    #txt_acct.config(state='normal')
     txt_acct.delete(0, END)
     txt_user.delete(0, END)
     txt_pass.delete(0, END)
     txt_old_pass.delete(0, END)
     txt_url.delete(0, END)
 
-    txt_acct.focus_set()                                                       # Put input focus on the account field
+    txt_acct.focus_set()                                                        # Put input focus on the account field
 
-    txt_acct.bind("<FocusOut>",(lambda _: clickedAcctParam(txt_acct)))         # When the clicks off of the field save the edited item
-    txt_user.bind("<FocusOut>",(lambda _: clickedUserParam(txt_user)))
-    txt_pass.bind("<FocusOut>",(lambda _: clickedPassParam(txt_pass)))
-    txt_old_pass.bind("<FocusOut>",(lambda _: clickedOldPassParam(txt_old_pass)))
-    txt_url.bind("<FocusOut>",(lambda _: clickedUrlParam(txt_url)))
+    txt_acct.bind("<FocusOut>",
+                  (lambda _: clickedAcctParam(txt_acct)))                       # When the clicks off of the field save the edited item
+    txt_user.bind("<FocusOut>", (lambda _: clickedUserParam(txt_user)))
+    txt_pass.bind("<FocusOut>", (lambda _: clickedPassParam(txt_pass)))
+    txt_old_pass.bind("<FocusOut>", (lambda _: clickedOldPassParam(txt_old_pass)))
+    txt_url.bind("<FocusOut>", (lambda _: clickedUrlParam(txt_url)))
 
-def doNothing(txt_param):
-    x = 0                                                                      # do nothing
+
+def doNothing(ignored):
+    ignored = 0                                                                 # do nothing
+
 
 def clickedLoadDB(event):
     global selection
-    w = event.widget                                                           # Note here that Tkinter passes an event object to onselect()
+    w = event.widget                                                            # Note here that Tkinter passes an event object to onselect()
     selection = int(w.curselection()[0])
     value = w.get(selection)
     updateDirections('You selected item %d: "%s"' % (selection, value))
-    clickedLoad()                                                              # calls getRecord()
+    clickedLoad()                                                               # calls getRecord()
+
 
 def clickedLoad():
     global position
@@ -1200,16 +1201,16 @@ def clickedLoad():
     position = accountDict[theText]
     getRecord()
 
+
 def clickedDelete():
     if tkinter.messagebox.askyesno("Delete", "Delete this record?"):
         global selection
         lb.delete(selection)
         global position
-        c.send("pyDeleteAccount",calcAcctPositionSend(position))
+        c.send("pyDeleteAccount", calcAcctPositionSend(position))
         response = c.receive()
-        #print(response)
         response_list = response[1]
-        position = calcAcctPositionReceive(response_list[0])                   # returns head position
+        position = calcAcctPositionReceive(response_list[0])                    # returns head position
         getRecord()
         selection = 0
         lb.select_set(selection)
@@ -1217,57 +1218,56 @@ def clickedDelete():
         lb.activate(selection)
         updateDirections("Record deleted.")
 
+
 def clickedChangeMasterPass():
     newMasterPass = tkinter.simpledialog.askstring("Change Master Password", "New Master Password", parent=window)
     if newMasterPass is not None:
         window.config(cursor="watch")
-        window.update();
+        window.update()
         c.send("pyChangeMasterPass", newMasterPass)
         response = c.receive()
-        #print(response)
         response_list = response[1]
-        position = calcAcctPositionReceive(response_list[0])                   # returns head position
+        ignoredPosition = calcAcctPositionReceive(response_list[0])             # returns head position
         getRecord()
-        selection = 0
-        lb.select_set(selection)
-        lb.see(selection)
-        lb.activate(selection)
+        newSelection = 0
+        lb.select_set(newSelection)
+        lb.see(newSelection)
+        lb.activate(newSelection)
         window.config(cursor="")
         updateDirections("Master password changed.")
+
 
 def clickedShowPassword():
     yes = tkinter.messagebox.askyesno("Show Password", "Do you want to see the password on the PasswordPump?")
     if yes:
         c.send("pyShowPasswords", 1)
         response = c.receive()
-        #print(response)
         response_list = response[1]
-        unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
+        ignoredHead = calcAcctPositionReceive(response_list[0])                 # returns head position
         updateDirections("Turned on password viewing on\r\nthe PasswordPump.")
     else:
         c.send("pyShowPasswords", 0)
         response = c.receive()
-        #print(response)
         response_list = response[1]
-        unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
+        ignoredHead = calcAcctPositionReceive(response_list[0])                 # returns head position
         updateDirections("Turned off password viewing on\r\nthe PasswordPump.")
+
 
 def clickedDecoyPassword():
     yes = tkinter.messagebox.askyesno("Decoy Password", "Do you want to enable the decoy password feature?")
     if yes:
         c.send("pyDecoyPassword", 1)
         response = c.receive()
-        #print(response)
         response_list = response[1]
-        unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
+        ignoredHead = calcAcctPositionReceive(response_list[0])                 # returns head position
         updateDirections("Enabled the decoy password\r\nfeature on the PasswordPump")
     else:
         c.send("pyDecoyPassword", 0)
         response = c.receive()
-        #print(response)
         response_list = response[1]
-        unusedHead = calcAcctPositionReceive(response_list[0])                 # returns head position
+        ignoredHead = calcAcctPositionReceive(response_list[0])                 # returns head position
         updateDirections("Disabled the decoy password\r\nfeature on the PasswordPump")
+
 
 def getRecord():
     global position
@@ -1283,52 +1283,47 @@ def getRecord():
     c.send("pyReadAccountName", calcAcctPositionSend(position))
     try:
         responseAccount = c.receive()
-        #print(response)
         accountName_list = responseAccount[1]
         accountName = accountName_list[0]
     except UnicodeDecodeError:
         accountName = ""
-    txt_acct.delete(0,END)
-    txt_acct.insert(0,accountName)
+    txt_acct.delete(0, END)
+    txt_acct.insert(0, accountName)
 
     c.send("pyReadUserName", calcAcctPositionSend(position))
     try:
         responseUser = c.receive()
-        #print (response)
         userName_list = responseUser[1]
         userName = userName_list[0]
     except UnicodeDecodeError:
         userName = ""
-    txt_user.delete(0,END)
-    txt_user.insert(0,userName)
+    txt_user.delete(0, END)
+    txt_user.insert(0, userName)
 
     c.send("pyReadPassword", calcAcctPositionSend(position))
     try:
         responsePassword = c.receive()
-        #print(response)
         password_list = responsePassword[1]
         password = password_list[0]
     except UnicodeDecodeError:
         password = ""
-    txt_pass.delete(0,END)
-    txt_pass.insert(0,password)
-    passesComplexityCheck = passwordComplexityCheck(password)
+    txt_pass.delete(0, END)
+    txt_pass.insert(0, password)
+    ignoredPassesComplexityCheck = passwordComplexityCheck(password)
 
     c.send("pyReadOldPassword", calcAcctPositionSend(position))
     try:
         responseOldPassword = c.receive()
-        #print(response)
         old_password_list = responseOldPassword[1]
         old_password = old_password_list[0]
     except UnicodeDecodeError:
         old_password = ""
-    txt_old_pass.delete(0,END)
-    txt_old_pass.insert(0,old_password)
+    txt_old_pass.delete(0, END)
+    txt_old_pass.insert(0, old_password)
 
     c.send("pyReadStyle", calcAcctPositionSend(position))
     try:
         responseStyle = c.receive()
-        #print(response)
         style_list = responseStyle[1]
         style = int(style_list[0])
     except ValueError:                                                          # when style = 255 (i.e. was never written)
@@ -1340,114 +1335,116 @@ def getRecord():
     c.send("pyReadURL", calcAcctPositionSend(position))
     try:
         responseURL = c.receive()
-        #print(response)
         url_list = responseURL[1]
         url = url_list[0]
     except UnicodeDecodeError:
         url = ""
-    txt_url.delete(0,END)
-    txt_url.insert(0,url)
+    txt_url.delete(0, END)
+    txt_url.insert(0, url)
 
     c.send("pyReadGroup", calcAcctPositionSend(position))
     try:
         responseGroup = c.receive()
-        #print(response)
         group_list = responseGroup[1]
         group = int(group_list[0])
     except UnicodeDecodeError as ude:
         updateDirections("UnicodeDecodeError during pyReadGroup in getRecord(); " + str(ude))
         group = 0
-    except Exception as e:
-        updateDirections("Exception encountered after pyReadGroup in getRecord(); Group: " + str(group) + " " + str(e))
+    except Exception as ex:
+        updateDirections("Exception encountered after pyReadGroup in getRecord(); Group: " + str(group) + " " + str(ex))
         group = 0
     SetGroupCheckBoxes()
+
 
 def serial_ports():
     return comports()
 
-def on_select(event=None):
+
+def on_select(ignored=None):
     global port
     port_desc = cb.get()
     updateDirections(port_desc)
-    port = port_desc[:port_desc.find(":")]                                     # TODO: make this work on all operating systems
+    port = port_desc[:port_desc.find(":")]                                      # TODO: make this work on all operating systems
 
-def on_style_select(event=None):
+
+def on_style_select(ignored=None):
     clickedStyle()
 
-def on_rgb_intensity_select(event=None):
+
+def on_rgb_intensity_select(ignored=None):
     updateDirections("Selected RGB Intensity")
     resSelection = cbRGBIntensity.current()
-    if ((resSelection < 0) or (resSelection > 3)):                              # RGB LED Intensity must be 0 - 3
+    if (resSelection < 0) or (resSelection > 3):                                # RGB LED Intensity must be 0 - 3
         resSelection = 1                                                        # default is 1, Medium
     resSelection += 1                                                           # cheap way around a problem sending 0
     c.send("pyUpdateRGBLEDIntensity", resSelection)
     response = c.receive()
-    #print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])
-    directions = """Updated RGB LED Intensity."""
-    updateDirections(directions)
+    ignoredPosition = calcAcctPositionReceive(response_list[0])
+    ppdirections = """Updated RGB LED Intensity."""
+    updateDirections(ppdirections)
     window.update()
 
-def on_timeout_minutes_select(event=None):
+
+def on_timeout_minutes_select(ignored=None):
     updateDirections("Selected timeout minutes")
     resSelection = cbTimout.current()
-    if ((resSelection < 0) or (resSelection > 6)):                              # Timout must be 0 - 6
+    if (resSelection < 0) or (resSelection > 6):                                # Timout must be 0 - 6
         resSelection = 1                                                        # default is 1, 60 minutes
     resSelection += 1                                                           # cheap way around a problem sending 0
     c.send("pyUpdateLoginMinutes", resSelection)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])
-    directions = """Updated timeout minutes."""
-    updateDirections(directions)
+    ignoredPosition = calcAcctPositionReceive(response_list[0])
+    ppdirections = """Updated timeout minutes."""
+    updateDirections(ppdirections)
     window.update()
 
-def on_login_attempts(event=None):
+
+def on_login_attempts(ignored=None):
     updateDirections("Selected login attempts")
     resSelection = cbLoginAttempts.current()
-    if ((resSelection < 0) or (resSelection > 3)):                              # Login attempts must be 0 - 3
+    if (resSelection < 0) or (resSelection > 3):                                # Login attempts must be 0 - 3
         resSelection = 2                                                        # default is 2, 10 minutes
     resSelection += 1                                                           # cheap way around a problem sending 0
     c.send("pyUpdateLoginAttempts", resSelection)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])
-    directions = """Updated login attempts."""
-    updateDirections(directions)
+    ignoredPosition = calcAcctPositionReceive(response_list[0])
+    ppdirections = """Updated login attempts."""
+    updateDirections(ppdirections)
     window.update()
 
-def on_password_length(event=None):
+
+def on_password_length(ignored=None):
     updateDirections("Selected generated password length")
     resSelection = cbPasswordLength.current()
-    if ((resSelection < 0) or (resSelection > 4)):                              # Password length must be 0 - 4
+    if (resSelection < 0) or (resSelection > 4):                                # Password length must be 0 - 4
         resSelection = 2                                                        # default is 2, 16 characters
     resSelection += 1                                                           # cheap way around a problem sending 0
     c.send("pyUpdatePasswordLength", resSelection)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])
-    directions = """Updated generated password length."""
-    updateDirections(directions)
+    ignoredPosition = calcAcctPositionReceive(response_list[0])
+    ppdirections = """Updated generated password length."""
+    updateDirections(ppdirections)
     window.update()
 
-def on_inter_char_delay(event=None):
+
+def on_inter_char_delay(ignored=None):
     updateDirections("Selected inter char delay")
     resSelection = cbInterCharDelay.current()
-    if ((resSelection < 0) or (resSelection > 4)):                              # Password length must be 0 - 4
+    if (resSelection < 0) or (resSelection > 4):                                # Password length must be 0 - 4
         resSelection = 0                                                        # default is 0
     resSelection += 1                                                           # cheap way around a problem sending 0
     c.send("pyUpdateInterCharDelay", resSelection)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])
-    directions = """Updated inter char delay."""
-    updateDirections(directions)
+    ignoredPosition = calcAcctPositionReceive(response_list[0])
+    ppdirections = """Updated inter char delay."""
+    updateDirections(ppdirections)
     window.update()
+
 
 def BackupEEprom():
     if tkinter.messagebox.askyesno("Backup", "Backup the primary EEprom?"):
@@ -1457,17 +1454,17 @@ def BackupEEprom():
         global position
         c.send("pyBackup")
         response = c.receive()
-        #print(response)
         response_list = response[1]
-        position = calcAcctPositionReceive(response_list[0])                   # returns head position
+        position = calcAcctPositionReceive(response_list[0])                    # returns head position
         getRecord()
-        lb.select_clear(selection)                                             # Removes one or more items from the selection.
+        lb.select_clear(selection)                                              # Removes one or more items from the selection.
         selection = 0
         lb.select_set(selection)
         lb.see(selection)
         lb.activate(selection)
         window.config(cursor="")
         updateDirections("Finished backing up EEprom.")
+
 
 def FactoryReset():
     if tkinter.messagebox.askyesno("Factory Reset", "Factory reset the device and exit?"):
@@ -1477,32 +1474,33 @@ def FactoryReset():
         global position
         c.send("pyFactoryReset")
         response = c.receive()
-        #print(response)
         response_list = response[1]
-        position = calcAcctPositionReceive(response_list[0])                   # returns head position
+        position = calcAcctPositionReceive(response_list[0])                    # returns head position
         updateDirections("Finished the factory reset.")
         sys.exit(1)
 
+
 def FixCorruptLinkedList():
-    if tkinter.messagebox.askyesno("Corrupt Account List", "Fix corrupt account list? Only do this if it is necessary."):
+    if tkinter.messagebox.askyesno("Corrupt Account List",
+                                   "Fix corrupt account list? Only do this if it is necessary."):
         window.config(cursor="watch")
         updateDirections("Fixing corrupt account list...")
         global selection
         global position
         c.send("pyFixCorruptLinkedList")
         response = c.receive()
-        #print(response)
         response_list = response[1]
-        position = calcAcctPositionReceive(response_list[0])                   # returns head position
-        loadListBox()                                                          # postion is set to head as a side effect
-        getRecord()                                                            # get the head record
-        lb.select_clear(selection)                                             # Removes one or more items from the selection.
+        position = calcAcctPositionReceive(response_list[0])                    # returns head position
+        loadListBox()                                                           # postion is set to head as a side effect
+        getRecord()                                                             # get the head record
+        lb.select_clear(selection)                                              # Removes one or more items from the selection.
         selection = 0
         lb.select_set(selection)
         lb.see(selection)
         lb.activate(selection)
         window.config(cursor="")
         updateDirections("Finished fixing corruption.")
+
 
 def RestoreEEprom():
     if tkinter.messagebox.askyesno("Restore", "Restore backup to primary EEprom?"):
@@ -1512,7 +1510,6 @@ def RestoreEEprom():
         global position
         c.send("pyRestore")
         response = c.receive()
-        #print(response)
         response_list = response[1]
         position = calcAcctPositionReceive(response_list[0])                    # returns head position
         loadListBox()                                                           # postion is set to head as a side effect
@@ -1525,23 +1522,20 @@ def RestoreEEprom():
         window.config(cursor="")
         updateDirections("Finished restoring EEprom.")
 
+
 def ImportFileChrome():
     global state
     state = "Imorting"
-    if (platform.system() == "Windows"):
+    if platform.system() == "Windows":
         name = askopenfilename(initialdir="C:/",                                # TODO: make this work cross platform
-                               filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
-                               title = "Choose a file."
-                              )
-    elif (platform.system() == "Darwin"):                                       # Macintosh
-        name = askopenfilename(title = "Choose a file."
-                              )
-    elif (platform.system() == "Linux"):                                        # Linux
-        name = askopenfilename(title = "Choose a file."
-                              )
+                               filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
+                               title="Choose a file.")
+    elif platform.system() == "Darwin":                                         # Macintosh
+        name = askopenfilename(title="Choose a file.")
+    elif platform.system() == "Linux":                                          # Linux
+        name = askopenfilename(title="Choose a file.")
     else:
-        name = askopenfilename(title = "Choose a file."
-                              )
+        name = askopenfilename(title="Choose a file.")
     if os.path.exists(name):                                                    # make sure the file exists before trying to open it
         window.config(cursor="watch")
         updateDirections(name)
@@ -1555,10 +1549,10 @@ def ImportFileChrome():
                         txt_user.delete(0, END)
                         txt_pass.delete(0, END)
                         txt_url.delete(0, END)
-                        txt_acct.insert(0,stripBadChars(row['name']))
-                        txt_user.insert(0,stripBadChars(row['username']))
-                        txt_pass.insert(0,stripBadChars(row['password']))
-                        txt_url.insert(0,stripBadChars(row['url']))
+                        txt_acct.insert(0, stripBadChars(row['name']))
+                        txt_user.insert(0, stripBadChars(row['username']))
+                        txt_pass.insert(0, stripBadChars(row['password']))
+                        txt_url.insert(0, stripBadChars(row['url']))
                         window.update()
                         time.sleep(0.15)                                        # to eliminate intermittent failure
                         clickedAcct()                                           # sets position = FindAccountPos()
@@ -1573,31 +1567,28 @@ def ImportFileChrome():
                         updateDirections("Record saved.")
                     updateDirections("All records saved.")
                     loadListBox()
-                except Exception as e:
-                    updateDirections("Error encountered reading file in ImportFileChrome; "+ str(e))
-        except Exception as ex:
-            updateDirections("Error encountered in ImportFileChrome; " + str(ex))
+                except Exception as exInner:
+                    updateDirections("Error encountered reading file in ImportFileChrome; " + str(exInner))
+        except Exception as exOuter:
+            updateDirections("Error encountered in ImportFileChrome; " + str(exOuter))
     window.config(cursor="")
     window.update()
     state = "None"
+
 
 def ImportFileKeePass():
     global state
     state = "Importing"
-    if (platform.system() == "Windows"):
-        name = askopenfilename(initialdir="C:/",                               # TODO: make this work cross platform
-                               filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
-                               title = "Choose a file."
-                              )
-    elif (platform.system() == "Darwin"):                                      # Macintosh
-        name = askopenfilename(title = "Choose a file."
-                              )
-    elif (platform.system() == "Linux"):
-        name = askopenfilename(title = "Choose a file."                        # Linux
-                              )
+    if platform.system() == "Windows":
+        name = askopenfilename(initialdir="C:/",                                # TODO: make this work cross platform
+                               filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
+                               title="Choose a file.")
+    elif platform.system() == "Darwin":                                         # Macintosh
+        name = askopenfilename(title="Choose a file.")
+    elif platform.system() == "Linux":
+        name = askopenfilename(title="Choose a file.")                          # Linux
     else:
-        name = askopenfilename(title = "Choose a file."
-                              )
+        name = askopenfilename(title="Choose a file.")
     if os.path.exists(name):                                                    # make sure the file exists before trying to open it
         window.config(cursor="watch")
         updateDirections(name)
@@ -1611,10 +1602,10 @@ def ImportFileKeePass():
                         txt_user.delete(0, END)
                         txt_pass.delete(0, END)
                         txt_url.delete(0, END)
-                        txt_acct.insert(0,stripBadChars(row['Account']))
-                        txt_user.insert(0,stripBadChars(row['Login Name']))
-                        txt_pass.insert(0,stripBadChars(row['Password']))
-                        txt_url.insert(0,stripBadChars(row['Web Site']))
+                        txt_acct.insert(0, stripBadChars(row['Account']))
+                        txt_user.insert(0, stripBadChars(row['Login Name']))
+                        txt_pass.insert(0, stripBadChars(row['Password']))
+                        txt_url.insert(0, stripBadChars(row['Web Site']))
                         window.update()
                         time.sleep(0.15)                                        # to eliminate intermittent failure
                         clickedAcct()                                           # sets position = FindAccountPos()
@@ -1629,42 +1620,39 @@ def ImportFileKeePass():
                         updateDirections("Record saved.")
                     updateDirections("All records saved.")
                     loadListBox()
-                except Exception as e:
-                    updateDirections("Error encountered processing file in ImportFileKeePass; "+ str(e))
-        except Exception as ex:
-            updateDirections("Error encountered in ImportFileKeePass; " + str(ex))
+                except Exception as exInner:
+                    updateDirections("Error encountered processing file in ImportFileKeePass; " + str(exInner))
+        except Exception as exOuter:
+            updateDirections("Error encountered in ImportFileKeePass; " + str(exOuter))
     window.config(cursor="")
     window.update()
     state = "None"
 
+
 def ImportFilePasswordPump():
     global state
+    global selection
     state = "Importing"
-    if (platform.system() == "Windows"):
+    if platform.system() == "Windows":
         name = askopenfilename(initialdir="C:/",                                # TODO: make this work cross platform
-                               filetypes =(("Encrypted Files","*.csvenc"),("CSV File", "*.csv"),("All Files","*.*")),
-                               title = "Choose a file."
-                              )
-    elif (platform.system() == "Darwin"):                                       # Macintosh
-        name = askopenfilename(title = "Choose a file."
-                              )
-    elif (platform.system() == "Linux"):                                        # Linux
-        name = askopenfilename(title = "Choose a file."
-                              )
+                               filetypes=(("Encrypted Files", "*.csvenc"), ("CSV File", "*.csv"), ("All Files", "*.*")),
+                               title="Choose a file.")
+    elif platform.system() == "Darwin":                                         # Macintosh
+        name = askopenfilename(title="Choose a file.")
+    elif platform.system() == "Linux":                                          # Linux
+        name = askopenfilename(title="Choose a file.")
     else:
-        name = askopenfilename(title = "Choose a file."
-                              )
+        name = askopenfilename(title="Choose a file.")
     updateDirections(name)
+    uenc_name = name
     if name.endswith(".csvenc"):                                                # if the filename ends in .csvenc it is encrypted
         key = ask_root_password(window)                                         # get the password
         if key is not None:
             window.config(cursor="watch")
-            uenc_name = name.replace('.csvenc','.csv')
+            uenc_name = name.replace('.csvenc', '.csv')
             copyfile(name, uenc_name)
             decrypt(uenc_name, key)                                             # decrypt the file
             updateDirections(name + " was decrypted.")
-    else:
-        uenc_name = name
     global position
     global group
     window.config(cursor="watch")
@@ -1680,12 +1668,12 @@ def ImportFilePasswordPump():
                         txt_pass.delete(0, END)
                         txt_old_pass.delete(0, END)
                         txt_url.delete(0, END)
-                        txt_acct.insert(0,stripBadChars(row['accountname']))
-                        if (txt_acct.get() != 'accountname'):                   # to skip the header if there is one
-                            txt_user.insert(0,stripBadChars(row['username']))
-                            txt_pass.insert(0,stripBadChars(row['password']))
-                            txt_old_pass.insert(0,stripBadChars(row['oldpassword']))
-                            txt_url.insert(0,stripBadChars(row['url']))
+                        txt_acct.insert(0, stripBadChars(row['accountname']))
+                        if txt_acct.get() != 'accountname':                     # to skip the header if there is one
+                            txt_user.insert(0, stripBadChars(row['username']))
+                            txt_pass.insert(0, stripBadChars(row['password']))
+                            txt_old_pass.insert(0, stripBadChars(row['oldpassword']))
+                            txt_url.insert(0, stripBadChars(row['url']))
                             group = int(row['group'])
                             SetGroupCheckBoxes()
                             window.update()
@@ -1706,29 +1694,37 @@ def ImportFilePasswordPump():
                             updateDirections("Record saved.")
                     updateDirections("All records saved.")
                     loadListBox()
-                except Exception as e:
-                    updateDirections("Error encountered reading file in ImportFilePasswordPump; "+ str(e))
-        except Exception as ex:
-            updateDirections("Error encountered in ImportFilePasswordPump; " + ex)
+                    lb.select_clear(selection)                                  # Removes one or more items from the selection.
+                    selection = 0
+                    getRecord()
+                    lb.select_set(selection)
+                    lb.see(selection)
+                    lb.activate(selection)
+                    updateDirections("Updated account name.")
+                except Exception as exInner:
+                    updateDirections("Error encountered reading file in ImportFilePasswordPump; " + str(exInner))
+        except Exception as exOuter:
+            updateDirections("Error encountered in ImportFilePasswordPump; " + str(exOuter))
         state = "None"
-        if name.endswith(".csvenc"):                                             # if the filename ends in enc it was encrypted
-            os.remove(uenc_name)                                                 # for safety remove the unencrypted file
+        if name.endswith(".csvenc"):                                            # if the filename ends in enc it was encrypted
+            os.remove(uenc_name)                                                # for safety remove the unencrypted file
     window.config(cursor="")
     window.update()
+
 
 def ExportFile():
     global selection
     inifilename = time.strftime("PasswordPumpExport%Y%m%d-%H%M%S.csv")
-    if (platform.system() == "Windows"):
-        name = asksaveasfilename(initialdir="C:/",  # TODO: make this work cross platform
+    if platform.system() == "Windows":
+        name = asksaveasfilename(initialdir="C:/",                              # TODO: make this work cross platform
                                  filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
                                  initialfile=inifilename,
                                  title="Create a file."
                                  )
-    elif (platform.system() == "Darwin"):                                      # Macintosh
+    elif platform.system() == "Darwin":                                         # Macintosh
         name = asksaveasfilename(title="Create a file."
                                  )
-    elif (platform.system() == "Linux"):                                       # Linux
+    elif platform.system() == "Linux":                                          # Linux
         name = asksaveasfilename(initialdir="/home",
                                  filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
                                  initialfile=inifilename,
@@ -1741,33 +1737,32 @@ def ExportFile():
     if len(name.strip()) > 0:
         window.config(cursor="watch")
         updateDirections(name)
-        try:                                                                       # Using try in case user types in unknown file or closes without choosing a file.
+        try:                                                                    # Using try in case user types in unknown file or closes without choosing a file.
             with open(name, mode='w') as pp_file:
                 pp_writer = csv.writer(pp_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
                 pp_writer.writerow(['accountname', 'username', 'password', 'oldpassword', 'url', 'style', 'group'])
                 global position
                 global head
-                c.send("pyReadHead")  # Get the list head
+                c.send("pyReadHead")                                            # Get the list head
                 try:
                     response = c.receive()
-                    #print(response)
                     response_list = response[1]
                     head = calcAcctPositionReceive(response_list[0])
                     position = head
-                    while position < 255:  # '<' not supported between instances of 'str' and 'int'
+                    while position < 255:                                       # '<' not supported between instances of 'str' and 'int'
                         c.send("pyReadAccountName", calcAcctPositionSend(position))
                         try:
                             response = c.receive()
                             accountName_list = response[1]
                             accountName = stripBadChars(accountName_list[0])
-                        except UnicodeDecodeError as e:
-                            updateDirections("UnicodeDecodeError in pyReadAccountName; " + str(e))
+                        except UnicodeDecodeError as ude:
+                            updateDirections("UnicodeDecodeError in pyReadAccountName; " + str(ude))
                             accountName = "UnicodeDecodeError"
                         except ValueError as ve:
                             updateDirections("ValueError in pyReadAccountName; " + str(ve))
                             accountName = "ValueError"
-                        except Exception as e:
-                            updateDirections("Exception in pyReadAccountName; " + str(e))
+                        except Exception as ex:
+                            updateDirections("Exception in pyReadAccountName; " + str(ex))
                             accountName = "Exception"
 
                         c.send("pyReadUserName", calcAcctPositionSend(position))
@@ -1775,14 +1770,14 @@ def ExportFile():
                             response = c.receive()
                             userName_list = response[1]
                             userName = stripBadChars(userName_list[0])
-                        except UnicodeDecodeError as e:
-                            updateDirections("UnicodeDecodeError in pyReadUserName; " + str(e))
+                        except UnicodeDecodeError as ude:
+                            updateDirections("UnicodeDecodeError in pyReadUserName; " + str(ude))
                             userName = "UnicodeDecodeError"
                         except ValueError as ve:
                             updateDirections("ValueError in pyReadUserName; " + str(ve))
                             userName = "ValueError"
-                        except Exception as e:
-                            updateDirections("Exception in pyReadUserName; " + str(e))
+                        except Exception as ex:
+                            updateDirections("Exception in pyReadUserName; " + str(ex))
                             userName = "Exception"
 
                         c.send("pyReadPassword", calcAcctPositionSend(position))
@@ -1790,14 +1785,14 @@ def ExportFile():
                             response = c.receive()
                             password_list = response[1]
                             password = stripBadChars(password_list[0])
-                        except UnicodeDecodeError as e:
-                            updateDirections("UnicodeDecodeError in pyReadPassword; " + str(e))
+                        except UnicodeDecodeError as ude:
+                            updateDirections("UnicodeDecodeError in pyReadPassword; " + str(ude))
                             password = "UnicodeDecodeError"
                         except ValueError as ve:
                             updateDirections("ValueError in pyReadPassword; " + str(ve))
                             password = "ValueError"
-                        except Exception as e:
-                            updateDirections("Exception in pyReadPassword; " + str(e))
+                        except Exception as ex:
+                            updateDirections("Exception in pyReadPassword; " + str(ex))
                             password = "Exception"
 
                         c.send("pyReadOldPassword", calcAcctPositionSend(position))
@@ -1805,14 +1800,14 @@ def ExportFile():
                             response = c.receive()
                             oldpassword_list = response[1]
                             oldpassword = stripBadChars(oldpassword_list[0])
-                        except UnicodeDecodeError as e:
-                            updateDirections("UnicodeDecodeError in pyReadOldPassword; " + str(e))
+                        except UnicodeDecodeError as ude:
+                            updateDirections("UnicodeDecodeError in pyReadOldPassword; " + str(ude))
                             oldpassword = "UnicodeDecodeError"
                         except ValueError as ve:
                             updateDirections("ValueError in pyReadOldPassword; " + str(ve))
                             oldpassword = "ValueError"
-                        except Exception as e:
-                            updateDirections("Exception in pyReadOldPassword; " + str(e))
+                        except Exception as ex:
+                            updateDirections("Exception in pyReadOldPassword; " + str(ex))
                             oldpassword = "Exception"
 
                         c.send("pyReadURL", calcAcctPositionSend(position))
@@ -1820,14 +1815,14 @@ def ExportFile():
                             response = c.receive()
                             url_list = response[1]
                             url = stripBadChars(url_list[0])
-                        except UnicodeDecodeError as e:
-                            updateDirections("UnicodeDecodeError in pyReadURL; " + str(e))
+                        except UnicodeDecodeError as ude:
+                            updateDirections("UnicodeDecodeError in pyReadURL; " + str(ude))
                             url = "UnicodeDecodeError"
                         except ValueError as ve:
                             updateDirections("ValueError in pyReadURL; " + str(ve))
                             url = "ValueError"
-                        except Exception as e:
-                            updateDirections("Exception in pyReadURL; " + str(e))
+                        except Exception as ex:
+                            updateDirections("Exception in pyReadURL; " + str(ex))
                             url = "Exception"
 
                         c.send("pyReadStyle", calcAcctPositionSend(position))
@@ -1835,35 +1830,35 @@ def ExportFile():
                             response = c.receive()
                             style_list = response[1]
                             style = int(stripBadChars(style_list[0]))
-                        except UnicodeDecodeError as e:
-                            updateDirections("UnicodeDecodeError in pyReadStyle; " + str(e))
+                        except UnicodeDecodeError as ude:
+                            updateDirections("UnicodeDecodeError in pyReadStyle; " + str(ude))
                             style = 1
                         except ValueError as ve:
                             updateDirections("ValueError in pyReadStyle; " + str(ve) + " Position: " + str(position))
-                            # invalid literal for int() with base 10: ''
                             style = 1
-                        except Exception as e:
-                            updateDirections("Exception in pyReadStyle; " + str(e))
+                        except Exception as ex:
+                            updateDirections("Exception in pyReadStyle; " + str(ex))
                             style = 1
 
                         c.send("pyReadGroup", calcAcctPositionSend(position))
                         try:
                             response = c.receive()
                             group_list = response[1]
-                            group = group_list[0]
-                        except UnicodeDecodeError as e:
-                            updateDirections("UnicodeDecodeError in pyReadGroup; " + str(e))
-                            group = 0
+                            aGroup = group_list[0]
+                        except UnicodeDecodeError as ude:
+                            updateDirections("UnicodeDecodeError in pyReadGroup; " + str(ude))
+                            aGroup = 0
                         except ValueError as ve:
                             updateDirections("ValueError in pyReadGroup; " + str(ve))
-                            group = 0
-                        except Exception as e:
-                            updateDirections("Exception in pyReadGroup; " + str(e))
-                            group = 0
+                            aGroup = 0
+                        except Exception as ex:
+                            updateDirections("Exception in pyReadGroup; " + str(ex))
+                            aGroup = 0
 
-                        pp_writer.writerow([accountName, userName, password, oldpassword, url, style, group])
+                        pp_writer.writerow([accountName, userName, password, oldpassword, url, style, aGroup])
 
-                        c.send("pyGetNextPos", calcAcctPositionSend(position))  # calls getNextPtr(acctPosition) in C program
+                        c.send("pyGetNextPos",
+                               calcAcctPositionSend(position))                  # calls getNextPtr(acctPosition) in C program
                         try:
                             response = c.receive()
                             response_list = response[1]
@@ -1871,22 +1866,22 @@ def ExportFile():
                         except ValueError as ve:
                             updateDirections("Error in pyGetNextPos; " + str(ve))
                             raise ve
-                        except Exception as e:
-                            updateDirections("Exception in pyGetNextPos; " + str(e))
+                        except Exception as exInner:
+                            updateDirections("Exception in pyGetNextPos; " + str(exInner))
                             raise e
                 except ValueError as ve:
                     updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
                     head = 0
-                except Exception as e:
-                    updateDirections("Exception in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(e))
+                except Exception as exMiddle:
+                    updateDirections("Exception in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(exMiddle))
                     head = 0
-        except:
-            updateDirections("No file exists")
+        except Exception as exOuter:
+            updateDirections("No file exists; " + str(exOuter))
         updateDirections("Don't forget to\r\nencrypt the file\r\nwith a password.")
         window.config(cursor="")
         window.update()
-        # ask if the user wants to encrypt the file here and encrypt it if necessary
-        key = ask_root_password(window)                                             # TODO: the user should enter the password twice, not just once.
+                                                                                # ask if the user wants to encrypt the file here and encrypt it if necessary
+        key = ask_root_password(window)                                         # TODO: the user should enter the password twice, not just once.
         if key is not None:
             window.config(cursor="watch")
             copyfile(name, name + "enc")
@@ -1898,88 +1893,97 @@ def ExportFile():
         updateDirections("User cancelled.")
         window.update()
     position = head
-    getRecord()  # get the head record
-    lb.select_clear(selection)  # Removes one or more items from the selection.
+    getRecord()                                                                 # get the head record
+    lb.select_clear(selection)                                                  # Removes one or more items from the selection.
     selection = 0
     lb.select_set(selection)
     lb.see(selection)
     lb.activate(selection)
 
+
 def OnFavorites():
     global group
     global vFavorites
-    if (vFavorites.get() == 1):
+    if vFavorites.get() == 1:
         group = group | 1
     else:
         group = group & (~1)
     updateGroup()
 
+
 def OnCategoryOne():
     global group
     global vCategoryOne
-    if (vCategoryOne.get() == 1):
+    if vCategoryOne.get() == 1:
         group = group | 2
     else:
         group = group & (~2)
     updateGroup()
 
+
 def OnCategoryTwo():
     global group
     global vCategoryTwo
-    if (vCategoryTwo.get() == 1):
+    if vCategoryTwo.get() == 1:
         group = group | 4
     else:
         group = group & (~4)
     updateGroup()
 
+
 def OnCategoryThree():
     global group
     global vCategoryThree
-    if (vCategoryThree.get() == 1):
+    if vCategoryThree.get() == 1:
         group = group | 8
     else:
         group = group & (~8)
     updateGroup()
 
+
 def OnCategoryFour():
     global group
     global vCategoryFour
-    if (vCategoryFour.get() == 1):
+    if vCategoryFour.get() == 1:
         group = group | 16
     else:
         group = group & (~16)
     updateGroup()
 
+
 def OnCategoryFive():
     global group
     global vCategoryFive
-    if (vCategoryFive.get() == 1):
+    if vCategoryFive.get() == 1:
         group = group | 32
     else:
         group = group & (~32)
     updateGroup()
 
+
 def OnCategorySix():
     global group
     global vCategorySix
-    if (vCategorySix.get() == 1):
+    if vCategorySix.get() == 1:
         group = group | 64
     else:
         group = group & (~64)
     updateGroup()
 
+
 def OnCategorySeven():
     global group
     global vCategorySeven
-    if (vCategorySeven.get() == 1):
+    if vCategorySeven.get() == 1:
         group = group | 128
     else:
         group = group & (~128)
     updateGroup()
 
+
 def generatePassword():
     currentOldPass = txt_old_pass.get()
-    if (len(currentOldPass) == 0):
+    if len(currentOldPass) == 0:
         previousPass = txt_pass.get()
         txt_old_pass.delete(0, END)
         txt_old_pass.insert(END, previousPass)
@@ -1990,72 +1994,78 @@ def generatePassword():
         response = c.receive()
         response_list = response[1]
         defPWType = response_list[0] - 1
-    except Exception as e:
-        updateDirections("Exception encountered reading\r\nreturn value from pyGetPasswordLength:\r\n" + str(e))
+    except Exception as ex:
+        updateDirections("Exception encountered reading\r\nreturn value from pyGetPasswordLength:\r\n" + str(ex))
         defPWType = 2
-    if (  defPWType == 0):
+    if defPWType == 0:
         defPWLen = 8
-    elif (defPWType == 1):
+    elif defPWType == 1:
         defPWLen = 10
-    elif (defPWType == 2):
+    elif defPWType == 2:
         defPWLen = 16
-    elif (defPWType == 3):
+    elif defPWType == 3:
         defPWLen = 24
-    elif (defPWType == 4):
+    elif defPWType == 4:
         defPWLen = 31
-    characters = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%*()?-_=+:;{}[]" # These chars are not generated on the PasswordPump:  , " @ ` \ & ~ | \\ ^ /
-    while True:                                                                # emulate a do while loop in python
-        password = "".join(choice(characters) for x in range(defPWLen))        # generate passwords until one passes
-        if passwordComplexityCheck(password):                                  # the complexity check.
+    characters = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%*()?-_=+:;{}[]"  # These chars are not generated on the PasswordPump:  , " @ ` \ & ~ | \\ ^ /
+    while True:                                                                 # emulate a do while loop in python
+        password = "".join(choice(characters) for unusedVar in range(defPWLen)) # generate passwords until one passes
+        if passwordComplexityCheck(password):                                   # the complexity check.
             break
     txt_pass.delete(0, END)
     txt_pass.insert(END, password)
-    txt_pass.focus()                                                           # to save the old password
-    txt_old_pass.focus()                                                       # to save the password
+    txt_pass.focus()                                                            # to save the old password
+    txt_old_pass.focus()                                                        # to save the password
+
 
 def checkIfPowned():
     currentPass = txt_pass.get()
-    if (len(currentPass) != 0):
-        pownedCnt = powned.check(currentPass);
-        if (pownedCnt):
-            tkinter.messagebox.showinfo('Bad News', 'This password has been seen '+ str(pownedCnt) +' times before.  Do not use it.')
+    if len(currentPass) != 0:
+        pownedCnt = powned.check(currentPass)
+        if pownedCnt:
+            tkinter.messagebox.showinfo('Bad News', 'This password has been seen ' + str(
+                pownedCnt) + ' times before.  Do not use it.')
             updateDirections("This password has been recovered in a data breach.  Do not use it.")
         else:
             tkinter.messagebox.showinfo('Good News', 'This password has not been recovered in any data breaches.')
             updateDirections("This password has not been recovered in any data breach.")
-        window.update();
+        window.update()
+
 
 def openBrowser():
     try:
         aURL = stripBadChars(txt_url.get())
         webbrowser.open(aURL)
         updateDirections("Opened: " + aURL)
-    except Exception as e:
-        updateDirections("There was a problem opening\r\nthe URL:\r\n" +  + str(e))
+    except Exception as ex:
+        updateDirections("There was a problem opening\r\nthe URL:\r\n" + str(ex))
     window.call('wm', 'attributes', '.', '-topmost', True)                      # Place this window on the top
     time.sleep(2)                                                               # Wait two seconds
-    if (stayOnTop.get() == False):
-        window.after_idle(window.call,'wm','attributes', '.', '-topmost', False)# Now allow this window to go to the background
+    if not stayOnTop.get():
+        window.after_idle(window.call, 'wm', 'attributes', '.', '-topmost',
+                          False)                                                # Now allow this window to go to the background
+
 
 def openHelp():
     try:
         webbrowser.open(usersGuideLocation)
         updateDirections("Opened: " + usersGuideLocation)
-    except Exception as e:
-        updateDirections("There was a problem opening\r\nthe URL:\r\n" +  + str(e))
+    except Exception as ex:
+        updateDirections("There was a problem opening\r\nthe URL:\r\n" + str(ex))
+
 
 def doStayOnTop():
-    if (stayOnTop.get() == True):
+    if stayOnTop.get():
         window.call('wm', 'attributes', '.', '-topmost', True)
     else:
         window.after_idle(window.call, 'wm', 'attributes', '.', '-topmost', False)
 
-# Function to validate the password
+
 def passwordComplexityCheck(passwd):
-    # !#$%*()-_+={}[]:;.<>?@
-    specialSym = ['!','#','$','%','*','(',')','-','_','+','=','{','}','[',']',':',';','.','<','>','?','@']
-    # ,"`\/&~|^
-    badSym = [',','"','`','\\','/','&','~','|','^']
+    specialSym = ['!', '#', '$', '%', '*', '(', ')', '-', '_', '+', '=', '{', '}', '[', ']', ':', ';', '.', '<', '>',
+                  '?', '@']                                                     # !#$%*()-_+={}[]:;.<>?@
+
+    badSym = [',', '"', '`', '\\', '/', '&', '~', '|', '^']                     # ,"`\/&~|^
     passwordOK = True
     rejectReason = 'Password fails complexity\r\ncheck:\r\n'
 
@@ -2079,7 +2089,7 @@ def passwordComplexityCheck(passwd):
         rejectReason += 'The password should have at\r\nleast one lowercase letter.\r\n'
         passwordOK = False
 
-    if  any(char in badSym for char in passwd):
+    if any(char in badSym for char in passwd):
         rejectReason += 'The password has a forbidden\r\nsymbol: ,"`\/&~|^ \r\n'
         passwordOK = False
 
@@ -2097,15 +2107,17 @@ def passwordComplexityCheck(passwd):
     window.update()
     return passwordOK
 
+
 def flipPassword():
     global showPassword
-    if (showPassword):
+    if showPassword:
         showPassword = False
         txt_pass.config(show="*")
     else:
         showPassword = True
         txt_pass.config(show="")
     window.update()
+
 
 def SetGroupCheckBoxes():
     global vFavorites
@@ -2116,39 +2128,40 @@ def SetGroupCheckBoxes():
     global vCategoryFive
     global vCategorySix
     global vCategorySeven
-    if ((group & 1) == 1):
+    if (group & 1) == 1:
         vFavorites.set(1)
     else:
         vFavorites.set(0)
-    if ((group & 2) == 2):
+    if (group & 2) == 2:
         vCategoryOne.set(1)
     else:
         vCategoryOne.set(0)
-    if ((group & 4) == 4):
+    if (group & 4) == 4:
         vCategoryTwo.set(1)
     else:
         vCategoryTwo.set(0)
-    if ((group & 8) == 8):
+    if (group & 8) == 8:
         vCategoryThree.set(1)
     else:
         vCategoryThree.set(0)
-    if ((group & 16) == 16):
+    if (group & 16) == 16:
         vCategoryFour.set(1)
     else:
         vCategoryFour.set(0)
-    if ((group & 32) == 32):
+    if (group & 32) == 32:
         vCategoryFive.set(1)
     else:
         vCategoryFive.set(0)
-    if ((group & 64) == 64):
+    if (group & 64) == 64:
         vCategorySix.set(1)
     else:
         vCategorySix.set(0)
-    if ((group & 128) == 128):
+    if (group & 128) == 128:
         vCategorySeven.set(1)
     else:
         vCategorySeven.set(0)
     window.update()
+
 
 def customizeGroup1():
     global groupName1
@@ -2158,11 +2171,11 @@ def customizeGroup1():
         groupName1 = groupNameTemp
     c.send("pyUpdateCategoryName", 1, groupName1)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
     textboxOne.config(text=groupName1)
-    groupsMenu.entryconfigure(1, label = groupName1)
+    groupsMenu.entryconfigure(1, label=groupName1)
+
 
 def customizeGroup2():
     global groupName2
@@ -2172,11 +2185,11 @@ def customizeGroup2():
         groupName2 = groupNameTemp
     c.send("pyUpdateCategoryName", 2, groupName2)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
     textboxTwo.config(text=groupName2)
-    groupsMenu.entryconfigure(2, label = groupName2)
+    groupsMenu.entryconfigure(2, label=groupName2)
+
 
 def customizeGroup3():
     global groupName3
@@ -2186,11 +2199,11 @@ def customizeGroup3():
         groupName3 = groupNameTemp
     c.send("pyUpdateCategoryName", 3, groupName3)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
     textboxThree.config(text=groupName3)
-    groupsMenu.entryconfigure(3, label = groupName3)
+    groupsMenu.entryconfigure(3, label=groupName3)
+
 
 def customizeGroup4():
     global groupName4
@@ -2200,11 +2213,11 @@ def customizeGroup4():
         groupName4 = groupNameTemp
     c.send("pyUpdateCategoryName", 4, groupName4)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
     textboxFour.config(text=groupName4)
-    groupsMenu.entryconfigure(4, label = groupName4)
+    groupsMenu.entryconfigure(4, label=groupName4)
+
 
 def customizeGroup5():
     global groupName5
@@ -2214,11 +2227,11 @@ def customizeGroup5():
         groupName5 = groupNameTemp
     c.send("pyUpdateCategoryName", 5, groupName5)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
     textboxFive.config(text=groupName5)
-    groupsMenu.entryconfigure(5, label = groupName5)
+    groupsMenu.entryconfigure(5, label=groupName5)
+
 
 def customizeGroup6():
     global groupName6
@@ -2228,11 +2241,11 @@ def customizeGroup6():
         groupName6 = groupNameTemp
     c.send("pyUpdateCategoryName", 6, groupName6)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
     textboxSix.config(text=groupName6)
-    groupsMenu.entryconfigure(6, label = groupName6)
+    groupsMenu.entryconfigure(6, label=groupName6)
+
 
 def customizeGroup7():
     global groupName7
@@ -2242,11 +2255,11 @@ def customizeGroup7():
         groupName7 = groupNameTemp
     c.send("pyUpdateCategoryName", 7, groupName7)
     response = c.receive()
-    # print(response)
     response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])  # returns head position
+    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
     textboxSeven.config(text=groupName7)
-    groupsMenu.entryconfig(7, label = groupName7)
+    groupsMenu.entryconfig(7, label=groupName7)
+
 
 def getFirmwareVersion():
     c.send("pyGetFirmwareVersion")
@@ -2259,23 +2272,25 @@ def getFirmwareVersion():
         updateDirections("Unable to obtain the firmware version")
     return "Version:" + firmwareVersion
 
+
 def encrypt(filename, password):
     """
     Given a filename (str) and key (bytes), it encrypts the file and write it
     """
-    with open(filename, "rb") as file:
-        file_data = file.read()                                                 # read all file data
+    with open(filename, "rb") as decFile:
+        file_data = decFile.read()                                              # read all file data
     password += "================================"
     password = password[0:32]
     key = str.encode(password)
     missing_padding = len(key) % 4
     if missing_padding:
-        key += b'='* (4 - missing_padding)
+        key += b'=' * (4 - missing_padding)
     key = base64.urlsafe_b64encode(key)
     f = Fernet(key)                                                             # ValueError: Fernet key must be 32 url-safe base64-encoded bytes.
     encrypted_data = f.encrypt(file_data)                                       # encrypt data
-    with open(filename, "wb") as file:                                          # write the encrypted file
-        file.write(encrypted_data)
+    with open(filename, "wb") as encFile:                                       # write the encrypted file
+        encFile.write(encrypted_data)
+
 
 def decrypt(filename, password):
     """
@@ -2287,30 +2302,27 @@ def decrypt(filename, password):
     key = str.encode(password)
     missing_padding = len(key) % 4
     if missing_padding:
-        key += b'='* (4 - missing_padding)
+        key += b'=' * (4 - missing_padding)
     key = base64.urlsafe_b64encode(key)
     f = Fernet(key)
-    with open(filename, "rb") as file:
-        encrypted_data = file.read()                                            # read the encrypted data
+    with open(filename, "rb") as encFile:
+        encrypted_data = encFile.read()                                         # read the encrypted data
     decrypted_data = f.decrypt(encrypted_data)                                  # decrypt data
-    with open(filename, "wb") as file:                                          # write the original file
-        file.write(decrypted_data)
+    with open(filename, "wb") as decFile:                                       # write the original file
+        decFile.write(decrypted_data)
+
 
 def encryptFile():
-    if (platform.system() == "Windows"):
+    if platform.system() == "Windows":
         filename = askopenfilename(initialdir="C:/",                            # TODO: make this work cross platform
-                               filetypes =(("CSV File", "*.csv"),("All Files","*.*")),
-                               title = "Choose a file to encrypt."
-                              )
-    elif (platform.system() == "Darwin"):                                       # Macintosh
-        filename = askopenfilename(title = "Choose a file to encrypt."
-                              )
-    elif (platform.system() == "Linux"):                                        # Linux
-        filename = askopenfilename(title = "Choose a file to encrypt."
-                              )
+                                   filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
+                                   title="Choose a file to encrypt.")
+    elif platform.system() == "Darwin":                                         # Macintosh
+        filename = askopenfilename(title="Choose a file to encrypt.")
+    elif platform.system() == "Linux":                                          # Linux
+        filename = askopenfilename(title="Choose a file to encrypt.")
     else:
-        filename = askopenfilename(title = "Choose a file to encrypt."
-                                  )
+        filename = askopenfilename(title="Choose a file to encrypt.")
     if filename == "":
         filename = None
     if filename is not None:
@@ -2323,15 +2335,15 @@ def encryptFile():
 
 
 def decryptFile():
-    if (platform.system() == "Windows"):
+    if platform.system() == "Windows":
         filename = askopenfilename(initialdir="C:/",                            # TODO: make this work cross platform
                                    filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
                                    title="Choose a file to encrypt."
                                    )
-    elif (platform.system() == "Darwin"):                                       # Macintosh
+    elif platform.system() == "Darwin":                                         # Macintosh
         filename = askopenfilename(title="Choose a file to encrypt."
                                    )
-    elif (platform.system() == "Linux"):                                        # Linux
+    elif platform.system() == "Linux":                                          # Linux
         filename = askopenfilename(title="Choose a file to encrypt."
                                    )
     else:
@@ -2357,7 +2369,8 @@ def ask_root_password(parent=None):
     if parent is None:
         root_password = tkinter.simpledialog.askstring("Enter Password to Encrypt", "Enter password:", show='*')
     else:
-        root_password = tkinter.simpledialog.askstring("Enter Password to Encrypt", "Enter password:", parent=parent, show='*')
+        root_password = tkinter.simpledialog.askstring("Enter Password to Encrypt", "Enter password:", parent=parent,
+                                                       show='*')
 
     if root_password is None:
         return None
@@ -2368,6 +2381,7 @@ def ask_root_password(parent=None):
 
     return root_password
 
+
 window.protocol("WM_DELETE_WINDOW", clickedClose)
 
 txt_acct = Entry(window, width=40)
@@ -2376,7 +2390,6 @@ txt_acct.grid(column=2, row=2)
 txt_user = Entry(window, width=40)
 txt_user.grid(column=2, row=3)
 
-txt_pass = Entry(window, width=40)
 txt_pass = Entry(window, width=40)
 txt_pass.grid(column=2, row=4)
 
@@ -2406,52 +2419,52 @@ window.config(menu=menubar)
 file = Menu(menubar, tearoff=0)
 importMenu = Menu(menubar, tearoff=0)
 exportMenu = Menu(menubar, tearoff=0)
-file.add_cascade(label = 'Import', menu=importMenu)
-importMenu.add_command(label = 'Import from Chrome', command = ImportFileChrome)
-importMenu.add_command(label = 'Import from KeePass', command = ImportFileKeePass)
-importMenu.add_command(label = 'Import from PasswordPump', command = ImportFilePasswordPump)
-file.add_cascade(label = 'Export', menu=exportMenu)
-exportMenu.add_command(label = 'Export to PasswordPump', command = ExportFile)
-#file.add_command(label = 'Insert', command = clickedInsert)
-#file.add_command(label = 'Delete', command = clickedDelete)
+file.add_cascade(label='Import', menu=importMenu)
+importMenu.add_command(label='Import from Chrome', command=ImportFileChrome)
+importMenu.add_command(label='Import from KeePass', command=ImportFileKeePass)
+importMenu.add_command(label='Import from PasswordPump', command=ImportFilePasswordPump)
+file.add_cascade(label='Export', menu=exportMenu)
+exportMenu.add_command(label='Export to PasswordPump', command=ExportFile)
+# file.add_command(label='Insert', command=clickedInsert)
+# file.add_command(label='Delete', command=clickedDelete)
 file.add_separator()
-file.add_command(label = 'Encrypt File...', command = encryptFile)
-file.add_command(label = 'Decrypt File...', command = decryptFile)
+file.add_command(label='Encrypt File...', command=encryptFile)
+file.add_command(label='Decrypt File...', command=decryptFile)
 file.add_separator()
-file.add_command(label = 'Exit', command = clickedClose)
-menubar.add_cascade(label = 'File', menu = file)
+file.add_command(label='Exit', command=clickedClose)
+menubar.add_cascade(label='File', menu=file)
 
 backup = Menu(menubar, tearoff=0)
-backup.add_command(label = 'Backup EEprom', command = BackupEEprom)
-backup.add_command(label = 'Restore EEprom', command = RestoreEEprom)
-menubar.add_cascade(label = 'Backup/Restore', menu = backup)
+backup.add_command(label='Backup EEprom', command=BackupEEprom)
+backup.add_command(label='Restore EEprom', command=RestoreEEprom)
+menubar.add_cascade(label='Backup/Restore', menu=backup)
 
-settings = Menu(menubar, tearoff=0)
+ppsettings = Menu(menubar, tearoff=0)
 groupsMenu = Menu(menubar, tearoff=1)                                           # tearoff must be 1 here or defects are introduced in the menu
-settings.add_command(label = 'Change Master Password', command = clickedChangeMasterPass)
-settings.add_command(label = 'Show Password on Device', command = clickedShowPassword)
-settings.add_command(label = 'Decoy Password', command = clickedDecoyPassword)
-settings.add_cascade(label = 'Customize Groups', menu=groupsMenu)
-groupsMenu.add_command(label = groupName1, command = customizeGroup1)
-groupsMenu.add_command(label = groupName2, command = customizeGroup2)
-groupsMenu.add_command(label = groupName3, command = customizeGroup3)
-groupsMenu.add_command(label = groupName4, command = customizeGroup4)
-groupsMenu.add_command(label = groupName5, command = customizeGroup5)
-groupsMenu.add_command(label = groupName6, command = customizeGroup6)
-groupsMenu.add_command(label = groupName7, command = customizeGroup7)
-settings.add_checkbutton(label='Stay On Top', var=stayOnTop, command=doStayOnTop)
-settings.add_command(label = 'More settings...', command = ShowSettingsWindow)
-settings.add_command(label = 'Fix corrupt account list', command = FixCorruptLinkedList)
-settings.add_command(label = 'Factory Reset', command = FactoryReset)
-menubar.add_cascade(label = 'Settings', menu = settings)
+ppsettings.add_command(label='Change Master Password', command=clickedChangeMasterPass)
+ppsettings.add_command(label='Show Password on Device', command=clickedShowPassword)
+ppsettings.add_command(label='Decoy Password', command=clickedDecoyPassword)
+ppsettings.add_cascade(label='Customize Groups', menu=groupsMenu)
+groupsMenu.add_command(label=groupName1, command=customizeGroup1)
+groupsMenu.add_command(label=groupName2, command=customizeGroup2)
+groupsMenu.add_command(label=groupName3, command=customizeGroup3)
+groupsMenu.add_command(label=groupName4, command=customizeGroup4)
+groupsMenu.add_command(label=groupName5, command=customizeGroup5)
+groupsMenu.add_command(label=groupName6, command=customizeGroup6)
+groupsMenu.add_command(label=groupName7, command=customizeGroup7)
+ppsettings.add_checkbutton(label='Stay On Top', var=stayOnTop, command=doStayOnTop)
+ppsettings.add_command(label='More settings...', command=ShowSettingsWindow)
+ppsettings.add_command(label='Fix corrupt account list', command=FixCorruptLinkedList)
+ppsettings.add_command(label='Factory Reset', command=FactoryReset)
+menubar.add_cascade(label='Settings', menu=ppsettings)
 
-help = Menu(menubar, tearoff=0)
-help.add_command(label = 'Help', command = openHelp)
-help.add_separator()
-help.add_command(label = 'Check for Updates', command = updateCheck)
-help.add_command(label = 'Check for Firmware Updates', command = updateFirmwareCheck)
-menubar.add_cascade(label = 'Help', menu = help)
-help.entryconfig('Check for Firmware Updates', state='disabled')
+pphelp = Menu(menubar, tearoff=0)
+pphelp.add_command(label='Help', command=openHelp)
+pphelp.add_separator()
+pphelp.add_command(label='Check for Updates', command=updateCheck)
+pphelp.add_command(label='Check for Firmware Updates', command=updateFirmwareCheck)
+menubar.add_cascade(label='Help', menu=pphelp)
+pphelp.entryconfig('Check for Firmware Updates', state='disabled')
 
 menubar.entryconfig('File', state='normal')
 file.entryconfig('Import', state='disabled')
@@ -2460,8 +2473,6 @@ file.entryconfig('Export', state='disabled')
 menubar.entryconfig('Backup/Restore', state='disabled')
 menubar.entryconfig('Settings', state='disabled')
 
-#styles = ["0 - Return","1 - Tab","2 - Tab Tab Rtn"]
-#cbStyle = Combobox(window, values=styles, justify=LEFT, width=37)
 cbStyle = Combobox(window, justify=LEFT, width=37)
 cbStyle['values'] = ('usr<RTN>pass<RTN>',
                      'usr<TAB>pass<RTN>',
@@ -2487,10 +2498,6 @@ btn_open = Button(window, text="Open Port", command=clickedOpen)
 btn_open.grid(column=4, row=0)
 
 lb.bind("<<ListboxSelect>>", clickedLoadDB)
-#lb.bind('<FocusOut>', clickedOutOfListBox)
-
-#btn_save = Button(window, text="Save", command=clickedSave)
-#btn_save.grid(column=4, row=19)
 
 btn_generate = Button(window, text="Generate", command=generatePassword)
 btn_generate.grid(column=4, row=4)
@@ -2512,10 +2519,6 @@ btn_next = Button(window, text="Next>>", command=clickedNext)
 btn_next.grid(column=4, row=19)
 btn_next.config(state='disabled')
 
-#btn_close = Button(window, text=" Exit ", command=clickedClose)
-#btn_close.grid(column=4, row=20)
-#btn_close.config(state='normal')
-
 vFavorites = IntVar()
 vCategoryOne = IntVar()
 vCategoryTwo = IntVar()
@@ -2525,37 +2528,42 @@ vCategoryFive = IntVar()
 vCategorySix = IntVar()
 vCategorySeven = IntVar()
 
-textboxFavorites = Checkbutton(window, text="Favorites ", variable=vFavorites, command=OnFavorites, onvalue=1, offvalue=0)
+textboxFavorites = Checkbutton(window, text="Favorites ", variable=vFavorites, command=OnFavorites, onvalue=1,
+                               offvalue=0)
 textboxFavorites.var = vFavorites
-textboxFavorites.grid(column=1,row=12)
+textboxFavorites.grid(column=1, row=12)
 
 textboxOne = Checkbutton(window, text=groupName1, variable=vCategoryOne, command=OnCategoryOne, onvalue=1, offvalue=0)
 textboxOne.var = vCategoryOne
-textboxOne.grid(column=1,row=13)
+textboxOne.grid(column=1, row=13)
 
 textboxTwo = Checkbutton(window, text=groupName2, variable=vCategoryTwo, command=OnCategoryTwo, onvalue=1, offvalue=0)
 textboxTwo.var = vCategoryTwo
-textboxTwo.grid(column=1,row=14)
+textboxTwo.grid(column=1, row=14)
 
-textboxThree = Checkbutton(window, text=groupName3, variable=vCategoryThree, command=OnCategoryThree, onvalue=1, offvalue=0)
+textboxThree = Checkbutton(window, text=groupName3, variable=vCategoryThree, command=OnCategoryThree, onvalue=1,
+                           offvalue=0)
 textboxThree.var = vCategoryThree
-textboxThree.grid(column=1,row=15)
+textboxThree.grid(column=1, row=15)
 
-textboxFour = Checkbutton(window, text=groupName4, variable=vCategoryFour, command=OnCategoryFour, onvalue=1, offvalue=0)
+textboxFour = Checkbutton(window, text=groupName4, variable=vCategoryFour, command=OnCategoryFour, onvalue=1,
+                          offvalue=0)
 textboxFour.var = vCategoryFour
-textboxFour.grid(column=2,row=12)
+textboxFour.grid(column=2, row=12)
 
-textboxFive = Checkbutton(window, text=groupName5, variable=vCategoryFive, command=OnCategoryFive, onvalue=1, offvalue=0)
+textboxFive = Checkbutton(window, text=groupName5, variable=vCategoryFive, command=OnCategoryFive, onvalue=1,
+                          offvalue=0)
 textboxFive.var = vCategoryFive
-textboxFive.grid(column=2,row=13)
+textboxFive.grid(column=2, row=13)
 
 textboxSix = Checkbutton(window, text=groupName6, variable=vCategorySix, command=OnCategorySix, onvalue=1, offvalue=0)
 textboxSix.var = vCategorySix
-textboxSix.grid(column=2,row=14)
+textboxSix.grid(column=2, row=14)
 
-textboxSeven = Checkbutton(window, text=groupName7, variable=vCategorySeven, command=OnCategorySeven, onvalue=1, offvalue=0)
+textboxSeven = Checkbutton(window, text=groupName7, variable=vCategorySeven, command=OnCategorySeven, onvalue=1,
+                           offvalue=0)
 textboxSeven.var = vCategorySeven
-textboxSeven.grid(column=2,row=15)
+textboxSeven.grid(column=2, row=15)
 
 textboxFavorites.config(state='disabled')
 textboxOne.config(state='disabled')
@@ -2591,7 +2599,7 @@ cb = Combobox(window, values=ports, justify=LEFT, width=37, exportselection=Fals
 cb.grid(column=2, row=0)
 cb.bind('<<ComboboxSelected>>', on_select)
 
-position = 0                                                                   # Global variables
+position = 0                                                                    # Global variables
 head = 0
 tail = 0
 selection = 0
