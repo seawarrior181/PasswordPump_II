@@ -5,7 +5,7 @@
 #               |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
 # Author:       Daniel J. Murphy                                  |_|
 # File:         PassPumpGUI_v2_0.py
-# Version:      2.0.8.00
+# Version:      2.0.8.01
 # Date:         2019/07/26 - 2021/12/10
 # Language:     Python
 #
@@ -48,7 +48,7 @@
 # - If an account name contains a comma, and you visit the field, after
 #   exiting the GUI and reloading all of the accounts, the comma has changed
 #   into a hashtag and all of the remaining fields are blank.
-# X After adding a new account, if the style isn't specified (or left on the
+# x After adding a new account, if the style isn't specified (or left on the
 #   default), ValueError: invalid literal for int() with base 10: '' occurs
 #   on subsequent visits to that account.
 # * Unable so save exported PasswordPump format file under Linux.
@@ -140,6 +140,9 @@
 # - cryptography
 #   sudo pip3 install cryptography
 #
+# See the Users Guide for installation instructions.
+# https://github.com/seawarrior181/PasswordPump_II/blob/master/Password%20Pump%20II%20Users%20Guide.pdf
+#
 #  License
 #  =======
 #  Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
@@ -178,10 +181,12 @@
 
 from cryptography.fernet import Fernet
 from random import *
-from serial.tools.list_ports import comports
+from serial.tools.list_ports import comports                                    # be advised, this is from pyserial lib, not the serial lib!
+from serial.serialutil import SerialException
 from shutil import copyfile
 from tendo import singleton
 from tkinter import *
+from tkinter import messagebox
 from tkinter.ttk import *
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
@@ -194,64 +199,10 @@ import platform
 import powned
 import PyCmdMessenger
 import requests
-import serial
-import serial.tools.list_ports
 import time
 import tkinter.messagebox
 import tkinter.simpledialog
 import webbrowser
-
-try:
-    me = singleton.SingleInstance()                                             # will sys.exit(-1) if another instance is running
-except Exception as e:
-    print("Another version of the PasswordPumpGUI is already running, quitting.")  # TODO: Never reached...
-
-window = Tk()
-window.title("PasswordPump Edit Credentials v2.0.8.00")
-
-if platform.system() == "Windows":                                              # e.g. Windows10
-    window.geometry('400x560')
-elif platform.system() == "Darwin":                                             # Macintosh
-    window.geometry('580x600')
-elif platform.system() == "Linux":                                              # e.g. Ubuntu
-    window.geometry('580x600')
-else:
-    window.geometry('400x555')
-
-stayOnTop = BooleanVar()                                                        # determines if the Window stays on top of all other windows
-stayOnTop.set(False)                                                            # default when starting is No
-
-lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
-lbl_port.grid(column=1, row=0)
-frame = Frame(window, width=200, height=200)
-
-frame.grid(column=2, row=1)
-lb = Listbox(frame, selectmode=SINGLE, justify=LEFT, width=38, bd=0, exportselection=False)
-scrollbar = Scrollbar(frame, orient=VERTICAL)
-scrollbar.pack(side=RIGHT, fill=Y)
-scrollbar.config(command=lb.yview)
-lb.config(yscrollcommand=scrollbar.set)
-lb.pack()
-
-lbl_acct = Label(window, text="Account", anchor=E, justify=RIGHT, width=10)
-lbl_acct.grid(column=1, row=2)
-
-lbl_user = Label(window, text="User Name", anchor=E, justify=RIGHT, width=10)
-lbl_user.grid(column=1, row=3)
-
-lbl_old_pass = Label(window, text="Old Password", anchor=E, justify=RIGHT, width=10)
-lbl_old_pass.grid(column=1, row=5)
-
-lbl_url = Label(window, text="URL", anchor=E, justify=RIGHT, width=10)
-lbl_url.grid(column=1, row=6)
-
-lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
-lbl_style.grid(column=1, row=7)
-
-translation_table = dict.fromkeys(map(ord, ',|~"'), '#')
-
-usersGuideLocation = "https://docs.google.com/document/d/1QwUFkCNrrNJYPX6mqauCRvVULn6AmX-2JMsckq2TvfU/edit?usp=sharing"
-
 
 def updateCheck():
     global updateWindow
@@ -259,7 +210,7 @@ def updateCheck():
         updateWindow = Toplevel()
         updateWindow.title(string="Update Checker")
         updateWindow.resizable(False, False)
-        versionContents = 'Version:2.0.8.00'                                        # the current version
+        versionContents = 'Version:2.0.8.01'                                        # the current version
         latestVersion = "https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py"
         response = requests.get(
             'https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/NewestVersion.txt')  # gets newest version
@@ -600,7 +551,7 @@ def clickedOpen():
         arduino = PyCmdMessenger.ArduinoBoard(port, baud_rate=115200, timeout=20.0, settle_time=2.0, enable_dtr=False,
                                               int_bytes=4, long_bytes=8, float_bytes=4, double_bytes=8)
         arduinoAttached = 1
-    except serial.serialutil.SerialException:
+    except SerialException:
         updateDirections(
             "Error when attaching to\r\nPasswordPump.  Device not\n\rfound. Power cycle the\n\rPasswordPump and try again.")
 
@@ -666,11 +617,11 @@ def clickedOpen():
                                     escape_separator='\\')
 
     txt_acct.bind("<FocusOut>",
-                  (lambda _: clickedAcctParam(txt_acct)))                       # When the user clicks off of the field save the edited item
-    txt_user.bind("<FocusOut>", (lambda _: clickedUserParam(txt_user)))
-    txt_pass.bind("<FocusOut>", (lambda _: clickedPassParam(txt_pass)))
-    txt_old_pass.bind("<FocusOut>", (lambda _: clickedOldPassParam(txt_old_pass)))
-    txt_url.bind("<FocusOut>", (lambda _: clickedUrlParam(txt_url)))
+                  (lambda _: clickedAcct(txt_acct)))                       # When the user clicks off of the field save the edited item
+    txt_user.bind("<FocusOut>", (lambda _: clickedUser(txt_user)))
+    txt_pass.bind("<FocusOut>", (lambda _: clickedPass(txt_pass)))
+    txt_old_pass.bind("<FocusOut>", (lambda _: clickedOldPass(txt_old_pass)))
+    txt_url.bind("<FocusOut>", (lambda _: clickedUrl(txt_url)))
 
     c.send("pyReadHead")
     try:
@@ -759,15 +710,19 @@ def updateDirections(ppdirections):
     window.update()
 
 
-def clickedAcctParam(ignored):
-    clickedAcct()
+def character_limit(entry_text,limit):
+    if len(entry_text.get()) > 0:
+        text = entry_text.get()[:limit]
+        entry_text.delete(0,"end")
+        entry_text.insert(0, text)
 
 
-def clickedAcct():
+def clickedAcct(ignored):
     window.config(cursor="watch")                                               # TODO: this is not working
     window.update()
+    character_limit(txt_acct, 31)
     aResAcct = stripBadChars(txt_acct.get())
-    resAcct = aResAcct[0:32]
+    resAcct = aResAcct[0:31]
     global position                                                             # the position on EEprom, don't confuse with selection
     global state
     global selection
@@ -806,14 +761,11 @@ def clickedAcct():
     window.update()
 
 
-def clickedUserParam(ignored):
-    clickedUser()
-
-
-def clickedUser():
+def clickedUser(ignored):
     global position
+    character_limit(txt_user, 31)
     aResUser = stripBadChars(txt_user.get())
-    resUser = aResUser[0:32]
+    resUser = aResUser[0:31]
     if len(resUser) > 0:
         c.send("pyUpdateUserName", calcAcctPositionSend(position), resUser)
     else:
@@ -827,14 +779,11 @@ def clickedUser():
     window.update()
 
 
-def clickedPassParam(ignored):
-    clickedPass()
-
-
-def clickedPass():
+def clickedPass(ignored):
     global position
+    character_limit(txt_pass,31)
     aResPass = stripBadChars(txt_pass.get())
-    resPass = aResPass[0:32]
+    resPass = aResPass[0:31]                                                    # 32nd char ends up being the null terminator
     if len(resPass) > 0:
         c.send("pyUpdatePassword", calcAcctPositionSend(position), resPass)
     else:
@@ -849,14 +798,11 @@ def clickedPass():
     ignoredPassesComplexityCheck = passwordComplexityCheck(aResPass)
 
 
-def clickedOldPassParam(ignored):
-    clickedOldPass()
-
-
-def clickedOldPass():
+def clickedOldPass(ignored):
     global position
+    character_limit(txt_old_pass,31)
     aResOldPass = stripBadChars(txt_old_pass.get())
-    resOldPass = aResOldPass[0:32]
+    resOldPass = aResOldPass[0:31]                                              # 32nd char ends up being the null terminator
     if len(resOldPass) > 0:
         c.send("pyUpdateOldPassword", calcAcctPositionSend(position), resOldPass)
     else:
@@ -896,45 +842,24 @@ def updateGroup():
     window.update()
 
 
-def clickedUrlParam(ignored):
-    clickedUrl_New()
-
-
-def clickedUrl():
-    global position
-    aURL = stripBadChars(txt_url.get())
-    resURL = aURL[0:32]                                                         # max length of a URL is 96 chars
-    txt_url.config(state='normal')
-    if len(resURL) > 0:                                                         # if the URL doesn't exist don't send it
-        c.send("pyUpdateURL", calcAcctPositionSend(position), resURL)
-    else:
-        c.send("pyUpdateURL", calcAcctPositionSend(position), "")
-    response = c.receive()
-    response_list = response[1]
-    position = calcAcctPositionReceive(response_list[0])
-    txt_url.config(state='normal')
-    ppdirections = """Updated URL."""
-    updateDirections(ppdirections)
-    window.update()
-
-
-def clickedUrl_New():                                                           # send the website over in 3 chunks instead of all at once to circumvent problems encountered when sending it all at once.
+def clickedUrl(ignored):                                                               # send the website over in 3 chunks instead of all at once to circumvent problems encountered when sending it all at once.
     txt_url.config(state='normal')
     global position
+    character_limit(txt_url, 95)
     aURL = stripBadChars(txt_url.get())
-    resURL_1 = aURL[0:32]                                                       # max length of a URL is 96 chars
+    resURL_1 = aURL[0:32]                                                       # max length of a URL is 95 chars plus null terminator
     if len(resURL_1) > 0:                                                       # if the URL doesn't exist don't send it
         c.send("pyUpdateURL_1", resURL_1)
         response = c.receive()
         response_list = response[1]
         position = calcAcctPositionReceive(response_list[0])
-        resURL_2 = aURL[32:64]                                                  # max length of a URL is 96 chars
+        resURL_2 = aURL[32:64]                                                  # max length of a URL is 95 chars plus null terminator
         if len(resURL_2) > 0:                                                   # if the URL doesn't exist don't send it
             c.send("pyUpdateURL_2", resURL_2)
             response = c.receive()
             response_list = response[1]
             position = calcAcctPositionReceive(response_list[0])
-            resURL_3 = aURL[64:96]                                              # max length of a URL is 96 chars
+            resURL_3 = aURL[64:95]                                              # max length of a URL is 95 chars plus null terminator
             if len(resURL_3) > 0:                                               # if the URL doesn't exist don't send it
                 c.send("pyUpdateURL_3", calcAcctPositionSend(position), resURL_3)
                 response = c.receive()
@@ -1171,15 +1096,15 @@ def clickedInsert():
     txt_acct.focus_set()                                                        # Put input focus on the account field
 
     txt_acct.bind("<FocusOut>",
-                  (lambda _: clickedAcctParam(txt_acct)))                       # When the clicks off of the field save the edited item
-    txt_user.bind("<FocusOut>", (lambda _: clickedUserParam(txt_user)))
-    txt_pass.bind("<FocusOut>", (lambda _: clickedPassParam(txt_pass)))
-    txt_old_pass.bind("<FocusOut>", (lambda _: clickedOldPassParam(txt_old_pass)))
-    txt_url.bind("<FocusOut>", (lambda _: clickedUrlParam(txt_url)))
+                  (lambda _: clickedAcct(txt_acct)))                       # When the clicks off of the field save the edited item
+    txt_user.bind("<FocusOut>", (lambda _: clickedUser(txt_user)))
+    txt_pass.bind("<FocusOut>", (lambda _: clickedPass(txt_pass)))
+    txt_old_pass.bind("<FocusOut>", (lambda _: clickedOldPass(txt_old_pass)))
+    txt_url.bind("<FocusOut>", (lambda _: clickedUrl(txt_url)))
 
 
 def doNothing(ignored):
-    ignored = 0                                                                 # do nothing
+    pass                                                                        # do nothing
 
 
 def clickedLoadDB(event):
@@ -1555,15 +1480,15 @@ def ImportFileChrome():
                         txt_url.insert(0, stripBadChars(row['url']))
                         window.update()
                         time.sleep(0.15)                                        # to eliminate intermittent failure
-                        clickedAcct()                                           # sets position = FindAccountPos()
+                        clickedAcct(txt_acct)                                   # sets position = FindAccountPos()
                         time.sleep(0.15)                                        # to eliminate intermittent failure
-                        clickedUser()
+                        clickedUser(txt_user)
                         time.sleep(0.15)                                        # to eliminate intermittent failure
-                        clickedPass()
+                        clickedPass(txt_pass)
                         time.sleep(0.15)                                        # to eliminate intermittent failure
                         clickedStyle()
                         time.sleep(0.15)                                        # to eliminate intermittent failure
-                        clickedUrl_New()
+                        clickedUrl(txt_url)
                         updateDirections("Record saved.")
                     updateDirections("All records saved.")
                     loadListBox()
@@ -1608,15 +1533,15 @@ def ImportFileKeePass():
                         txt_url.insert(0, stripBadChars(row['Web Site']))
                         window.update()
                         time.sleep(0.15)                                        # to eliminate intermittent failure
-                        clickedAcct()                                           # sets position = FindAccountPos()
+                        clickedAcct(txt_acct)                                   # sets position = FindAccountPos()
                         time.sleep(0.15)                                        # to eliminate intermittent failure
-                        clickedUser()
+                        clickedUser(txt_user)
                         time.sleep(0.15)                                        # to eliminate intermittent failure
-                        clickedPass()
+                        clickedPass(txt_pass)
                         time.sleep(0.15)                                        # to eliminate intermittent failure
                         clickedStyle()
                         time.sleep(0.15)                                        # to eliminate intermittent failure
-                        clickedUrl_New()
+                        clickedUrl(txt_url)
                         updateDirections("Record saved.")
                     updateDirections("All records saved.")
                     loadListBox()
@@ -1678,17 +1603,17 @@ def ImportFilePasswordPump():
                             SetGroupCheckBoxes()
                             window.update()
                             time.sleep(0.15)                                    # to eliminate intermittent failure
-                            clickedAcct()                                       # sets position = FindAccountPos()
+                            clickedAcct(txt_acct)                               # sets position = FindAccountPos()
                             time.sleep(0.15)                                    # to eliminate intermittent failure
-                            clickedUser()
+                            clickedUser(txt_user)
                             time.sleep(0.15)                                    # to eliminate intermittent failure
-                            clickedPass()
+                            clickedPass(txt_pass)
                             time.sleep(0.15)                                    # to eliminate intermittent failure
-                            clickedOldPass()
+                            clickedOldPass(txt_old_pass)
                             time.sleep(0.15)                                    # to eliminate intermittent failure
                             clickedStyle()
                             time.sleep(0.15)                                    # to eliminate intermittent failure
-                            clickedUrl_New()
+                            clickedUrl(txt_url)
                             time.sleep(0.15)                                    # to eliminate intermittent failure
                             updateGroup()
                             updateDirections("Record saved.")
@@ -2381,6 +2306,61 @@ def ask_root_password(parent=None):
 
     return root_password
 
+
+try:
+    me = singleton.SingleInstance()                                             # If the PasswordPumpGUI is already
+except singleton.SingleInstanceException as e:                                  # running, tell the user and exit.
+    root = tkinter.Tk()
+    root.withdraw()
+    messagebox.showerror(title="PasswordPumpGUI is Already Running",
+                         message="Another instance of PasswordPumpGUI is already running. Exiting.")
+    sys.exit(-1)
+
+window = Tk()
+window.title("PasswordPump Edit Credentials v2.0.8.01")
+
+if platform.system() == "Windows":                                              # e.g. Windows7, Windows10
+    window.geometry('400x560')
+elif platform.system() == "Darwin":                                             # Macintosh
+    window.geometry('580x600')
+elif platform.system() == "Linux":                                              # e.g. Ubuntu, Raspbian
+    window.geometry('580x600')
+else:
+    window.geometry('400x555')
+
+stayOnTop = BooleanVar()                                                        # Determines if the Window stays on top
+stayOnTop.set(False)                                                            # of all other windows. Default when
+                                                                                # starting is No.
+lbl_port = Label(window, text="Port", anchor=E, justify=RIGHT, width=10)
+lbl_port.grid(column=1, row=0)
+frame = Frame(window, width=200, height=200)
+
+frame.grid(column=2, row=1)
+lb = Listbox(frame, selectmode=SINGLE, justify=LEFT, width=38, bd=0, exportselection=False)
+scrollbar = Scrollbar(frame, orient=VERTICAL)
+scrollbar.pack(side=RIGHT, fill=Y)
+scrollbar.config(command=lb.yview)
+lb.config(yscrollcommand=scrollbar.set)
+lb.pack()
+
+lbl_acct = Label(window, text="Account", anchor=E, justify=RIGHT, width=10)
+lbl_acct.grid(column=1, row=2)
+
+lbl_user = Label(window, text="User Name", anchor=E, justify=RIGHT, width=10)
+lbl_user.grid(column=1, row=3)
+
+lbl_old_pass = Label(window, text="Old Password", anchor=E, justify=RIGHT, width=10)
+lbl_old_pass.grid(column=1, row=5)
+
+lbl_url = Label(window, text="URL", anchor=E, justify=RIGHT, width=10)
+lbl_url.grid(column=1, row=6)
+
+lbl_style = Label(window, text="Style", anchor=E, justify=RIGHT, width=10)
+lbl_style.grid(column=1, row=7)
+
+translation_table = dict.fromkeys(map(ord, ',|~"'), '#')
+
+usersGuideLocation = "https://docs.google.com/document/d/1QwUFkCNrrNJYPX6mqauCRvVULn6AmX-2JMsckq2TvfU/edit?usp=sharing"
 
 window.protocol("WM_DELETE_WINDOW", clickedClose)
 
