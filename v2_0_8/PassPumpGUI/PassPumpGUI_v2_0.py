@@ -143,6 +143,14 @@
 # See the Users Guide for installation instructions.
 # https://github.com/seawarrior181/PasswordPump_II/blob/master/Password%20Pump%20II%20Users%20Guide.pdf
 #
+# Generating the Executable File
+# ==============================
+# 1) Comment out the code related to tendo.
+# 2) cd E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI
+# 3) pyinstaller cli.py --onefile --paths=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI -w --name PasswordPumpGUI
+# 4) pyinstaller PasswordPumpGUI.spec --onefile --paths=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI -w --name PasswordPumpGUI
+# 5) Commit file E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\PasswordPumpGUI.exe to git
+#
 #  License
 #  =======
 #  Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
@@ -184,7 +192,7 @@ from random import *
 from serial.tools.list_ports import comports                                    # be advised, this is from pyserial lib, not the serial lib!
 from serial.serialutil import SerialException
 from shutil import copyfile
-from tendo import singleton
+#from tendo import singleton
 from tkinter import *
 from tkinter import messagebox
 from tkinter.ttk import *
@@ -199,10 +207,17 @@ import platform
 import powned
 import PyCmdMessenger
 import requests
+import subprocess
+import sys
 import time
 import tkinter.messagebox
 import tkinter.simpledialog
 import webbrowser
+
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
 
 def updateCheck():
     global updateWindow
@@ -982,7 +997,7 @@ def loadListBox():                                                              
                 raise ve
             except Exception as ex:
                 updateDirections("Exception in pyGetNextPos:\r\n" + str(ex))
-                raise e
+                raise ex
         position = head
         window.config(cursor="")
         window.update()
@@ -1793,7 +1808,7 @@ def ExportFile():
                             raise ve
                         except Exception as exInner:
                             updateDirections("Exception in pyGetNextPos; " + str(exInner))
-                            raise e
+                            raise exInner
                 except ValueError as ve:
                     updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
                     head = 0
@@ -2307,14 +2322,14 @@ def ask_root_password(parent=None):
     return root_password
 
 
-try:
-    me = singleton.SingleInstance()                                             # If the PasswordPumpGUI is already
-except singleton.SingleInstanceException as e:                                  # running, tell the user and exit.
-    root = tkinter.Tk()
-    root.withdraw()
-    messagebox.showerror(title="PasswordPumpGUI is Already Running",
-                         message="Another instance of PasswordPumpGUI is already running. Exiting.")
-    sys.exit(-1)
+#try:
+#    me = singleton.SingleInstance()                                             # If the PasswordPumpGUI is already
+#except singleton.SingleInstanceException as e:                                  # running, tell the user and exit.
+#    root = tkinter.Tk()
+#    root.withdraw()
+#    messagebox.showerror(title="PasswordPumpGUI is Already Running",
+#                         message="Another instance of PasswordPumpGUI is already running. Exiting.")
+#    sys.exit(-1)
 
 window = Tk()
 window.title("PasswordPump Edit Credentials v2.0.8.01")
