@@ -20,7 +20,7 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
     
     Simply execute the downloaded file to get the PasswordPumpGUI installed.
       
-  * There are several new cases to announce; there is a new case for the rotary encoder model available on Tindie.  Soon to follow there will be a new case available for the Joystick model that looks pretty cool.  Both of these cases were designed and donated by scootercommutter.  Because 3D printing is expensive I'll be selling them on Tindie for a price that's quite close to my cost.  Finally there is an acrylic enclosure on the way, the enclosure that's depicted on the front of the Users Guide.  The .stl files for the two cases are posted on this site so that you can print them out yourself if you have a 3D printer (thanks scootercommuter!).  Finally, if you are interested in any of these cases/enclosures and they are not in stock on Tindie send me an email so that I know there is interest.  There are pictures of all three designs in the media section of this site, located here (best viewed by downloading):
+  * There are several new cases to announce; there is a new case for the rotary encoder model available on Tindie.  Soon to follow there will be a new case available for the Joystick model that looks pretty cool.  Both of these cases were designed and donated by scootercommuter.  Because 3D printing is expensive I'll be selling them on Tindie for a price that's quite close to my cost.  Finally there is an acrylic enclosure on the way, the enclosure that's depicted on the front of the Users Guide.  The .stl files for the two cases are posted on this site so that you can print them out yourself if you have a 3D printer (thanks scootercommuter!).  Finally, if you are interested in any of these cases/enclosures and they are not in stock on Tindie send me an email so that I know there is interest.  There are pictures of all three designs in the media section of this site, located here (best viewed by downloading):
 
       https://github.com/seawarrior181/PasswordPump_II/blob/master/media/PPEncoder.jpg
       https://github.com/seawarrior181/PasswordPump_II/blob/master/media/PPEncoderEnclosure.jpg
@@ -28,8 +28,6 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
       https://github.com/seawarrior181/PasswordPump_II/blob/master/media/PPJoystick.jpg
       https://github.com/seawarrior181/PasswordPump_II/blob/master/media/PPJoystickCase.jpg
   
-  * On Windows you no longer need to install Python to run the PasswordPumpGUI; there is an .exe file available here: https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/dist/PasswordPumpGUI.exe .  Someday I'll create an install program, but for now you can just copy the .exe to your desktop, just click on the Download button then move the PasswordPumpGUI.exe file to your Desktop.
-
 # Change Log
 
 v2.0.8
