@@ -15,8 +15,9 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 
 # News
   * There is now a new model of PasswordPump available for purchase; the Joystick model.  This PasswordPump has a lower profile, but it does take a little bit longer to scroll through all of your accounts.  It works well.
-  * On Windows there exists now a setup program that does not require Python to be installed.  It's located here:
+  * On Windows there exists now a setup program that does not require Python to be installed to get the PasswordPumpGUI up and running.  It's located here:
       https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/inno/PasswordPumpSetup.exe
+    Simply download the file and executed it to get the PasswordPumpGUI installed.
       
   * There are several new cases to announce; there is a new case for the rotary encoder model available on Tindie.  Soon to follow there will be a new case available for the Joystick model that looks pretty cool.  Both of these cases were designed and donated by scootercommutter.  Because 3D printing is expensive I'll be selling them on Tindie for a price that's quite close to my cost.  Finally there is an acrylic enclosure on the way, the enclosure that's depicted on the front of the Users Guide.  The .stl files for the two cases are posted on this site so that you can print them out yourself if you have a 3D printer (thanks scootercommuter!).  Finally, if you are interested in any of these cases/enclosures and they are not in stock on Tindie send me an email so that I know there is interest.  There are pictures of all three designs in the media section of this site, located here (best viewed by downloading):
 
