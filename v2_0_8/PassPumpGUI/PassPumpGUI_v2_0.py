@@ -5,7 +5,7 @@
 #               |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
 # Author:       Daniel J. Murphy                                  |_|
 # File:         PassPumpGUI_v2_0.py
-# Version:      2.0.8.01
+# Version:      2.0.8.02
 # Date:         2019/07/26 - 2021/12/10
 # Language:     Python
 #
@@ -192,7 +192,7 @@ from random import *
 from serial.tools.list_ports import comports                                    # be advised, this is from pyserial lib, not the serial lib!
 from serial.serialutil import SerialException
 from shutil import copyfile
-#from tendo import singleton
+#from tendo import singleton                                                    # enabling this functionality makes it impossible to create an .exe file on Windows
 from tkinter import *
 from tkinter import messagebox
 from tkinter.ttk import *
@@ -225,8 +225,15 @@ def updateCheck():
         updateWindow = Toplevel()
         updateWindow.title(string="Update Checker")
         updateWindow.resizable(False, False)
-        versionContents = 'Version:2.0.8.01'                                        # the current version
-        latestVersion = "https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py"
+        versionContents = 'Version:2.0.8.02'                                    # the current version
+        if platform.system() == "Windows":                                      # Windows
+            latestVersion = "https://github.com/seawarrior181/PasswordPump_II/raw/master/v2_0_8/PassPumpGUI/dist/PasswordPumpGUI.exe"
+        elif platform.system() == "Darwin":                                     # Macintosh
+            latestVersion = "https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py"
+        elif platform.system() == "Linux":                                      # Linux
+            latestVersion = "https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py"
+        else:                                                                    # Anything else
+            latestVersion = "https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py"
         response = requests.get(
             'https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/NewestVersion.txt')  # gets newest version
         updateContents = response.text
@@ -250,18 +257,75 @@ def updateCheck():
 
 def downloadLatest():
     try:
-        url = 'https://raw.githubusercontent.com/seawarrior181/PasswordPump_II/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py'
+        if platform.system() == "Windows":                                      # Windows
+            url = 'https://github.com/seawarrior181/PasswordPump_II/raw/master/v2_0_8/PassPumpGUI/inno/PasswordPumpSetup.exe'
+            print(__file__)
+            downloadLocation = get_download_path() + "\PasswordPumpSetup.exe"
+        elif platform.system() == "Darwin":                                     # Macintosh
+            url = 'https://raw.githubusercontent.com/seawarrior181/PasswordPump_II/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py'
+            downloadLocation = __file__
+        elif platform.system() == "Linux":                                      # Linux
+            url = 'https://raw.githubusercontent.com/seawarrior181/PasswordPump_II/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py'
+            downloadLocation = __file__
+        else:                                                                    # Anything else
+            url = 'https://raw.githubusercontent.com/seawarrior181/PasswordPump_II/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py'
+            downloadLocation = __file__
         req = requests.get(url, allow_redirects=True)
-        open(__file__ + ".new", 'wb').write(req.content)
-        downloadedLabel = Label(updateWindow,
-                                text="\n The latest version of PasswordPumpGUI was downloaded to\n\n" + " " + __file__ + ".new\n\n" +
-                                     " Exit the program and rename\n\n" +
-                                     "   " + __file__ + " to\n" +
-                                     "   " + __file__ + ".old\n\n and rename\n\n" +
-                                     "   " + __file__ + ".new to\n" +
-                                     "   " + __file__ + "\n\n then restart the program." +
-                                     "\n\n This is also a good time to update to the latest version of the PasswordPump firmware.\n" +
-                                     " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n\n")
+
+
+        if platform.system() == "Windows":                                      # Windows
+            open(downloadLocation, 'wb').write(req.content)
+            downloadedLabel = Label(updateWindow,
+                                    text="\n The latest version of PasswordPumpGUI setup program was downloaded to:\n\n  " + " " + downloadLocation + "\n\n" +
+                                         " Exit this program and run PasswordPumpSetup.exe from\n\n  " + downloadLocation + ". \n\n"
+                                         " Then restart the program from the start menu or your Desktop. \n\n" +
+                                         " This is also a good time to update to the latest version of the PasswordPump firmware.\n" +
+                                         " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n" +
+                                         " Check to see if your version of the firmware is up-to-date by connecting to your PasswordPump device from \n" +
+                                         " PasswordPumpGUI and navigating to Help->Check for Firmware Updates." +
+                                         "\n\n ")
+        elif platform.system() == "Darwin":                                     # Macintosh
+            open(downloadLocation + ".new", 'wb').write(req.content)
+            downloadedLabel = Label(updateWindow,
+                                    text="\n The latest version of PasswordPumpGUI was downloaded to:\n\n" + " " + downloadLocation + ".new\n\n" +
+                                         " Exit the program and rename\n\n" +
+                                         "   " + downloadLocation + " to\n" +
+                                         "   " + downloadLocation + ".old\n\n and rename\n\n" +
+                                         "   " + downloadLocation + ".new to\n" +
+                                         "   " + downloadLocation + "\n\n then restart the program from your Desktop." +
+                                         "\n This is also a good time to update to the latest version of the PasswordPump firmware.\n" +
+                                         " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n" +
+                                         " Check to see if your version of the firmware is up-to-date by connecting to your PasswordPump device from \n" +
+                                         " PasswordPumpGUI and navigating to Help->Check for Firmware Updates." +
+                                         "\n\n ")
+        elif platform.system() == "Linux":                                      # Linux
+            open(downloadLocation + ".new", 'wb').write(req.content)
+            downloadedLabel = Label(updateWindow,
+                                    text="\n The latest version of PasswordPumpGUI was downloaded to:\n\n" + " " + downloadLocation + ".new\n\n" +
+                                         " Exit the program and rename\n\n" +
+                                         "   " + downloadLocation + " to\n" +
+                                         "   " + downloadLocation + ".old\n\n and rename\n\n" +
+                                         "   " + downloadLocation + ".new to\n" +
+                                         "   " + downloadLocation + "\n\n then restart the program from your Desktop." +
+                                         "\n This is also a good time to update to the latest version of the PasswordPump firmware.\n" +
+                                         " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n" +
+                                         " Check to see if your version of the firmware is up-to-date by connecting to your PasswordPump device from \n" +
+                                         " PasswordPumpGUI and navigating to Help->Check for Firmware Updates." +
+                                         "\n\n ")
+        else:                                                                    # Anything else
+            open(downloadLocation + ".new", 'wb').write(req.content)
+            downloadedLabel = Label(updateWindow,
+                                    text="\n The latest version of PasswordPumpGUI was downloaded to:\n\n" + " " + downloadLocation + ".new\n\n" +
+                                         " Exit the program and rename\n\n" +
+                                         "   " + downloadLocation + " to\n" +
+                                         "   " + downloadLocation + ".old\n\n and rename\n\n" +
+                                         "   " + downloadLocation + ".new to\n" +
+                                         "   " + downloadLocation + "\n\n then restart the program from your Desktop." +
+                                         "\n This is also a good time to update to the latest version of the PasswordPump firmware.\n" +
+                                         " See the Users Guide for detailed instructions, it's location has been copied to the global/system clipboard.\n" +
+                                         " Check to see if your version of the firmware is up-to-date by connecting to your PasswordPump device from \n" +
+                                         " PasswordPumpGUI and navigating to Help->Check for Firmware Updates." +
+                                         "\n\n ")
         downloadedLabel.pack()
         updateDirections("Latest version of\nPasswordPumpGUI downloaded.")
         r = Tk()                                                                # copy the URL to the global/system clipboard
@@ -273,6 +337,17 @@ def downloadLatest():
     except Exception as ex:
         updateDirections("Unable to download the latest version of the PasswordPumpGUI:\r\n" + str(ex))
 
+def get_download_path():
+    """Returns the default downloads path for linux or windows"""
+    if os.name == 'nt':
+        import winreg
+        sub_key = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'
+        downloads_guid = '{374DE290-123F-4565-9164-39C4925E467B}'
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, sub_key) as key:
+            location = winreg.QueryValueEx(key, downloads_guid)[0]
+        return location
+    else:
+        return os.path.join(os.path.expanduser('~'), 'downloads')
 
 def updateFirmwareCheck():
     global firmwareUpdateWindow
@@ -2321,10 +2396,12 @@ def ask_root_password(parent=None):
 
     return root_password
 
-
+                                                                                # enabling the functionality below makes
+                                                                                # it impossible to create an .exe file
+                                                                                # on Windows.
 #try:
-#    me = singleton.SingleInstance()                                             # If the PasswordPumpGUI is already
-#except singleton.SingleInstanceException as e:                                  # running, tell the user and exit.
+#    me = singleton.SingleInstance()                                            # If the PasswordPumpGUI is already
+#except singleton.SingleInstanceException as e:                                 # running, tell the user and exit.
 #    root = tkinter.Tk()
 #    root.withdraw()
 #    messagebox.showerror(title="PasswordPumpGUI is Already Running",
@@ -2332,7 +2409,7 @@ def ask_root_password(parent=None):
 #    sys.exit(-1)
 
 window = Tk()
-window.title("PasswordPump Edit Credentials v2.0.8.01")
+window.title("PasswordPump Edit Credentials v2.0.8.02")
 
 if platform.system() == "Windows":                                              # e.g. Windows7, Windows10
     window.geometry('400x560')
