@@ -16,14 +16,14 @@
                 OLED 
   Current:      0.03A
   Components:   RGB LED, SSD1306 128x32 LED  display, one momentary push button, 
-                one  rotary encoder,  2 4.7kohm  resistors  for  I2C,  3  220ohm 
-                resistors  for  the  RGB  LED,  2 25LC512 external EEprom chips, 
-                custom PCB, plastic knob, USB cable.
+                one  rotary encoder or one joystick,  I2C,  3  220ohm  resistors  
+                for  the  RGB  LED,  2 25LC512  external  EEprom  chips,  custom 
+                PCB, 2 8 pin DIP holders, a  plastic  knob,  and  a  USB  cable.
   Purpose
   =======
-  - To manage user names and passwords and to type them in via keyboard/USB.  To
-    facilitate  the use of really strong 31 character UUID like passwords on all
-    accounts.
+  - To manage user names and passwords and to type them in to a computer, tablet 
+    or phone via simulated USB keyboard.  To facilitate  the generation and  use 
+    of extremely strong 31  character  UUID  like  passwords  on  all  accounts.
 	
   Device Program Files
   ====================
@@ -36,7 +36,7 @@
   Keyboard.h
   KeyboardTop.h
   NorwegianKeyboard.h
-  PasswordPump_v_2_0.ino
+  PasswordPump_v_2_0.ino (this program)
   SpanishKeyboard.h
   SwedishKeyboard.h
   UKKeyboard.h
@@ -55,9 +55,10 @@
 
   Features
   ========
-  - Authenticate to device with 16 character master password
+  - Authenticate to device with up to a 16 character master password
   - Search for accounts
-  - Send user name and password to computer as if typed in via keyboard
+  - Send user name and password to computer phone or tablet as if typed in via 
+    keyboard
   - Add account name, user name, password (generated or not), url, old 
     password
   - Edit existing user name, password, old password, groups/categories, URL, 
@@ -66,11 +67,11 @@
   - Generate password
   - Store old password
   - Data entry via rotary encoder or keyboard and serial monitor, or via client
-    Python program running in Windows.
+    Python program running in Windows, Mac or Linux.
   - Accounts added in alphabetical order
   - Store up to 253 sets of credentials
   - Backup all accounts to a second encrypted external EEprom
-  - Logout / de-authenticate / lock computer via menu
+  - Logout / de-authenticate / lock computer (Windows only) via menu
   - Factory reset via menu (when authenticated)
   - Configurable password display on or off
   - Configurable failed login count factory reset (3, 5, 10, 25)
@@ -83,7 +84,7 @@
   - All passwords (except master password) are encrypted w/ AES-256; master 
     password is hashed w/ SHA-256.
   - Change master password
-  - Export/Import to/from PasswordPump CSV format 
+  - Export/Import to/from PasswordPump CSV format; encrypt exported file 
   - Import KeePass exported CSV file
   - Import passwords from Chrome
   - Associate credentials with custom groups for better organization; search by 
@@ -93,12 +94,13 @@
     entered (e.g. while the user is under duress)
   - Supports use of several international keyboards.
   - Check if password is pwned/appeard in a data breach (in Python GUI)
-  - Check for password complexity (in Python GUI)
+  - Check for password complexity (in Python GUI only)
   
   Compatability
   =============
-  The PasswordPump has been shown to work with Windows machines, Apple, and 
-  Android phones and tablets.  Specifically the following are supported:
+  The PasswordPump has been shown to work with Windows and Linux machines, 
+  Apple, and Android phones and tablets.  Specifically the following are 
+  supported:
    - Windows 7
    - Windows 10
    - Mac OS X
@@ -114,6 +116,7 @@
 		! = will not fix
     x = fixed but needs testing 
     * = fixed - if a release is listed, that's the release in which it was fixed                  
+
  1- The linked list that manages the list of accounts is sometimes corrupted. 
     To mitigate this I added a 'Fix Corruption' feature that should address any 
     corruption in the linked list. Exact conditions of corruption cannot be 
@@ -123,9 +126,7 @@
     password.
  3- When you import credentials with <CR><LF> in the account name bad things
     happen.
- 4- When using the PasswordPump with some tablets and phones the input from the
-    PasswordPump seems to fast because characters are dropped.  Add the ability
-    to slow down the input from the PasswordPump to the target device.
+
   ! If you've set the keyboard language during a session, then you select
     factory reset, the keyboard language is not reset to the default until you 
     press the reset button.
@@ -136,7 +137,13 @@
     are not in order. When they are in order it doesn't evaluate 
     correctly.
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
+
+  * When using the PasswordPump with some tablets and phones the input from the
+    PasswordPump seems too fast because characters are dropped.  Add the ability
+    to slow down the input from the PasswordPump to the target device.
+
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
+
   * single character user names and passwords are not working well
   * When deleting the first account in the linked list and then running fix
     corruption, it would have the effect of deleting all accounts (corrupted
@@ -295,6 +302,7 @@
     ! = will not implement
     x = implemented but not tested  
     * = implemented and tested
+
   - In general, vastly improve the international keyboard support.
   - On Linux machine you have to press "GUI key + Escape" to log out, rather 
     than "GUI key + L" as on Windows. Logout and lock feature should be able to 
@@ -316,13 +324,16 @@
   - Make the menus scroll around when the end is reached (?)
   - Add Italian keyboard support: 
     https://github.com/Maiux92/digispark-keyboard-layout-italian/blob/master/scancode-ascii-table.h
+
   ! Make it work over bluetooth
   ! Make UN_PW_DELAY configurable
   ! Confirm that the lock bits are correctly set.
+
   ? Add a feature whereby the unit factory resets after two triple clicks, even
     if not yet authenticated. (commented out, caused problems)
   ? Add a feature whereby the unit logs out after two double clicks. (commented
     out, caused problems)
+
   * Create an excellent case or enclosure.
   * Make the size of the generated password configurable.
   * Implement a password complexity check for generated passwords that matches
@@ -427,7 +438,7 @@
 
   Warnings
   ========
-  - Avoid using the device with wet hands.
+  - Avoid using the device with wet hands unless you have a case or enclosure.
   
   Suggestions
   ===========
@@ -441,7 +452,7 @@
 	  Adafruit ItsyBitsy M0, and comment out the pre-compiler directive 
 		__SAMD51__.  Uncomment the pre-compiler directive __SAMD51__ if you're
 		using the Adafruit ItsyBitsy M4, and comment out the pre-compiler directive
-		__SAMD21__.
+		__SAMD21__.  Set the precompiler directive (MODEL) for encoder and joystick.
 	- If, after building your PasswordPump, you notice that the rotary encoder is
 	  advancing through the alphabet when you turn the encoder counter-clockwise
 		then you can reverse this behavior by selecting 'Lefty' in 
@@ -521,12 +532,16 @@
                                                       Somewhat buggy but 
                                                       appreciated nonetheless.
 
+  Use the versions of these libraries supplied here: 
+    https://github.com/seawarrior181/PasswordPump_II/tree/master/Libraries
+    
   Library Modifications
   =====================
 	-	Changed Adafruit_SSD1306::begin in Adafruit_SSD1306.cpp to suppress display
-    of the Adafruit splash screen on the SSD1306 display.
-  - It's necessary to make an edit to the Arduino-CmdMessenger library so that 
-    it will compile.  On line 492 of 
+    of the Adafruit splash screen on the SSD1306 display.  See the instructions
+    provided under "Fixing Adafruit_SSD1306" in the Users Manual. 
+  - As per the Users Manual it's necessary to make an edit to the 
+    Arduino-CmdMessenger library so that it will compile.  On line 492 of 
     ...\arduino\libraries\Arduino-CmdMessenger-master\CmdMessenger.cpp, change 
 
       return '\0';
@@ -542,6 +557,7 @@
 	From the Arduino IDE:
 		1) Under Tools do the following:  
 			- Set the Board: "Adafruit ItsyBitsy M4 (SAMD51)".  
+                    or "Adafruit ItsyBitsy M0".  
 			- Cache: “Enabled”
 			- CPU Speed: “120 MHz (standard)”
 			- Optimize: “Small (-Os) (standard)”
@@ -557,14 +573,18 @@
 		2) Select Tools->Upload
 		3) Verify that the upload was successful
 
-	Using BOSSA
-		1) cd C:\Users\djmurphy\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.8.0-48-gb176eee
-		2) bossac -i -d --port=COM67 -U -i --offset=0x4000 -w -v C:\Users\djmurphy\AppData\Local\Temp\arduino_build_723056\PasswordPumpM4_01.ino.bin -R 
-		3) Verify that the upload was successful
-    4) Note that the offset is 0x2000 for the ItsyBitsy M0.  Otherwise you risk
+	Using BOSSA (full coverage of this topic appears in the Users Guide)
+    1a)ItsyBitsy M0
+         C:\Users\YourUserName\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.7.0-arduino3\bossac.exe -i -d --port=COM95 -U true -i -e -w -v C:\Temp\PasswordPump_v_2_0.ino.bin -R
+    1b)ItsyBitsy M4
+         C:\Users\YourUserName\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.7.0-arduino3\bossac.exe -i -d --port=COM52 -U -i --offset=0x4000 -w -v C:\Temp\PasswordPump_v_2_0.ino.bin -R
+      (substitute the correct user name and port numbers above)
+		2) Verify that the upload was successful
+    3) Note that the offset is 0x2000 for the ItsyBitsy M0.  Otherwise you risk
        bricking the MCU, in which case you will need to ship the unit back to 
        me for fixing or desolder the display and follow the instructions here: 
-       https://learn.adafruit.com/how-to-program-samd-bootloaders
+       https://learn.adafruit.com/how-to-program-samd-bootloaders.  See the 
+       Users Guide for more information on this topic.
 
   Drivers
   =======
@@ -574,10 +594,11 @@
   
   Other Artifacts                                                              
   ===============
+  - Users Guide:            https://github.com/seawarrior181/PasswordPump_II/blob/master/Password%20Pump%20II%20Users%20Guide.pdf  
+  - Source code repository: https://github.com/seawarrior181/PasswordPump_II 
   - Project web site:       https://www.5volts.org/
-  - Case design files:      https://www.tinkercad.com/things/7qHtCGWOTI5
-                            https://www.tinkercad.com/things/3j5hXKeFjPE
-  - Source code repository: https://github.com/seawarrior181/PasswordPump_II  
+  - PasswordPump Store:     https://www.tindie.com/stores/passwordpump/
+  - YouTube Video:          https://www.youtube.com/watch?v=f4Iukt5VDUo&t=33s
 
   Bill Of Materials
   =================
@@ -592,8 +613,9 @@
                    https://www.vishay.com/docs/37894/oled128o032dlpp3n00000.pdf
   - 1 RGB LED
   - 1 Rotary Encoder
+      -or-
+  - 1 Joystick
   - 3 220ohm resistors
-  - 2 4.7kohm resistors (to hold i2c SDA and SCL lines high)
   - 1 plastic knob for rotary encoder
 	- 1 custom PCB or breadboard
 
@@ -605,18 +627,19 @@
   - 1 Custom PCB                                                        1.50
   - 1 micro USB to USB cable 100cm                                      0.69
   - 1 Rotary Encoder                                                    0.46
+      -or-
+  - 1 Joystick                                                          0.81
   - 1 plastic knob for rotary encoder                                   0.11
   - 2 IC DIP Sockets, 8 pins each                                       0.10
   - Solder                                                              0.10
   - 1 RGB LED diffused 5mm                                              0.03
   - 3 220ohm resistors                                                  0.01
-  - 2 4.7kohm resistors                                                 0.01
                                                                       ------
-  - Total Parts                                                       $23.99
+  - Total Parts                                                       $23.98
                                                                       ======
   + Labor for assembly, packaging & shipping
   
-  Connections
+  Connections (rotary encoder version)
   ===========
   - ItsyBitsy M0/M4
     Number  Name              Connect To / Notes
@@ -719,13 +742,16 @@
   
   Budgeting Memory
   ================
-  Sketch uses ? bytes (15%) of program storage space. Maximum is 507904 
-  bytes. 
+  Sketch uses ? bytes (15%) of program storage space on the M4. Maximum is 
+  507904 bytes.  The sketch uses about 33% of program storage space on the 
+  M0.
 
-  Running the PC Client
+  Running the PC Client (PasswordPumpGUI)
   =====================
-  - c:\python3\python C:\temp\Software\PassPumpGUI_v2_0.py
-  
+  The Python program that can manage credentials stored on the PasswordPump is 
+  available here: https://github.com/seawarrior181/PasswordPump_II/blob/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py
+  See the Users Guide for information about setting up the PasswordPumpGUI.
+    
   Menu Navigation
   ===============
   Master Password                  
@@ -847,7 +873,19 @@
     Orientation
       Lefty
       Righty
-    Keyboard ON/OFF                
+    Keyboard ON/OFF            
+    Gened Password Size
+      8
+      10
+      16
+      24
+      31
+    Inter Char Delay
+      0
+      10
+      25
+      100
+      250
   Fix Corruption [confirm]
   Factory Reset [confirm]   
 
@@ -921,10 +959,10 @@
 #define __SAMD21__                   	 						  	  												// <-- set this. Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 #define ENCODER_NORMAL            0                                             // don't change this.
 #define ENCODER_LEFTY             1                                             // don't change this.
-#define ENCODER_DEFAULT           ENCODER_LEFTY                                 // <-- set this. Set the encoder type default based on how the encoder is behaving
+#define ENCODER_DEFAULT           ENCODER_NORMAL                                // <-- set this. Set the encoder type default based on how the encoder is behaving
 #define MODEL_ENCODER             0                                             // don't change this
 #define MODEL_JOYSTICK            1                                             // don't change this
-#define MODEL                     MODEL_JOYSTICK                                // <-- set this.  to determine if this is a model with a joystick (1) or a model with a rotary encoder (0).
+#define MODEL                     MODEL_ENCODER                                 // <-- set this.  to determine if this is a model with a joystick (1) or a model with a rotary encoder (0).
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // don't change this. micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -5398,7 +5436,7 @@ void InitializeGlobals() {
 void ShowSplashScreen() {
     strcpy(line1DispBuff,"PasswordPump  v2.0.8");
     strcpy(line2DispBuff, __DATE__);
-    strcpy(line3DispBuff,"(c)2020 Dan Murphy ");
+    strcpy(line3DispBuff,"(c)2021 Dan Murphy ");
     DisplayBuffer();
 //  delayNoBlock(ONE_SECOND * 3);                                               // Show the splash screen for 3 seconds
 //  BlankLine3();
