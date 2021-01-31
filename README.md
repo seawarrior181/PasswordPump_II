@@ -31,6 +31,7 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 # Change Log
 
 v2.0.8
+  * Created an install/setup program for the PasswordPumpGUI using Inno.
   * Modified the PCB design to accomodate a joystick instead of a rotary encoder.
   * Added compile time directives to compile for rotaray encoder or joystick model.
   * Added the ability to download the latest version of the PasswordPumpGUI to the PasswordPumpGUI.
