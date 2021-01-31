@@ -13,6 +13,10 @@ If you are interested in printing the case (at https://github.com/seawarrior181/
 Note about v2.0.5 of the PasswordPump:
 If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will most likely have a "lefty" encoder.  This means that as you turn the rotary encoder clockwise, it proceeds backwards through the alphabet instead of forwards.  Some folks find this counter intuitive.  To fix this you merely need to navigate to Settings->Encoder Type and change it from ‘Normal’ to ‘Lefty’; and don’t worry, the setting is remembered if you power cycle the device.  If you factory reset the device you’ll need to change the Encoder Type to Lefty again.
 
+# News
+  * There is now a new model of PasswordPump available for purchase; the Joystick model.  This PasswordPump has a lower profile, but it does take a little bit longer to scroll through all of your accounts.  It works well.
+  * There several new cases to announce; there is a new case for the rotary encoder model available on Tindie.  Soon to follow there will be a new case available for the Joystick model that looks pretty cool.  Both of these cases were designed and donated by scootercommutter.  I'll be selling them on Tindie for a price that's quite close to my cost.  Finally there is an acrylic enclosure on the way, the enclosure that's depicted on the front of the Users Guide.  The .stl files for the two cases are posted on this site so that you can print them out yourself if you have a 3D printer (thanks scootercommuter!).  Finally, if you are interested in any of these cases/enclosures and they are not in stock on Tindie send me an email so that I know there is interest.  There are pictures of all three designs in the media section of this site.
+
 # Change Log
 
 Unreleased v2.0.8
