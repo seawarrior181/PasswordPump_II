@@ -151,6 +151,14 @@
 # 4) pyinstaller PasswordPumpGUI.spec --onefile --paths=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI -w --name PasswordPumpGUI
 # 5) Commit file E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\PasswordPumpGUI.exe to git
 #
+# Generating the Executable File on RaspberryPi OS
+# ================================================
+# 1) Comment out the code related to tendo.
+# 2) cd /home/pi/repos/murphyrepo/dev/GitHub/PasswordPump_II/v2_0_8/PassPumpGUI
+# 3) /home/pi/.local/bin/pyinstaller cli.py --onefile --paths=/home/pi/repos/murphyrepo/dev/GitHub/PasswordPump_II/v2_0_8/PassPumpGUI -w --name PasswordPumpGUI
+# 4) /home/pi/.local/bin/pyinstaller PasswordPumpGUI.spec --onefile --paths=/home/pi/repos/murphyrepo/dev/GitHub/PasswordPump_II/v2_0_8/PassPumpGUI -w --name PasswordPumpGUI
+# 5) Commit file E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\PasswordPumpGUI.exe to git
+#
 #  License
 #  =======
 #  Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
