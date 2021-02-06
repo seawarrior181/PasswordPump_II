@@ -33,7 +33,7 @@
 # =========
 # Copyright ©2018, ©2019, ©2020, ©2021 Daniel J Murphy <dan-murphy@comcast.net>
 #
-# Built on Python 3.8
+# Built on Python 3.8 (Windows) and Python 3.7 (RaspberryPi)
 #
 # Defects and Enhancements
 # ========================
@@ -158,6 +158,9 @@
 # 3) /home/pi/.local/bin/pyinstaller cli.py --onefile --paths=/home/pi/repos/murphyrepo/dev/GitHub/PasswordPump_II/v2_0_8/PassPumpGUI -w --name PasswordPumpGUI
 # 4) /home/pi/.local/bin/pyinstaller PasswordPumpGUI.spec --onefile --paths=/home/pi/repos/murphyrepo/dev/GitHub/PasswordPump_II/v2_0_8/PassPumpGUI -w --name PasswordPumpGUI
 # 5) Commit file E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\PasswordPumpGUI.exe to git
+#
+# If you have access to additional operating systems and would like to contribute an executable flavor that would be
+# greatly appreciated.  I don't know if the RaspberryPi executable will work on other flavors of Linux or MacOS.
 #
 #  License
 #  =======
