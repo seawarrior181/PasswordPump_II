@@ -5,7 +5,7 @@
   Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
   Version:      2.0.8.01
-  Date:         2019/07/26 - 2021/12/10
+  Date:         2019/07/26 - 2021/02/14
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy  M0 Express‎ or Adafruit  ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit  Cortex M0+  or  ATSAMD51J19 32-bit Cortex M4
@@ -126,6 +126,8 @@
     password.
  3- When you import credentials with <CR><LF> in the account name bad things
     happen.
+  - A user has reported then when selecting the Decoy Password setting the 
+    device freezes.
 
   ! If you've set the keyboard language during a session, then you select
     factory reset, the keyboard language is not reset to the default until you 
@@ -144,6 +146,7 @@
 
   x Duplicate names freeze the MCU in the keepass import file (consecutive?)
 
+  * When changing orientation the joystick doesn't adjust correctly.
   * single character user names and passwords are not working well
   * When deleting the first account in the linked list and then running fix
     corruption, it would have the effect of deleting all accounts (corrupted
@@ -955,8 +958,8 @@
   Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-//#define __SAMD51__                 			   		  												      // <-- set this. Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
-#define __SAMD21__                   	 						  	  												// <-- set this. Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
+#define __SAMD51__                 			   		  												        // <-- set this. Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
+//#define __SAMD21__                   	 						  	  											// <-- set this. Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 #define ENCODER_NORMAL            0                                             // don't change this.
 #define ENCODER_LEFTY             1                                             // don't change this.
 #define ENCODER_DEFAULT           ENCODER_NORMAL                                // <-- set this. Set the encoder type default based on how the encoder is behaving
@@ -1164,6 +1167,7 @@
 #define GET_ADDR_PREV_POS(pos)    (MIN_AVAIL_ADDR + WEBSITE_SIZE + ACCOUNT_SIZE + USERNAME_SIZE + PASSWORD_SIZE + OLD_PASSWORD_SIZE + SALT_SIZE + STYLE_SIZE + (pos * CREDS_TOT_SIZE))
 #define GET_ADDR_NEXT_POS(pos)    (MIN_AVAIL_ADDR + WEBSITE_SIZE + ACCOUNT_SIZE + USERNAME_SIZE + PASSWORD_SIZE + OLD_PASSWORD_SIZE + SALT_SIZE + STYLE_SIZE + PREV_POS_SIZE + (pos * CREDS_TOT_SIZE)) 
 #define GET_ADDR_GROUP(pos)       (MIN_AVAIL_ADDR + WEBSITE_SIZE + ACCOUNT_SIZE + USERNAME_SIZE + PASSWORD_SIZE + OLD_PASSWORD_SIZE + SALT_SIZE + STYLE_SIZE + PREV_POS_SIZE + NEXT_POS_SIZE + (pos * CREDS_TOT_SIZE)) // 100 @ pos==0
+//                                (0              + 96           +           32 +            32 +            32 +                32 +        16 +          2 +             1 +             1 + (249 *            256)) =  63988 {Cannot exceed 65033}
 
 #define MASTER_PASSWORD_SIZE      0x0010                                        // 16 bytes. aes256 keysize = 32 bytes.  aes128 keysize = 16 bytes, aes256 blocksize = 16!, only the first 15 chars are part of the password, the rest are ignored.
 #define KEY_SIZE                  (MASTER_PASSWORD_SIZE + SALT_SIZE)            // 32 bytes, key size for AES-256 = 32 bytes
@@ -1187,8 +1191,8 @@
 #define GENERATED_PASSWORD_SIZE   0x0001                                        // 1 byte
 #define INTER_CHAR_PAUSE_SIZE     0x0001                                        // 1 byte
 //------------------------------------------------------------------------------
-#define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (101 total, rounding up to 256)
-//==============================================================================// 65536 - 256 = 32512/256 = 255 CREDS_ACCOMIDATED
+#define SETTINGS_TOTAL_SIZE       0x0100                                        // 256 (121 total, rounding up to 256)
+//==============================================================================// 65536 - 256 = 65280/256 = 255 CREDS_ACCOMIDATED
 
 #define GET_ADDR_SETTINGS         (MAX_AVAIL_ADDR - SETTINGS_TOTAL_SIZE)        // use the last page for storing the settings.
 #define GET_ADDR_RESET_FLAG       (GET_ADDR_SETTINGS)                           // address of the reset flag; when not set to 0x01 indicates that memory hasn't been initialized; 32,767
@@ -1208,13 +1212,26 @@
 #define GET_ADDR_ORIENTATION      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE + FONT_SIZE) // store the setting for the orientation setting
 #define GET_ADDR_GEN_PW_SIZE      (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE + FONT_SIZE + ORIENTATION_SIZE) // store the setting for default password size
 #define GET_ADDR_INTER_CHAR_PAUSE (GET_ADDR_SETTINGS + RESET_FLAG_SIZE + LOGIN_FAILURES_SIZE + SHOW_PASSWORD_FLAG_SIZE + KEYBOARD_FLAG_SIZE + LIST_HEAD_SIZE + MASTER_SALT_SIZE + HASHED_MASTER_PASSWORD_SZ + RGB_LED_INTENSITY_SIZE + LOGOUT_TIMEOUT_SIZE + LOGIN_ATTEMPTS_NUM_SIZE + DECOY_PW_SIZE + KEYBOARD_TYPE_SIZE + ENCODER_TYPE_SIZE + FONT_SIZE + ORIENTATION_SIZE + GENERATED_PASSWORD_SIZE) // store the setting inter character pause size
-#define GET_ADDR_CATEGORY_1				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 1) // place the categories on the second to last page on EEprom
-#define GET_ADDR_CATEGORY_2				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 2)
+//                                (65279             +               1 +                   1 +                       1 +                  1 +              1 +               16 +                        32 +                      1 +                   1 +                       1 +             1 +                  1 +                 1 +         1 +                1 +                       1) = 65341
+
+#define GET_ADDR_CATEGORY_1				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 1) // Should have started this at 0? place the categories on the second to last page on EEprom
+#define GET_ADDR_CATEGORY_2				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 2) // 65033 - 65103
 #define GET_ADDR_CATEGORY_3				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 3)
 #define GET_ADDR_CATEGORY_4				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 4)
 #define GET_ADDR_CATEGORY_5				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 5)
 #define GET_ADDR_CATEGORY_6				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 6)
 #define GET_ADDR_CATEGORY_7				(MAX_AVAIL_ADDR - (SETTINGS_TOTAL_SIZE * 2)) + (CATEGORY_SIZE * 7)
+//                                (65535          - (256                 * 2)) + (10 *            1) = 65033
+//                                (65535          - (256                 * 2)) + (10 *            7) = 65093
+
+//          EEProm Memory Map
+// Start    Stop    Size  Description
+//     0 -  63988   63988 Credential Sets (43 empty bytes on the end of each set)
+// 63988 -  65023    1034 Empty
+// 65024 -  65032      10 Empty (start of page boundry) This is a mistake, should not be empty see line 1217
+// 65033 -  65103      70 Custom Categories (10 bytes each)
+// 65104 -  65278     174 Empty
+// 65279 -  65535     256 Settings (1st 63 for settings, 202 empty bytes on the end of settings)
 
 //- Events
                                                                                 // Assumption here is that using #define instead of enum will save memory
@@ -1663,7 +1680,7 @@ const char * const orientMenu[] = {
                                                  ""                           };
 #define ORIENT_LEFTY              0
 #define ORIENT_RIGHTY             1
-#define DEFAULT_ORIENT            ORIENT_LEFTY
+#define DEFAULT_ORIENT            ORIENT_LEFTY                                  // <-- set this to change the default display orientation
 
 #define GEN_PW_SIZE_MENU_NUMBER   15
 #define GEN_PW_SIZE_MENU_ELEMENTS 5
@@ -1803,10 +1820,18 @@ uint8_t rotaryPin2  = 7;                                                        
   uint8_t buttonPin = 12;
 #endif
 
-uint8_t joystick1 = A1;                                                         // joystick right / left
-uint8_t joystick2 = 7;                                                          // joystick right / left
-uint8_t joystick3 = A5;                                                         // joystick left / right
-uint8_t joystick4 = 9;                                                          // joystick left / right
+#if DEFAULT_ORIENT == ORIENT_LEFTY
+  uint8_t joystick1 = A1;                                                       // joystick clockwise
+  uint8_t joystick2 = 7;                                                        // joystick clockwise
+  uint8_t joystick3 = A5;                                                       // joystick counter-clockwise
+  uint8_t joystick4 = 9;                                                        // joystick counter-clockwise
+#else
+  uint8_t joystick1 = A5;                                                        // joystick count-clockwise 
+  uint8_t joystick2 = 9;                                                       // joystick count-clockwise
+  uint8_t joystick3 = A1;                                                        // joystick clockwise
+  uint8_t joystick4 = 7;                                                       // joystick clockwise  
+#endif
+
 unsigned long interCharPause;
 uint8_t interCharPauseVal;
 
@@ -1858,7 +1883,7 @@ uint8_t loginFailures;                                                          
                                                                                 // Used to defend against brute force attack.
 uint8_t showPasswordsFlag;                                                      // flag indicating if we show passwords via the UI, or hide them.
 uint8_t keyboardFlag;                                                           // flag indicating if we're using the keyboard to edit credentials
-uint8_t decoyPassword;                                                          // specifies if the decoy password feature is enabled
+uint8_t decoyPasswordFlag;                                                          // specifies if the decoy password feature is enabled
 uint8_t RGBLEDIntensity = RGB_LED_DEFAULT;                                      // the intensity of the RGB LED, default is Medium
 unsigned long logoutTimeout = 60;                                               // the inactivity logout timer, default is one hour
 uint8_t loginAttempts = ATTEMPTS_DEFAULT;                                       // the number of failed login attempts before a factory reset occurs
@@ -2224,15 +2249,21 @@ void setup() {                                                                  
     writeLoginAttempts();                                                       // and write it to EEprom
   }
 
+  keyboardFlag = getKeyboardFlag;
+  if (keyboardFlag == INITIAL_MEMORY_STATE_BYTE) {
+    keyboardFlag = false;
+    writeKeyboardFlag();
+  }
+
   showPasswordsFlag = getShowPasswordsFlag;                                     // setup the show passwords flag and menu item. (getShowPasswordsFlag returns byte)
   if (showPasswordsFlag == INITIAL_MEMORY_STATE_BYTE ) {                        // this should never be true because the reset event sets the show passwords 
     showPasswordsFlag = true;                                                   // flag to a value but, for safety, set the show password flag to ON
     writeShowPasswordsFlag();                                                   // and write it to EEprom.
   }
 
-  decoyPassword = getDecoyPWFlag;
-  if (decoyPassword == INITIAL_MEMORY_STATE_BYTE) {
-    decoyPassword = true;
+  decoyPasswordFlag = getDecoyPWFlag;
+  if (decoyPasswordFlag == INITIAL_MEMORY_STATE_BYTE) {
+    decoyPasswordFlag = true;
     writeDecoyPWFlag();
   }
 
@@ -2350,9 +2381,17 @@ void setup() {                                                                  
   switch (orientation) {
     case ORIENT_LEFTY:
       oled.displayRemap(ORIENT_LEFTY);
+      joystick1 = A1;                                                         // joystick right / left
+      joystick2 = 7;                                                          // joystick right / left
+      joystick3 = A5;                                                         // joystick left / right
+      joystick4 = 9;                                                          // joystick left / right
       break;
     case ORIENT_RIGHTY:
       oled.displayRemap(ORIENT_RIGHTY);
+      joystick1 = A5;                                                         
+      joystick2 = 9;                                                        
+      joystick3 = A1;                                                         
+      joystick4 = 7;                                                          
       break;
     default:
       oled.displayRemap(DEFAULT_ORIENT);
@@ -3351,7 +3390,7 @@ void ProcessEvent() {                                                           
           DisplayToStatus("Show Password Saved");
           break;
         case STATE_DECOY_ON_OFF_MENU:
-          decoyPassword = position;
+          decoyPasswordFlag = position;
           writeDecoyPWFlag();
           DisplayToStatus("Decoy Setting Saved");
           break;
@@ -3624,16 +3663,24 @@ void ProcessEvent() {                                                           
           writeFont();
           DisplayToStatus("Font Saved.");
           break;
-        case STATE_MENU_ORIENT:                                                 // EVENT_SINGLE_CLICK
+        case STATE_MENU_ORIENT:                                                       // EVENT_SINGLE_CLICK
           switch (position) {
             case ORIENT_LEFTY:
               orientation = ORIENT_LEFTY;
               oled.displayRemap(ORIENT_LEFTY);
+              joystick1 = A1;                                                         // joystick right / left
+              joystick2 = 7;                                                          // joystick right / left
+              joystick3 = A5;                                                         // joystick left / right
+              joystick4 = 9;                                                          // joystick left / right
               DisplayToHelp("Saved lefty.");
               break;
             case ORIENT_RIGHTY:
               orientation = ORIENT_RIGHTY;
               oled.displayRemap(ORIENT_RIGHTY);
+              joystick1 = A5;                                                         
+              joystick2 = 9;                                                        
+              joystick3 = A1;                                                         
+              joystick4 = 7;                                                          
               DisplayToHelp("Saved righty.");
               break;
             default:
@@ -4396,7 +4443,7 @@ void ProcessEvent() {                                                           
         position = showPasswordsFlag;
         break;
       case STATE_DECOY_ON_OFF_MENU:
-        position = decoyPassword;
+        position = decoyPasswordFlag;
         break;
       default:
         DisplayToError("ERR: 019");
@@ -5290,7 +5337,7 @@ void FactoryReset() {
     keyboardFlag = INITIAL_MEMORY_STATE_BYTE;
     writeKeyboardFlag();
 
-    decoyPassword = INITIAL_MEMORY_STATE_BYTE;
+    decoyPasswordFlag = INITIAL_MEMORY_STATE_BYTE;
     writeDecoyPWFlag();
 
     RGBLEDIntensity = INITIAL_MEMORY_STATE_BYTE;
@@ -5330,9 +5377,17 @@ void FactoryReset() {
     switch (DEFAULT_ORIENT) {
       case ORIENT_LEFTY:
         oled.displayRemap(ORIENT_LEFTY);
+        joystick1 = A1;                                                         // joystick right / left
+        joystick2 = 7;                                                          // joystick right / left
+        joystick3 = A5;                                                         // joystick left / right
+        joystick4 = 9;                                                          // joystick left / right
         break;
       case ORIENT_RIGHTY:
         oled.displayRemap(ORIENT_RIGHTY);
+        joystick1 = A5;                                                         
+        joystick2 = 9;                                                        
+        joystick3 = A1;                                                         
+        joystick4 = 7;                                                          
         break;
     }
 
@@ -5352,21 +5407,20 @@ void FactoryReset() {
 }
 
 void initializeAllGroupCategories() {
-	  char buff[CATEGORY_SIZE];
-		memcpy(buff,"Work\0\0\0\0\0\0",CATEGORY_SIZE);
-		write_eeprom_array(GET_ADDR_CATEGORY_1, buff, CATEGORY_SIZE	);							// initialize the credential group categories
-		memcpy(buff,"Personal\0\0",CATEGORY_SIZE);
-		write_eeprom_array(GET_ADDR_CATEGORY_2, buff, CATEGORY_SIZE	);							// initialize the credential group categories
-		memcpy(buff,"Home\0\0\0\0\0\0",CATEGORY_SIZE);
-		write_eeprom_array(GET_ADDR_CATEGORY_3, buff, CATEGORY_SIZE	);							// initialize the credential group categories
-		memcpy(buff,"School\0\0\0\0",CATEGORY_SIZE);
-		write_eeprom_array(GET_ADDR_CATEGORY_4, buff, CATEGORY_SIZE	);							// initialize the credential group categories
-		memcpy(buff,"Financial\0",CATEGORY_SIZE);
-		write_eeprom_array(GET_ADDR_CATEGORY_5, buff, CATEGORY_SIZE	);							// initialize the credential group categories
-		memcpy(buff,"Mail\0\0\0\0\0\0",CATEGORY_SIZE);
-		write_eeprom_array(GET_ADDR_CATEGORY_6, buff, CATEGORY_SIZE	);							// initialize the credential group categories
-		memcpy(buff,"Health\0\0\0\0",CATEGORY_SIZE);
-		write_eeprom_array(GET_ADDR_CATEGORY_7, buff, CATEGORY_SIZE	);							// initialize the credential group categories
+		memcpy(groupCategory_1,"Work\0\0\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_1, groupCategory_1, CATEGORY_SIZE	);  // initialize the credential group categories
+		memcpy(groupCategory_2,"Personal\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_2, groupCategory_2, CATEGORY_SIZE	);	// initialize the credential group categories
+		memcpy(groupCategory_3,"Home\0\0\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_3, groupCategory_3, CATEGORY_SIZE	);	// initialize the credential group categories
+		memcpy(groupCategory_4,"School\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_4, groupCategory_4, CATEGORY_SIZE	);	// initialize the credential group categories
+		memcpy(groupCategory_5,"Financial\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_5, groupCategory_5, CATEGORY_SIZE	);	// initialize the credential group categories
+		memcpy(groupCategory_6,"Mail\0\0\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_6, groupCategory_6, CATEGORY_SIZE	);	// initialize the credential group categories
+		memcpy(groupCategory_7,"Health\0\0\0\0",CATEGORY_SIZE);
+		write_eeprom_array(GET_ADDR_CATEGORY_7, groupCategory_7, CATEGORY_SIZE	);	// initialize the credential group categories
 }
 
 void readGroupCategories() {
@@ -6029,7 +6083,7 @@ boolean authenticateMaster(char *enteredPassword) {                             
       writeLoginFailures();                                                     // record loginFailures in EEprom
                                                                                 // encrypt a word using the master password as the key
     } else {                                                                    // failed authentication
-      if (decoyPassword) {                                                      // if the decoy password was entered factory reset the device
+      if (decoyPasswordFlag) {                                                      // if the decoy password was entered factory reset the device
 				size_t lenEntPW = strlen(enteredPassword);
 				if (0 == memcmp(enteredPassword + (lenEntPW - SIZE_OF_DECOY_PW),"FR",SIZE_OF_DECOY_PW)) {
 																																								
@@ -6431,7 +6485,7 @@ void writeShowPasswordsFlag() {
 
 void writeDecoyPWFlag() {
   //DebugLN("writeDecoyPWFlag()");
-  write_eeprom_byte(GET_ADDR_DECOY_PW, decoyPassword);
+  write_eeprom_byte(GET_ADDR_DECOY_PW, decoyPasswordFlag);
 }
 
 void writeKeyboardFlag() {
@@ -6480,7 +6534,7 @@ void writeLoginAttempts() {
 }
 
 void writeGenPwSize() {
-  //DebugLN("writeOrientation()");
+  //DebugLN("writeGenPwSize()");
   write_eeprom_byte(GET_ADDR_GEN_PW_SIZE, generatedPasswordSize);
 }
 
@@ -7475,71 +7529,64 @@ void OnReadGroup(){
 
 void OnReadGroup1Name(){
   setGreen();
-  char group[CATEGORY_SIZE];
 	read_eeprom_array     (GET_ADDR_CATEGORY_1,                                 	// read category from EEprom
-												 group, 
+												 groupCategory_1, 
 												 CATEGORY_SIZE);
-  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  cmdMessenger.sendCmd(kStrAcknowledge, groupCategory_1);
   setPurple();
 }
 
 void OnReadGroup2Name(){
   setGreen();
-  char group[CATEGORY_SIZE];
 	read_eeprom_array     (GET_ADDR_CATEGORY_2,                                 	// read category from EEprom
-												 group, 
+												 groupCategory_2, 
 												 CATEGORY_SIZE);
-  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  cmdMessenger.sendCmd(kStrAcknowledge, groupCategory_2);
   setPurple();
 }
 
 void OnReadGroup3Name(){
   setGreen();
-  char group[CATEGORY_SIZE];
 	read_eeprom_array     (GET_ADDR_CATEGORY_3,                                 	// read category from EEprom
-												 group, 
+												 groupCategory_3, 
 												 CATEGORY_SIZE);
-  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  cmdMessenger.sendCmd(kStrAcknowledge, groupCategory_3);
   setPurple();
 }
 
 void OnReadGroup4Name(){
   setGreen();
-  char group[CATEGORY_SIZE];
 	read_eeprom_array     (GET_ADDR_CATEGORY_4,                                 	// read category from EEprom
-												 group, 
+												 groupCategory_4, 
 												 CATEGORY_SIZE);
-  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  cmdMessenger.sendCmd(kStrAcknowledge, groupCategory_4);
   setPurple();
 }
 
 void OnReadGroup5Name(){
   setGreen();
-  char group[CATEGORY_SIZE];
 	read_eeprom_array     (GET_ADDR_CATEGORY_5,                                 	// read category from EEprom
-												 group, 
+												 groupCategory_5, 
 												 CATEGORY_SIZE);
-  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  cmdMessenger.sendCmd(kStrAcknowledge, groupCategory_5);
   setPurple();
 }
 
 void OnReadGroup6Name(){
   setGreen();
-  char group[CATEGORY_SIZE];
 	read_eeprom_array     (GET_ADDR_CATEGORY_6,                                 	// read category from EEprom
-												 group, 
+												 groupCategory_6, 
 												 CATEGORY_SIZE);
-  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  cmdMessenger.sendCmd(kStrAcknowledge, groupCategory_6);
   setPurple();
 }
 
 void OnReadGroup7Name(){
   setGreen();
-  char group[CATEGORY_SIZE];
 	read_eeprom_array     (GET_ADDR_CATEGORY_7,                                 	// read category from EEprom
-												 group, 
+												 groupCategory_7, 
 												 CATEGORY_SIZE);
-  cmdMessenger.sendCmd(kStrAcknowledge, group);
+  cmdMessenger.sendCmd(kStrAcknowledge, groupCategory_7);
   setPurple();
 }
 
@@ -7733,36 +7780,62 @@ void OnUpdateCategoryName(){
   setGreen();
   char categoryname[CATEGORY_SIZE];
   uint8_t categoryNum = cmdMessenger.readBinArg<uint8_t>();
-  cmdMessenger.copyStringArg(categoryname, CATEGORY_SIZE);
-  uint8_t len = strlen(categoryname);
-  while (len < CATEGORY_SIZE) categoryname[len++] = NULL_TERM;
-  categoryname[CATEGORY_SIZE - 1] = NULL_TERM;
+  uint8_t len;
   switch(categoryNum) {
     case 1:
-      eeprom_write_bytes(GET_ADDR_CATEGORY_1, categoryname, CATEGORY_SIZE);
+      cmdMessenger.copyStringArg(groupCategory_1, CATEGORY_SIZE);
+      len = strlen(groupCategory_1);
+      while (len < CATEGORY_SIZE) groupCategory_1[len++] = NULL_TERM;
+      groupCategory_1[CATEGORY_SIZE - 1] = NULL_TERM;
+      eeprom_write_bytes(GET_ADDR_CATEGORY_1, groupCategory_1, CATEGORY_SIZE);
       break;
     case 2:
-      eeprom_write_bytes(GET_ADDR_CATEGORY_2, categoryname, CATEGORY_SIZE);
+      cmdMessenger.copyStringArg(groupCategory_2, CATEGORY_SIZE);
+      len = strlen(groupCategory_2);
+      while (len < CATEGORY_SIZE) groupCategory_2[len++] = NULL_TERM;
+      groupCategory_2[CATEGORY_SIZE - 1] = NULL_TERM;
+      eeprom_write_bytes(GET_ADDR_CATEGORY_2, groupCategory_2, CATEGORY_SIZE);
       break;
     case 3:
-      eeprom_write_bytes(GET_ADDR_CATEGORY_3, categoryname, CATEGORY_SIZE);
+      cmdMessenger.copyStringArg(groupCategory_3, CATEGORY_SIZE);
+      len = strlen(groupCategory_3);
+      while (len < CATEGORY_SIZE) groupCategory_3[len++] = NULL_TERM;
+      groupCategory_3[CATEGORY_SIZE - 1] = NULL_TERM;
+      eeprom_write_bytes(GET_ADDR_CATEGORY_3, groupCategory_3, CATEGORY_SIZE);
       break;
     case 4:
-      eeprom_write_bytes(GET_ADDR_CATEGORY_4, categoryname, CATEGORY_SIZE);
+      cmdMessenger.copyStringArg(groupCategory_4, CATEGORY_SIZE);
+      len = strlen(groupCategory_4);
+      while (len < CATEGORY_SIZE) groupCategory_4[len++] = NULL_TERM;
+      groupCategory_4[CATEGORY_SIZE - 1] = NULL_TERM;
+      eeprom_write_bytes(GET_ADDR_CATEGORY_4, groupCategory_4, CATEGORY_SIZE);
       break;
     case 5:
-      eeprom_write_bytes(GET_ADDR_CATEGORY_5, categoryname, CATEGORY_SIZE);
+      cmdMessenger.copyStringArg(groupCategory_5, CATEGORY_SIZE);
+      len = strlen(groupCategory_5);
+      while (len < CATEGORY_SIZE) groupCategory_5[len++] = NULL_TERM;
+      groupCategory_5[CATEGORY_SIZE - 1] = NULL_TERM;
+      eeprom_write_bytes(GET_ADDR_CATEGORY_5, groupCategory_5, CATEGORY_SIZE);
       break;
     case 6:
-      eeprom_write_bytes(GET_ADDR_CATEGORY_6, categoryname, CATEGORY_SIZE);
+      cmdMessenger.copyStringArg(groupCategory_6, CATEGORY_SIZE);
+      len = strlen(groupCategory_6);
+      while (len < CATEGORY_SIZE) groupCategory_6[len++] = NULL_TERM;
+      groupCategory_6[CATEGORY_SIZE - 1] = NULL_TERM;
+      eeprom_write_bytes(GET_ADDR_CATEGORY_6, groupCategory_6, CATEGORY_SIZE);
       break;
     case 7:
-      eeprom_write_bytes(GET_ADDR_CATEGORY_7, categoryname, CATEGORY_SIZE);
+      cmdMessenger.copyStringArg(groupCategory_7, CATEGORY_SIZE);
+      len = strlen(groupCategory_7);
+      while (len < CATEGORY_SIZE) groupCategory_7[len++] = NULL_TERM;
+      groupCategory_7[CATEGORY_SIZE - 1] = NULL_TERM;
+      eeprom_write_bytes(GET_ADDR_CATEGORY_7, groupCategory_7, CATEGORY_SIZE);
       break;
     default:
       DisplayToError("ERR: 044");
       break;
   }
+
   cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(acctPosition));    // send back the account position
   setPurple();
 }
@@ -8136,8 +8209,8 @@ void OnChangeMasterPass(){                                                      
 
 void OnDecoyPassword(){                                                         // This is called when we change the decoy password setting in PasswordPumpGUI.py
   setGreen();
-  decoyPassword = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
-  if (decoyPassword == 49) decoyPassword = 0;                                   // defect in pyCmdMessenger is causing a 0 to be turned into 49, no idea why
+  decoyPasswordFlag = calcAcctPositionReceive(cmdMessenger.readBinArg<uint8_t>());
+  if (decoyPasswordFlag == 49) decoyPasswordFlag = 0;                           // defect in pyCmdMessenger is causing a 0 to be turned into 49, no idea why
   writeDecoyPWFlag();
   delayNoBlock(ONE_SECOND);
   cmdMessenger.sendBinCmd(kAcknowledge, calcAcctPositionSend(headPosition));
