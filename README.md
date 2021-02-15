@@ -14,6 +14,7 @@ Note about v2.0.5 of the PasswordPump:
 If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will most likely have a "lefty" encoder.  This means that as you turn the rotary encoder clockwise, it proceeds backwards through the alphabet instead of forwards.  Some folks find this counter intuitive.  To fix this you merely need to navigate to Settings->Encoder Type and change it from ‘Normal’ to ‘Lefty’; and don’t worry, the setting is remembered if you power cycle the device.  If you factory reset the device you’ll need to change the Encoder Type to Lefty again.
 
 # News
+  * A new release of the firmware is available, Version:2.0.8.02, which addresses an issue with the handling of group names between the PasswordPump and the PasswordPumpGUI.
   * There is now a new model of PasswordPump available for purchase; the Joystick model.  This PasswordPump has a lower profile, but it does take a little bit longer to scroll through all of your accounts.  It works well.
   * On Windows there exists now a setup program that does not require Python to be installed to get the PasswordPumpGUI up and running.  Click on it's location to download:
       https://github.com/seawarrior181/PasswordPump_II/raw/master/v2_0_8/PassPumpGUI/inno/PasswordPumpSetup.exe
@@ -31,6 +32,7 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 # Change Log
 
 v2.0.8
+  * Fixed an issue with the handling of group names between the PasswordPump and the PasswordPumpGUI.
   * Created an install/setup program for the PasswordPumpGUI using Inno.
   * Modified the PCB design to accomodate a joystick instead of a rotary encoder.
   * Added compile time directives to compile for rotaray encoder or joystick model.
