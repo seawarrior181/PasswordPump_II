@@ -4,7 +4,7 @@
                 |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
   Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
-  Version:      2.0.8.01
+  Version:      2.0.8.02
   Date:         2019/07/26 - 2021/02/14
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy  M0 Express‎ or Adafruit  ItsyBitsy M4 Express‎
@@ -140,12 +140,13 @@
     correctly.
   ! Fix the inconsistency with the on-board RGB LED and the 5mm Diff RGB LED.
 
+  x Duplicate names freeze the MCU in the keepass import file (consecutive?)
+
+  * When interacting with the PasswordPumpGUI during group customization the
+    PasswordPump gets confused and group names are corrupted.
   * When using the PasswordPump with some tablets and phones the input from the
     PasswordPump seems too fast because characters are dropped.  Add the ability
     to slow down the input from the PasswordPump to the target device.
-
-  x Duplicate names freeze the MCU in the keepass import file (consecutive?)
-
   * When changing orientation the joystick doesn't adjust correctly.
   * single character user names and passwords are not working well
   * When deleting the first account in the linked list and then running fix
@@ -974,7 +975,7 @@
   #define F_CPU                   48000000UL                                    // don't change this. micro-controller clock speed, max clock speed of ItsyBitsy M0 is 48MHz 
 #endif
 
-#define FIRMWARE_VERSION          "2.0.8.01"                                    // the version of the firmware, this program
+#define FIRMWARE_VERSION          "2.0.8.02"                                    // the version of the firmware, this program
 
 //#define SLOW_SPI
 #define DEBUG_ENABLED             0                                             // <-- set this to 1 if you want debug info written to serial out.
@@ -1744,6 +1745,8 @@ const char * const charDelayMenu[] = {
 #define SECONDS_IN_AN_HOUR        3600UL
 #define MINUTES_IN_AN_HOUR        60
 
+#define BUTTON_DEBOUNCE_MS        25
+
 //- Global Variables                                                            // char is signed by default. byte is unsigned.
 
                                                                                 // CMDMessenger vars
@@ -1826,10 +1829,10 @@ uint8_t rotaryPin2  = 7;                                                        
   uint8_t joystick3 = A5;                                                       // joystick counter-clockwise
   uint8_t joystick4 = 9;                                                        // joystick counter-clockwise
 #else
-  uint8_t joystick1 = A5;                                                        // joystick count-clockwise 
-  uint8_t joystick2 = 9;                                                       // joystick count-clockwise
-  uint8_t joystick3 = A1;                                                        // joystick clockwise
-  uint8_t joystick4 = 7;                                                       // joystick clockwise  
+  uint8_t joystick1 = A5;                                                       // joystick count-clockwise 
+  uint8_t joystick2 = 9;                                                        // joystick count-clockwise
+  uint8_t joystick3 = A1;                                                       // joystick clockwise
+  uint8_t joystick4 = 7;                                                        // joystick clockwise  
 #endif
 
 unsigned long interCharPause;
@@ -1977,7 +1980,7 @@ CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separa
 SHA256 sha256;
 AESSmall256 aes;                                                                // 32 byte key, 32 byte block; this uses 4% more program memory. Set 
                                                                                 // MASTER_PASSWORD_SIZE = 32 when in use.
-Button2 encoderButton = Button2(buttonPin);                                     // the button on the rotary encoder.
+Button2 encoderButton = Button2(buttonPin);                                     // the button on the rotary encoder or the joystick.
 SSD1306AsciiWire oled;                                                          // for the SSD1306 display
 
 /*
@@ -2181,7 +2184,7 @@ void setup() {                                                                  
   DebugLN("PasswordPump");
 
   pinMode(buttonPin,  INPUT_PULLUP);                                            // setup button pin for input enable internal 20k pull-up resistor, goes LOW 
-
+  
   pinMode(RED_PIN,    OUTPUT);                                                  // RGB LED pins
   pinMode(GREEN_PIN,  OUTPUT);                                                  // "
   pinMode(BLUE_PIN,   OUTPUT);                                                  // "
@@ -2196,8 +2199,6 @@ void setup() {                                                                  
   pinMode(joystick4,  INPUT_PULLUP);
   
   pinMode(UNUSED_PIN2, OUTPUT);digitalWrite(UNUSED_PIN2, LOW);                  // set all unused pins to LOW
-  //pinMode(UNUSED_PIN3, OUTPUT);digitalWrite(UNUSED_PIN3, LOW);
-  //pinMode(UNUSED_PIN4, OUTPUT);digitalWrite(UNUSED_PIN4, LOW);
   pinMode(UNUSED_PIN5, OUTPUT);digitalWrite(UNUSED_PIN5, LOW);
   pinMode(UNUSED_PIN6, OUTPUT);digitalWrite(UNUSED_PIN6, LOW);
   pinMode(UNUSED_PIN7, OUTPUT);digitalWrite(UNUSED_PIN7, LOW);
@@ -2206,6 +2207,7 @@ void setup() {                                                                  
   
   encoderButton.setReleasedHandler(buttonReleasedHandler);                      // fires when button is released
 
+  encoderButton.setDebounceTime(BUTTON_DEBOUNCE_MS);                            // set the button debounce time
   randomSeed(micros()*micros()^analogRead(RANDOM_PIN)*analogRead(RANDOM_PIN));	// seed the random number generator
 
   Wire.begin();
@@ -2345,9 +2347,6 @@ void setup() {                                                                  
     case FONT_CALLIBRI10:
       oled.setFont(Callibri10);
       break;
-//    case FONT_FIXEDNUMS8X16:                                                  // Never enable this font, it's broken and you'll lose your creds.
-//      oled.setFont(fixednums8x16);
-//      break;
     case FONT_TIMESNEWROMAN13:
       oled.setFont(TimesNewRoman13);
       break;
@@ -2381,10 +2380,10 @@ void setup() {                                                                  
   switch (orientation) {
     case ORIENT_LEFTY:
       oled.displayRemap(ORIENT_LEFTY);
-      joystick1 = A1;                                                         // joystick right / left
-      joystick2 = 7;                                                          // joystick right / left
-      joystick3 = A5;                                                         // joystick left / right
-      joystick4 = 9;                                                          // joystick left / right
+      joystick1 = A1;                                                           // joystick right / left
+      joystick2 = 7;                                                            // joystick right / left
+      joystick3 = A5;                                                           // joystick left / right
+      joystick4 = 9;                                                            // joystick left / right
       break;
     case ORIENT_RIGHTY:
       oled.displayRemap(ORIENT_RIGHTY);
@@ -2477,9 +2476,9 @@ void setup() {                                                                  
 void loop() {                                                                   // executes forever until reset button is pressed or power is interrupted
   encoderButton.loop();                                                         // polling for button press TODO: replace w/ interrupt
   #if MODEL == MODEL_JOYSTICK
-    pollJoystick();                                                               // poll the joystick for any changes in status
+    pollJoystick();                                                             // poll the joystick for any changes in status
   #else
-    pollEncoder();                                                                // tried to use interrupts for the encoder but the results were inconsistent
+    pollEncoder();                                                              // tried to use interrupts for the encoder but the results were inconsistent
   #endif
   ProcessEvent();                                                               // process any events that might have occurred.
 }
@@ -3168,7 +3167,7 @@ void ProcessEvent() {                                                           
               encrypt32Bytes(buffer, oldPassword);                              // encrypt it before you write it
               eeprom_write_bytes(GET_ADDR_OLD_PASS(acctPosition), buffer, PASSWORD_SIZE);// write the current password to old password in EEprom
             }            
-            generatePassword(password, getGenPasswordSize, true);                // put a UUID in the password char array, - 1 accomodates null terminator
+            generatePassword(password, getGenPasswordSize, true);               // put a UUID in the password char array, - 1 accomodates null terminator
             BlankLine2();
             machineState = STATE_EDIT_PASSWORD;                                 // pretend we're entering the password
             event = EVENT_LONG_CLICK;                                           // and trigger long click to write the password to eeprom.
@@ -3663,15 +3662,15 @@ void ProcessEvent() {                                                           
           writeFont();
           DisplayToStatus("Font Saved.");
           break;
-        case STATE_MENU_ORIENT:                                                       // EVENT_SINGLE_CLICK
+        case STATE_MENU_ORIENT:                                                 // EVENT_SINGLE_CLICK
           switch (position) {
             case ORIENT_LEFTY:
               orientation = ORIENT_LEFTY;
               oled.displayRemap(ORIENT_LEFTY);
-              joystick1 = A1;                                                         // joystick right / left
-              joystick2 = 7;                                                          // joystick right / left
-              joystick3 = A5;                                                         // joystick left / right
-              joystick4 = 9;                                                          // joystick left / right
+              joystick1 = A1;                                                   // joystick right / left
+              joystick2 = 7;                                                    // joystick right / left
+              joystick3 = A5;                                                   // joystick left / right
+              joystick4 = 9;                                                    // joystick left / right
               DisplayToHelp("Saved lefty.");
               break;
             case ORIENT_RIGHTY:

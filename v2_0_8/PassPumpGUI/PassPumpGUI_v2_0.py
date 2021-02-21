@@ -92,6 +92,7 @@
 #   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
+# - Save the custom group names when exporting to PasswordPump format.
 # - Select a Font via PasswordPumpGUI
 # - Set the Orientation via PasswordPumpGUI
 # - Set the Encoder Type via PasswordPumpGUI
@@ -2195,12 +2196,13 @@ def customizeGroup1():
     groupName1 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName1, parent=window)
     if not groupName1:
         groupName1 = groupNameTemp
-    c.send("pyUpdateCategoryName", 1, groupName1)
-    response = c.receive()
-    response_list = response[1]
-    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
-    textboxOne.config(text=groupName1)
-    groupsMenu.entryconfigure(1, label=groupName1)
+    else:
+        c.send("pyUpdateCategoryName", 1, groupName1)
+        response = c.receive()
+        response_list = response[1]
+        ignoredPosition = calcAcctPositionReceive(response_list[0])             # returns head position
+        textboxOne.config(text=groupName1)
+        groupsMenu.entryconfigure(1, label=groupName1)
 
 
 def customizeGroup2():
@@ -2209,12 +2211,13 @@ def customizeGroup2():
     groupName2 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName2, parent=window)
     if not groupName2:
         groupName2 = groupNameTemp
-    c.send("pyUpdateCategoryName", 2, groupName2)
-    response = c.receive()
-    response_list = response[1]
-    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
-    textboxTwo.config(text=groupName2)
-    groupsMenu.entryconfigure(2, label=groupName2)
+    else:
+        c.send("pyUpdateCategoryName", 2, groupName2)
+        response = c.receive()
+        response_list = response[1]
+        ignoredPosition = calcAcctPositionReceive(response_list[0])             # returns head position
+        textboxTwo.config(text=groupName2)
+        groupsMenu.entryconfigure(2, label=groupName2)
 
 
 def customizeGroup3():
@@ -2223,12 +2226,13 @@ def customizeGroup3():
     groupName3 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName3, parent=window)
     if not groupName3:
         groupName3 = groupNameTemp
-    c.send("pyUpdateCategoryName", 3, groupName3)
-    response = c.receive()
-    response_list = response[1]
-    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
-    textboxThree.config(text=groupName3)
-    groupsMenu.entryconfigure(3, label=groupName3)
+    else:
+        c.send("pyUpdateCategoryName", 3, groupName3)
+        response = c.receive()
+        response_list = response[1]
+        ignoredPosition = calcAcctPositionReceive(response_list[0])             # returns head position
+        textboxThree.config(text=groupName3)
+        groupsMenu.entryconfigure(3, label=groupName3)
 
 
 def customizeGroup4():
@@ -2237,12 +2241,13 @@ def customizeGroup4():
     groupName4 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName4, parent=window)
     if not groupName4:
         groupName4 = groupNameTemp
-    c.send("pyUpdateCategoryName", 4, groupName4)
-    response = c.receive()
-    response_list = response[1]
-    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
-    textboxFour.config(text=groupName4)
-    groupsMenu.entryconfigure(4, label=groupName4)
+    else:
+        c.send("pyUpdateCategoryName", 4, groupName4)
+        response = c.receive()
+        response_list = response[1]
+        ignoredPosition = calcAcctPositionReceive(response_list[0])             # returns head position
+        textboxFour.config(text=groupName4)
+        groupsMenu.entryconfigure(4, label=groupName4)
 
 
 def customizeGroup5():
@@ -2251,12 +2256,13 @@ def customizeGroup5():
     groupName5 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName5, parent=window)
     if not groupName5:
         groupName5 = groupNameTemp
-    c.send("pyUpdateCategoryName", 5, groupName5)
-    response = c.receive()
-    response_list = response[1]
-    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
-    textboxFive.config(text=groupName5)
-    groupsMenu.entryconfigure(5, label=groupName5)
+    else:
+        c.send("pyUpdateCategoryName", 5, groupName5)
+        response = c.receive()
+        response_list = response[1]
+        ignoredPosition = calcAcctPositionReceive(response_list[0])             # returns head position
+        textboxFive.config(text=groupName5)
+        groupsMenu.entryconfigure(5, label=groupName5)
 
 
 def customizeGroup6():
@@ -2265,12 +2271,13 @@ def customizeGroup6():
     groupName6 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName6, parent=window)
     if not groupName6:
         groupName6 = groupNameTemp
-    c.send("pyUpdateCategoryName", 6, groupName6)
-    response = c.receive()
-    response_list = response[1]
-    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
-    textboxSix.config(text=groupName6)
-    groupsMenu.entryconfigure(6, label=groupName6)
+    else:
+        c.send("pyUpdateCategoryName", 6, groupName6)
+        response = c.receive()
+        response_list = response[1]
+        ignoredPosition = calcAcctPositionReceive(response_list[0])             # returns head position
+        textboxSix.config(text=groupName6)
+        groupsMenu.entryconfigure(6, label=groupName6)
 
 
 def customizeGroup7():
@@ -2279,12 +2286,13 @@ def customizeGroup7():
     groupName7 = tkinter.simpledialog.askstring("Customize Group", "Customize Group " + groupName7, parent=window)
     if not groupName7:
         groupName7 = groupNameTemp
-    c.send("pyUpdateCategoryName", 7, groupName7)
-    response = c.receive()
-    response_list = response[1]
-    ignoredPosition = calcAcctPositionReceive(response_list[0])                 # returns head position
-    textboxSeven.config(text=groupName7)
-    groupsMenu.entryconfig(7, label=groupName7)
+    else:
+        c.send("pyUpdateCategoryName", 7, groupName7)
+        response = c.receive()
+        response_list = response[1]
+        ignoredPosition = calcAcctPositionReceive(response_list[0])             # returns head position
+        textboxSeven.config(text=groupName7)
+        groupsMenu.entryconfig(7, label=groupName7)
 
 
 def getFirmwareVersion():
@@ -2407,6 +2415,7 @@ def ask_root_password(parent=None):
 
     return root_password
 
+#           MAIN
                                                                                 # enabling the functionality below makes
                                                                                 # it impossible to create an .exe file
                                                                                 # on Windows.
