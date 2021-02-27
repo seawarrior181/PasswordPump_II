@@ -5,7 +5,7 @@
 #               |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
 # Author:       Daniel J. Murphy                                  |_|
 # File:         PassPumpGUI_v2_0.py
-# Version:      2.0.8.02
+# Version:      2.0.8.03
 # Date:         2019/07/26 - 2021/02/04
 # Language:     Python
 #
@@ -92,7 +92,6 @@
 #   the final URL is assembled and saved to EEprom.
 #
 # Enhancements:
-# - Save the custom group names when exporting to PasswordPump format.
 # - Select a Font via PasswordPumpGUI
 # - Set the Orientation via PasswordPumpGUI
 # - Set the Encoder Type via PasswordPumpGUI
@@ -103,6 +102,7 @@
 #   specified password to confirm that it's correct.
 # - Rename account
 # - Enable decryption functionality before connecting to a PasswordPump
+# * Save the custom group names when exporting to PasswordPump format.
 # * Add setting inter char delay in more settings
 # * Set generated password length on device and for PasswordPumpGUI
 # * Configurable Generate Password length
@@ -237,7 +237,7 @@ def updateCheck():
         updateWindow = Toplevel()
         updateWindow.title(string="Update Checker")
         updateWindow.resizable(False, False)
-        versionContents = 'Version:2.0.8.02'                                    # the current version
+        versionContents = 'Version:2.0.8.03'                                    # the current version
         if platform.system() == "Windows":                                      # Windows
             latestVersion = "https://github.com/seawarrior181/PasswordPump_II/raw/master/v2_0_8/PassPumpGUI/dist/PasswordPumpGUI.exe"
         elif platform.system() == "Darwin":                                     # Macintosh
@@ -788,7 +788,9 @@ def clickedOpen():
     updateDirections("Connected.")
 
     ReadGroupNames()
+    setGroups()
 
+def setGroups():
     textboxOne.config(text=groupName1)
     textboxTwo.config(text=groupName2)
     textboxThree.config(text=groupName3)
@@ -805,11 +807,11 @@ def clickedOpen():
     groupsMenu.entryconfigure(6, label=groupName6)
     groupsMenu.entryconfigure(7, label=groupName7)
 
-
 def updateDirections(ppdirections):
     txt_dir.delete('1.0', END)
     txt_dir.insert(END, ppdirections)
     window.update()
+    #print(ppdirections)
 
 
 def character_limit(entry_text,limit):
@@ -851,7 +853,7 @@ def clickedAcct(ignored):
                 lb.see(selection)
                 lb.activate(selection)
                 position = local_position                                       # because loadListBox changes position
-                getRecord()
+                getRecord()  #THIS RELOADS THE CONTENTS OF THE TXT OBJECTS PROBLEM???
                 updateDirections("Updated account name.")
         except ValueError as ex1:
             updateDirections("Value error encountered in\r\nclickedAcct:\r\n" + str(ex1))
@@ -1141,14 +1143,11 @@ def ReadGroupNames():
         groupName7 = groupName_list[0]
 
     except UnicodeDecodeError as ude:
-        updateDirections("UnicodeDecodeError in\r\npyReadGroup1Name:\r\n" + str(ude))
-        groupName1 = "UnicodeDecodeError"
+        updateDirections("UnicodeDecodeError in\r\nReadGroupNames:\r\n" + str(ude))
     except ValueError as ve:
-        updateDirections("ValueError in\r\npyReadGroupName:\r\n" + str(ve))
-        groupName1 = "ValueError"
+        updateDirections("ValueError in\r\nReadGroupNames:\r\n" + str(ve))
     except Exception as ex:
-        updateDirections("Exception in\r\npyReadGroupName:\r\n" + str(ex))
-        groupName1 = "Exception"
+        updateDirections("Exception in\r\nReadGroupNames:\r\n" + str(ex))
 
 
 def OnEntryDownNoEvent():
@@ -1552,7 +1551,7 @@ def RestoreEEprom():
 
 def ImportFileChrome():
     global state
-    state = "Imorting"
+    state = "Importing"
     if platform.system() == "Windows":
         name = askopenfilename(initialdir="C:/",                                # TODO: make this work cross platform
                                filetypes=(("CSV File", "*.csv"), ("All Files", "*.*")),
@@ -1657,6 +1656,13 @@ def ImportFileKeePass():
 
 
 def ImportFilePasswordPump():
+    global groupName1
+    global groupName2
+    global groupName3
+    global groupName4
+    global groupName5
+    global groupName6
+    global groupName7
     global state
     global selection
     state = "Importing"
@@ -1672,7 +1678,9 @@ def ImportFilePasswordPump():
         name = askopenfilename(title="Choose a file.")
     updateDirections(name)
     uenc_name = name
+    group_name = name + "grp"
     if name.endswith(".csvenc"):                                                # if the filename ends in .csvenc it is encrypted
+        group_name = name.replace('.csvenc', '.csvgrp')
         key = ask_root_password(window)                                         # get the password
         if key is not None:
             window.config(cursor="watch")
@@ -1683,6 +1691,64 @@ def ImportFilePasswordPump():
     global position
     global group
     window.config(cursor="watch")
+    if os.path.exists(group_name):
+        try:                                                                    # Using try in case user types in unknown file or closes without choosing a file.
+            with open(group_name, newline='') as csvGroupFile:
+                fieldnames = ['groupname']
+                groupReader = csv.DictReader(csvGroupFile, fieldnames=fieldnames)
+                try:
+                    groupArray = []
+                    # Error encountered reading groups in ImportFilePasswordPump; list assignment index out of range
+                    for group_row in groupReader:
+                        groupArray.append(group_row["groupname"])
+                    groupName1 = groupArray[1]
+                    groupName2 = groupArray[2]
+                    groupName3 = groupArray[3]
+                    groupName4 = groupArray[4]
+                    groupName5 = groupArray[5]
+                    groupName6 = groupArray[6]
+                    groupName7 = groupArray[7]
+                    setGroups()
+                    c.send("pyUpdateCategoryName", 1, groupName1)
+                    response = c.receive()
+                    response_list = response[1]
+                    ignoredPosition = calcAcctPositionReceive(response_list[0])  # returns head position
+
+                    c.send("pyUpdateCategoryName", 2, groupName2)
+                    response = c.receive()
+                    response_list = response[1]
+                    ignoredPosition = calcAcctPositionReceive(response_list[0])  # returns head position
+
+                    c.send("pyUpdateCategoryName", 3, groupName3)
+                    response = c.receive()
+                    response_list = response[1]
+                    ignoredPosition = calcAcctPositionReceive(response_list[0])  # returns head position
+
+                    c.send("pyUpdateCategoryName", 4, groupName4)
+                    response = c.receive()
+                    response_list = response[1]
+                    ignoredPosition = calcAcctPositionReceive(response_list[0])  # returns head position
+
+                    c.send("pyUpdateCategoryName", 5, groupName5)
+                    response = c.receive()
+                    response_list = response[1]
+                    ignoredPosition = calcAcctPositionReceive(response_list[0])  # returns head position
+
+                    c.send("pyUpdateCategoryName", 6, groupName6)
+                    response = c.receive()
+                    response_list = response[1]
+                    ignoredPosition = calcAcctPositionReceive(response_list[0])  # returns head position
+
+                    c.send("pyUpdateCategoryName", 7, groupName7)
+                    response = c.receive()
+                    response_list = response[1]
+                    ignoredPosition = calcAcctPositionReceive(response_list[0])  # returns head position
+
+                    updateDirections("All groups read and updated.")
+                except Exception as groupInnerException:
+                    updateDirections("Error encountered reading groups in ImportFilePasswordPump; " + str(groupInnerException))
+        except Exception as groupOuterException:
+            updateDirections("Error encountered opening groups in ImportFilePasswordPump; " + str(groupOuterException))
     if os.path.exists(uenc_name):
         try:                                                                    # Using try in case user types in unknown file or closes without choosing a file.
             with open(uenc_name, newline='') as csvfile:
@@ -1896,6 +1962,16 @@ def ExportFile():
                         except Exception as exInner:
                             updateDirections("Exception in pyGetNextPos; " + str(exInner))
                             raise exInner
+                    with open(name + "grp", mode='w') as pp_group_file:
+                        pp_writer = csv.writer(pp_group_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+                        pp_writer.writerow(['groupname'])
+                        pp_writer.writerow([groupName1])
+                        pp_writer.writerow([groupName2])
+                        pp_writer.writerow([groupName3])
+                        pp_writer.writerow([groupName4])
+                        pp_writer.writerow([groupName5])
+                        pp_writer.writerow([groupName6])
+                        pp_writer.writerow([groupName7])
                 except ValueError as ve:
                     updateDirections("ValueError in pyReadHead, pyReadAccountName or pyGetNextPos; " + str(ve))
                     head = 0
@@ -2429,7 +2505,7 @@ def ask_root_password(parent=None):
 #    sys.exit(-1)
 
 window = Tk()
-window.title("PasswordPump Edit Credentials v2.0.8.02")
+window.title("PasswordPump Edit Credentials v2.0.8.03")
 
 if platform.system() == "Windows":                                              # e.g. Windows7, Windows10
     window.geometry('400x560')

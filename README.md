@@ -33,6 +33,8 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
 # Change Log
 
 v2.0.8
+  * When you backup to PasswordPump format from PasswordPumpGUI any custom group/category names are now saved.
+  * A defect that was preventing the import of Chrome formatted export files is addressed.
   * Fixed an issue with the handling of group names between the PasswordPump and the PasswordPumpGUI.
   * Created an install/setup program for the PasswordPumpGUI using Inno.
   * Modified the PCB design to accomodate a joystick instead of a rotary encoder.
