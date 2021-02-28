@@ -127,7 +127,7 @@
  3- When you import credentials with <CR><LF> in the account name bad things
     happen.
   - A user has reported then when selecting the Decoy Password setting the 
-    device freezes.
+    device freezes.  Cannot reproduce in lab.
 
   ! If you've set the keyboard language during a session, then you select
     factory reset, the keyboard language is not reset to the default until you 
