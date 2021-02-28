@@ -149,16 +149,18 @@
 # 1) Comment out the code related to tendo.
 # 2) cd E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI
 # 3) pyinstaller cli.py --onefile --paths=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI -w --name PasswordPumpGUI
-# 4) pyinstaller PasswordPumpGUI.spec --onefile --paths=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI -w --name PasswordPumpGUI
-# 5) Commit file E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\PasswordPumpGUI.exe to git
+# 4) Edit E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\PasswordPumpGUI.spec and add back icon='PasswordPump.ico' in the EXE section.
+# 5) pyinstaller PasswordPumpGUI.spec --onefile --paths=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI -w --name PasswordPumpGUI
+# 6) Commit file E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\PasswordPumpGUI.exe to git
+# 7) Run Inno and do a Build
 #
 # Generating the Executable File on RaspberryPi OS
 # ================================================
 # 1) Comment out the code related to tendo.
 # 2) cd /home/pi/repos/murphyrepo/dev/GitHub/PasswordPump_II/v2_0_8/PassPumpGUI
 # 3) /home/pi/.local/bin/pyinstaller cli.py --onefile --paths=/home/pi/repos/murphyrepo/dev/GitHub/PasswordPump_II/v2_0_8/PassPumpGUI -w --name PasswordPumpGUI
-# 4) /home/pi/.local/bin/pyinstaller PasswordPumpGUI.spec --onefile --paths=/home/pi/repos/murphyrepo/dev/GitHub/PasswordPump_II/v2_0_8/PassPumpGUI -w --name PasswordPumpGUI
-# 5) Commit file E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\PasswordPumpGUI.exe to git
+# 5) /home/pi/.local/bin/pyinstaller PasswordPumpGUI.spec --onefile --paths=/home/pi/repos/murphyrepo/dev/GitHub/PasswordPump_II/v2_0_8/PassPumpGUI -w --name PasswordPumpGUI
+# 6) Commit file E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\PasswordPumpGUI.exe to git
 #
 # If you have access to additional operating systems and would like to contribute an executable flavor that would be
 # greatly appreciated.  I don't know if the RaspberryPi executable will work on other flavors of Linux or MacOS.
