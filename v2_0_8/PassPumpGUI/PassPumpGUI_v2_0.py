@@ -31,7 +31,7 @@
 #
 # Copyright
 # =========
-# Copyright ©2018, ©2019, ©2020, ©2021 Daniel J Murphy <dan-murphy@comcast.net>
+# Copyright (c)2018, (c)2019, (c)2020, (c)2021 Daniel J Murphy <dan-murphy@comcast.net>
 #
 # Built on Python 3.8 (Windows) and Python 3.7 (RaspberryPi)
 #
