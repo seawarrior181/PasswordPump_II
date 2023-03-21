@@ -4,8 +4,8 @@
                 |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
   Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
-  Version:      2.0.8.02
-  Date:         2019/07/26 - 2021/02/14
+  Version:      2.0.9.01
+  Date:         2019/07/26 - 2023/03/18
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy  M0 Express‎ or Adafruit  ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit  Cortex M0+  or  ATSAMD51J19 32-bit Cortex M4
@@ -439,6 +439,8 @@
     authenticated encryption with associated data (AEAD) instead.   
   * have the unit automatically logout after a period of inactivity, this will
     require use of the timer.
+  * After 5 minutes of inactivity clear the screen if the logout timeout is set
+    set to Never (0).  Implemented 2023-03-18.
 
   Warnings
   ========
@@ -476,7 +478,7 @@
 
   Copyright
   =========
-  - Copyright ©2018, ©2019, ©2020, @2021 Daniel J Murphy <dan-murphy@comcast.net>
+  - Copyright ©2018, ©2019, ©2020, @2021, ©2022, ©2023 Daniel J Murphy <dan-murphy@comcast.net>
   
   License                                                                       
   =======
@@ -574,7 +576,7 @@
 			  set the port in Tools, (for example, under Windows substitute %% for 
 			  your port number; Port: COM%% Adafruit ItsyBitsy M4 (SAMD51)).
 			- Programmer: “Arduino as ISP”
-		2) Select Tools->Upload
+		2) Select Sketch->Upload
 		3) Verify that the upload was successful
 
 	Using BOSSA (full coverage of this topic appears in the Users Guide)
@@ -961,12 +963,13 @@
 //- Includes/Defines                                                            */
 //#define __SAMD51__                 			   		  												      // <-- set this. Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
 #define __SAMD21__                   	 						  	  										  	// <-- set this. Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
+//#define __RP2040__
 #define ENCODER_NORMAL            0                                             // don't change this.
 #define ENCODER_LEFTY             1                                             // don't change this.
 #define ENCODER_DEFAULT           ENCODER_NORMAL                                // <-- set this. Set the encoder type default based on how the encoder is behaving
-#define MODEL_ENCODER             0                                             // don't change this
-#define MODEL_JOYSTICK            1                                             // don't change this
-#define MODEL                     MODEL_ENCODER                                 // <-- set this.  to determine if this is a model with a joystick (1) or a model with a rotary encoder (0).
+#define MODEL_ENCODER             1                                             // don't change this
+#define MODEL_JOYSTICK            0                                             // don't change this
+#define MODEL                     MODEL_ENCODER                                 // <-- set this.  to determine if this is a model with a joystick (1, or MODEL_JOYSTICK) or a model with a rotary encoder (0, or MODEL_ENCODER).
 
 #ifdef __SAMD51__
   #define F_CPU                   120000000UL                                   // don't change this. micro-controller clock speed, max clock speed of ItsyBitsy M4 is 120MHz (well, it can be over clocked...)
@@ -974,8 +977,11 @@
 #ifdef __SAMD21__
   #define F_CPU                   48000000UL                                    // don't change this. micro-controller clock speed, max clock speed of ItsyBitsy M0 is 48MHz 
 #endif
+#ifdef __RP2040__
+  #define F_CPU                   133000000UL                                   // don't change this. micro-controller clock speed, max clock speed of ItsyBitsy RP2040 is 133MHz
+#endif
 
-#define FIRMWARE_VERSION          "2.0.8.02"                                    // the version of the firmware, this program
+#define FIRMWARE_VERSION          "2.0.9.01"                                    // the version of the firmware, this program
 
 //#define SLOW_SPI
 #define DEBUG_ENABLED             0                                             // <-- set this to 1 if you want debug info written to serial out.
@@ -1049,12 +1055,16 @@
 #define RED_PIN                   5                                             // Pin locations for the RGB LED, must be PWM capable 
 #define BLUE_PIN                  13                                            //   "
 #ifdef __SAMD51__
-#define GREEN_PIN                 A4                                            //   "
-#define SET_OUT_PIN								A2
+  #define GREEN_PIN               A4                                            //   "
+  #define SET_OUT_PIN							A2
 #endif
 #ifdef __SAMD21__
-#define GREEN_PIN                 A2                                            //   "
-#define SET_OUT_PIN								A4
+  #define GREEN_PIN               A2                                            //   "
+  #define SET_OUT_PIN							A4
+#endif
+#ifdef __RP2040__
+  #define GREEN_PIN               A2                                            //   "
+  #define SET_OUT_PIN							A4
 #endif
 
 #define RANDOM_PIN                A0                                            // this pin must float; it's used to generate the seed for the random number generator
@@ -1063,6 +1073,9 @@
   #define UNUSED_PIN2             A4
 #endif
 #ifdef __SAMD51__
+  #define UNUSED_PIN2             A2
+#endif
+#ifdef __RP2040__
   #define UNUSED_PIN2             A2
 #endif
 //#define UNUSED_PIN3             A3
@@ -1795,6 +1808,7 @@ char groupCategory_7[CATEGORY_SIZE];                                            
 uint8_t groups;                                                                 // to which of 8 groups does the set of credentials belongs
 
 boolean updateExistingAccount = false;                                          // indicates if we are updating an existing account
+boolean screenBlank = false;                                                    // indicates if the screen has been cleared to prevent burn in.
 
 boolean isPurple  = false;                                                      // indicates if the RGB LED is purple
 boolean isRed     = false;                                                      // indicates if the RGB LED is red
@@ -2630,9 +2644,12 @@ void pollEncoder() {
 
 void ProcessEvent() {                                                           // processes events
   if (event != EVENT_NONE) {
+    if (screenBlank) {                                                          // Added 2023-03-18 to prevent screen burn in. Any event turns screenBlank to false and the event is swallowed.
+      screenBlank = false;                                                      // Added 2023-03-18 to prevent screen burn in.
+      event = EVENT_LONG_CLICK;
+    }                                                                           // Added 2023-03-18 to prevent screen burn in. 
     DisableInterrupts();
     lastActivityTime = millis();                                                // bump up the lastActivityTime, we don't reset iterationCount here, not 
-                                                                                // necessary and slows responsiveness just a bit
   } else {                                                                      // event == EVENT_NONE
     EnableInterrupts();
     if (++iterationCount == MAX_ITERATION_COUNT) {                              // we don't want to call millis() every single time through the loop
@@ -2673,6 +2690,13 @@ void ProcessEvent() {                                                           
 																																								// do not return, continue processing in this function
         }
       } else {																																	// logout timeout is not enabled or we are already logged out
+                                                                                // Following 5 loc added 2023-03-18 to save the OLED from burn in, i.e. if logoutTimeout is not set (== 0) then clear the screen after 5 minutes of inactivity.
+        unsigned long clearScreenTime = lastActivityTime +                      // logoutTimeout = 30, 60, 90, etc.; 
+                         (5 * MILLISECONDS_IN_A_MINUTE);                        // convert 5 minutes to milliseconds by multiplying by 1000 milliseconds in a second * 60 seconds in a minute.
+        if (milliseconds > clearScreenTime) {                                   // check to see if the device has been idle for 5 minutes
+          oled.clear();
+          screenBlank = true;
+        }
         return;                                                                 
       }
     } else {                                                                    // iterationCount is < 1048575
@@ -4886,7 +4910,7 @@ void DimDisplay(boolean dim) {
 
 void ScrollPasswordPump(void) {
   oled.clear();
-  oled.println("PasswordPump v2.0.8");
+  oled.println("PasswordPump v2.0.9");
 }
 
 void setupStateEnterMasterPassword() {
@@ -5487,9 +5511,9 @@ void InitializeGlobals() {
 }
 
 void ShowSplashScreen() {
-    strcpy(line1DispBuff,"PasswordPump  v2.0.8");
+    strcpy(line1DispBuff,"PasswordPump  v2.0.9");
     strcpy(line2DispBuff, __DATE__);
-    strcpy(line3DispBuff,"(c)2021 Dan Murphy ");
+    strcpy(line3DispBuff,"(c)2023 Dan Murphy ");
     DisplayBuffer();
 //  delayNoBlock(ONE_SECOND * 3);                                               // Show the splash screen for 3 seconds
 //  BlankLine3();
