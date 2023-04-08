@@ -4,8 +4,8 @@
                 |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
   Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
-  Version:      2.0.9.01
-  Date:         2019/07/26 - 2023/03/18
+  Version:      2.0.8.04
+  Date:         2019/07/26 - 2023/03/21
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy  M0 Express‎ or Adafruit  ItsyBitsy M4 Express‎
   MCU:          ATSAMD21G18 32-bit  Cortex M0+  or  ATSAMD51J19 32-bit Cortex M4
@@ -16,7 +16,7 @@
                 OLED 
   Current:      0.03A
   Components:   RGB LED, SSD1306 128x32 LED  display, one momentary push button, 
-                one  rotary encoder or one joystick,  I2C,  3  220ohm  resistors  
+                one  rotary encoder or one joystick,  3    220ohm      resistors  
                 for  the  RGB  LED,  2 25LC512  external  EEprom  chips,  custom 
                 PCB, 2 8 pin DIP holders, a  plastic  knob,  and  a  USB  cable.
   Purpose
@@ -77,6 +77,8 @@
   - Configurable failed login count factory reset (3, 5, 10, 25)
   - Configurable automatic logout after count of minutes (30, 60, 90, 120, 240,
     1, Never)
+  - When automatic logout set to Never, screen times out in 5 minutes to avoid
+    screen burn-in.
   - Configurable RGB LED intensity (high, medium, low, off)
   - Configurable font
   - Configurable display orientation (rotary encoder on the left or the right)
@@ -101,8 +103,7 @@
   The PasswordPump has been shown to work with Windows and Linux machines, 
   Apple, and Android phones and tablets.  Specifically the following are 
   supported:
-   - Windows 7
-   - Windows 10
+   - Windows 7, 10, 11
    - Mac OS X
    - Ubuntu
    - Raspberry Pi OS (Raspbian)
@@ -148,7 +149,7 @@
     PasswordPump seems too fast because characters are dropped.  Add the ability
     to slow down the input from the PasswordPump to the target device.
   * When changing orientation the joystick doesn't adjust correctly.
-  * single character user names and passwords are not working well
+  * Single character user names and passwords are not working well
   * When deleting the first account in the linked list and then running fix
     corruption, it would have the effect of deleting all accounts (corrupted
     the linked list).
@@ -174,7 +175,7 @@
 		to another account, the PasswordPump and PasswordPumpGUI freeze.  Close the
 		PasswordPumpGUI window and long click on the PasswordPump.  Now there is
 		only one account in the PasswordPump. Restore from secondary EEprom.
-  * single click after Reset brings you to alpha edit mode
+  * Single click after Reset brings you to alpha edit mode
   * Should probably remove Keyboard ON/OFF from saved properties and always 
     default to Keyboard OFF; or make sure it is always OFF when backing up 
     EEProm.
@@ -627,21 +628,21 @@
 
   Cost
   ====
-  - 1 AdaFruit ItsyBitsy (32-bit ARM®, SAMD51 Cortex®-M4F MCU)        $14.95
-  - 2 MICROCHIP - 25LC512-I/P - 512K SPI™ Bus Serial EEPROM DIP8        3.80
-  - 1 SSD1306 I2C LED display 128x32 pixels.                            2.23
+  - 1 AdaFruit ItsyBitsy (32-bit ARM®, SAMD21 Cortex®-M0 MCU)         $15.30
+  - 2 MICROCHIP - 25LC512-I/P - 512K SPI™ Bus Serial EEPROM DIP8        6.86
+  - 1 SSD1306 I2C LED display 128x32 pixels.                            2.03
   - 1 Custom PCB                                                        1.50
-  - 1 micro USB to USB cable 100cm                                      0.69
+  - 1 micro USB to USB cable 100cm                                      1.48
   - 1 Rotary Encoder                                                    0.46
       -or-
-  - 1 Joystick                                                          0.81
+  - 1 Joystick                                                          0.81 (omitted)
   - 1 plastic knob for rotary encoder                                   0.11
   - 2 IC DIP Sockets, 8 pins each                                       0.10
   - Solder                                                              0.10
-  - 1 RGB LED diffused 5mm                                              0.03
+  - 1 RGB LED diffused 5mm                                              0.05
   - 3 220ohm resistors                                                  0.01
                                                                       ------
-  - Total Parts                                                       $23.98
+  - Total Parts                                                       $28.00
                                                                       ======
   + Labor for assembly, packaging & shipping
   
@@ -961,8 +962,8 @@
   Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-//#define __SAMD51__                 			   		  												      // <-- set this. Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
-#define __SAMD21__                   	 						  	  										  	// <-- set this. Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
+//#define __SAMD51__                   			   		  												      // <-- set this. Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
+#define __SAMD21__                 	 						  	  										  	// <-- set this. Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 //#define __RP2040__
 #define ENCODER_NORMAL            0                                             // don't change this.
 #define ENCODER_LEFTY             1                                             // don't change this.
@@ -981,7 +982,7 @@
   #define F_CPU                   133000000UL                                   // don't change this. micro-controller clock speed, max clock speed of ItsyBitsy RP2040 is 133MHz
 #endif
 
-#define FIRMWARE_VERSION          "2.0.9.01"                                    // the version of the firmware, this program
+#define FIRMWARE_VERSION          "2.0.8.04"                                    // the version of the firmware, this program
 
 //#define SLOW_SPI
 #define DEBUG_ENABLED             0                                             // <-- set this to 1 if you want debug info written to serial out.
@@ -1353,6 +1354,7 @@
 #define SHA_ITERATIONS            1                                             // number of times to hash the master password (won't work w/ more than 1 iteration)
 #define KHZ_4000                  400000UL                                      // Speed (in Hz) for Wire transmissions in SSD1306 library calls.
 #define KHZ_100                   10000UL                                       // Speed (in Hz) for Wire transmissions following SSD1306 library calls.
+#define BLANK_SCREEN_DELAY        5                                             // Minutes to wait before making the display blank when Timeout Minutes is set to Never.
 
 //- Menus (globals)
 
@@ -2690,14 +2692,14 @@ void ProcessEvent() {                                                           
 																																								// do not return, continue processing in this function
         }
       } else {																																	// logout timeout is not enabled or we are already logged out
-                                                                                // Following 5 loc added 2023-03-18 to save the OLED from burn in, i.e. if logoutTimeout is not set (== 0) then clear the screen after 5 minutes of inactivity.
-        unsigned long clearScreenTime = lastActivityTime +                      // logoutTimeout = 30, 60, 90, etc.; 
-                         (5 * MILLISECONDS_IN_A_MINUTE);                        // convert 5 minutes to milliseconds by multiplying by 1000 milliseconds in a second * 60 seconds in a minute.
-        if (milliseconds > clearScreenTime) {                                   // check to see if the device has been idle for 5 minutes
-          oled.clear();
-          screenBlank = true;
+                                                                                // Following 5 loc added 2023-03-18 to save the OLED from burn in, i.e. if logoutTimeout is not set (== 0) then clear the screen after BLANK_SCREEN_DELAY minutes of inactivity.
+        unsigned long clearScreenTime = lastActivityTime +                      
+                         (BLANK_SCREEN_DELAY * MILLISECONDS_IN_A_MINUTE);       // convert minutes to milliseconds by multiplying by 60000 milliseconds in a minute.
+        if (milliseconds > clearScreenTime) {                                   // check to see if the device has been idle for BLANK_SCREEN_DELAY minutes
+          oled.clear();                                                         // blank out the OLED screen to prevent burn in
+          screenBlank = true;                                                   // Let ProcessEvent() know that the screen is blank when event != EVENT_NONE.
         }
-        return;                                                                 
+        return;                                                                 // return to loop()       
       }
     } else {                                                                    // iterationCount is < 1048575
 			if (iterationCount % 32768 == 0) {
@@ -4908,9 +4910,9 @@ void DimDisplay(boolean dim) {
   }
 }
 
-void ScrollPasswordPump(void) {
+void ScrollPasswordPump(void) {                                                 // Not used.
   oled.clear();
-  oled.println("PasswordPump v2.0.9");
+  oled.println("PasswordPump v2.0.8");
 }
 
 void setupStateEnterMasterPassword() {
@@ -5511,7 +5513,7 @@ void InitializeGlobals() {
 }
 
 void ShowSplashScreen() {
-    strcpy(line1DispBuff,"PasswordPump  v2.0.9");
+    strcpy(line1DispBuff,"PasswordPump  v2.0.8");
     strcpy(line2DispBuff, __DATE__);
     strcpy(line3DispBuff,"(c)2023 Dan Murphy ");
     DisplayBuffer();
