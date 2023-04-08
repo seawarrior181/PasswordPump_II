@@ -32,6 +32,9 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
   
 # Change Log
 
+v2.0.8 2023-04-08
+  * Added a feature whereby if your Settings-->Timeout Minutes is set to Never, your screen goes dark after 5 minutes of inactivity.  Then you may actuate the rotary encoder in any way (which is automatically interpreted as a long click) to turn the display back on.  The purpose of this feature is to prevent the screen from burning in, a problem I've noticed after long-term use of the PasswordPump.
+
 v2.0.8
   * When you backup to PasswordPump format from PasswordPumpGUI any custom group/category names are now saved.
   * A defect that was preventing the import of Chrome formatted export files is addressed.
@@ -43,7 +46,6 @@ v2.0.8
   * Added the ability to download the latest versions of the firmware from the PasswordPumpGUI.
 
 2020-12-31 v2.0.6
-  * Added a feature whereby if your Settings-->Timeout Minutes is set to Never, your screen goes dark after 5 minutes of inactivity.  Then you may actuate the rotary encoder in any way (which is automatically interpreted as a long click) to turn the display back on.  The purpose of this feature is to prevent the screen from burning in, a problem I've noticed after long-term use of the PasswordPump.
   * Made some minor edits to the PasswordPumpGUI menus
   * Accepted design docs for an exceptionally well done case, here: https://github.com/seawarrior181/PasswordPump_II/tree/master/3D-Print/scootercommuter_Design
   * Added a setting that allows for the introduction of delay between the transmission of each character to the compuer/tablet/phone so that slower devices do not drop characters. 
