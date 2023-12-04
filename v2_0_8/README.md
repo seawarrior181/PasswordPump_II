@@ -1,1 +1,1 @@
-v2.0.6 unreleased.
+v2.0.8 released.

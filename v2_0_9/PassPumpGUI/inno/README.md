@@ -1,0 +1,1 @@
+This setup program is for Windows ONLY.  If you have the skills necessary for creating an installation program on another operating system and a desire to contribute please feel free to contact me at dan-murphy@comcast.net.

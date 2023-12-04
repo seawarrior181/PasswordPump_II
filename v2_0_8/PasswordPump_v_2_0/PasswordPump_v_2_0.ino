@@ -78,6 +78,8 @@
   - Configurable automatic logout after count of minutes (30, 60, 90, 120, 240,
     1, Never)
   - When automatic logout set to Never, screen times out in 5 minutes to avoid
+    screen burn-in.  
+  - After logout screen times out after 5 minutes to avoid 
     screen burn-in.
   - Configurable RGB LED intensity (high, medium, low, off)
   - Configurable font
@@ -1284,6 +1286,7 @@
 #define EVENT_SHOW_ORIENT_MENU    36
 #define EVENT_SHOW_GEN_PW_SZ_MENU 37
 #define EVENT_SHOW_INT_CHAR_MENU  38
+#define EVENT_WAKE_FROM_BLANK     39
 #define EVENT_SUSPEND             99                                            // event to set when you want to suspend processing, like after calling factory reset.
                                                                                 // Not using an enum here to save memory.  
 //- States                                                                      
@@ -1755,6 +1758,7 @@ const char * const charDelayMenu[] = {
 
 #define MILLISECONDS_IN_A_SECOND  1000UL
 #define MILLISECONDS_IN_A_MINUTE  60000UL
+#define MILLISECONDS_IN_A_HALFMIN 30000UL
 #define PAUSE_TO_SHOW_REMAINING   60000UL
 #define SECONDS_IN_A_MINUTE       60
 #define SECONDS_IN_AN_HOUR        3600UL
@@ -2648,7 +2652,7 @@ void ProcessEvent() {                                                           
   if (event != EVENT_NONE) {
     if (screenBlank) {                                                          // Added 2023-03-18 to prevent screen burn in. Any event turns screenBlank to false and the event is swallowed.
       screenBlank = false;                                                      // Added 2023-03-18 to prevent screen burn in.
-      event = EVENT_LONG_CLICK;
+      event = EVENT_WAKE_FROM_BLANK;
     }                                                                           // Added 2023-03-18 to prevent screen burn in. 
     DisableInterrupts();
     lastActivityTime = millis();                                                // bump up the lastActivityTime, we don't reset iterationCount here, not 
@@ -2665,7 +2669,7 @@ void ProcessEvent() {                                                           
           long timeLeft = logoutTime - milliseconds;                            // calculate time remaining until logout 
           timeLeft = timeLeft/MILLISECONDS_IN_A_SECOND;                         // convert timeLeft to seconds, max of 4 decimal places
           if (timeLeft != oldTimeLeft) { 
-            if (milliseconds - lastActivityTime > MILLISECONDS_IN_A_MINUTE) {   // if we've been idle for more than a minute, show seconds left until logout
+            if (milliseconds - lastActivityTime > MILLISECONDS_IN_A_HALFMIN) {  // if we've been idle for more than a half minute, show seconds left until logout
               oldTimeLeft = timeLeft;
               uint8_t roundHoursTillLogout   = timeLeft / SECONDS_IN_AN_HOUR;
               uint8_t roundMinutesTillLogout = (timeLeft - (roundHoursTillLogout * SECONDS_IN_AN_HOUR)) / SECONDS_IN_A_MINUTE;
@@ -4764,10 +4768,10 @@ void ProcessEvent() {                                                           
   } else if (event == EVENT_LOGOUT) {
     if(authenticated) {
       setBlue();
-      DimDisplay(true);                                                         // dim the display
-      DisplayToStatus("Logged out");
+      //DisplayToStatus("Logged out");                                          // Overwritten by ShowSuspend()
       InitializeGlobals();                                                      // prevent peeking in memory after a logout
       ShowSuspend();
+      DimDisplay(true);                                                         // dim the display
       event = EVENT_SUSPEND;
     } else {
       DisplayToStatus("Not logged in");
@@ -4775,6 +4779,10 @@ void ProcessEvent() {                                                           
       event = EVENT_SHOW_MAIN_MENU;
     }
     
+  } else if (event == EVENT_WAKE_FROM_BLANK) {                                  // scroll forward through something depending on state...
+    DisplayBuffer();
+    event = EVENT_NONE;
+
   } else if (event == EVENT_SUSPEND) {                                          // scroll forward through something depending on state...
     while (1 == 1);
   } else {

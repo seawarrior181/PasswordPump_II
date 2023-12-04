@@ -1,0 +1,7 @@
+requests
+
+[dev]
+pytest
+rope
+flake8
+coverage

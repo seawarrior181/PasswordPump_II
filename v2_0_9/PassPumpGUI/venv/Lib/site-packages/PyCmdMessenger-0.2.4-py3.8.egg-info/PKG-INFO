@@ -1,0 +1,12 @@
+Metadata-Version: 1.1
+Name: PyCmdMessenger
+Version: 0.2.4
+Summary: Python interface for CmdMessenger arduino serial communication library
+Home-page: https://github.com/harmsm/PyCmdMessenger
+Author: Michael J. Harms
+Author-email: harmsm@gmail.com
+License: UNKNOWN
+Download-URL: https://github.com/harmsm/PyCmdMessenger/tarball/0.2.4
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python
