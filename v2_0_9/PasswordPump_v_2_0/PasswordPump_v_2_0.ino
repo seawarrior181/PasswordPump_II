@@ -965,8 +965,8 @@
 //#define __SAMD51__                   			   		  												      // <-- set this. Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
 #define __SAMD21__                 	 						  	  										  	// <-- set this. Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 //#define __RP2040__
-//#define __SSD1306__                                                           // __SSD1306__ and __SH1107__ are mutually exclusive.  Pick one based on the size of the display.
-#define __SH1107__                                                              // __SSD1306__ and __SH1107__ are mutually exclusive.  Pick one based on the size of the display.
+#define __SSD1306__                                                           // __SSD1306__ and __SH1107__ are mutually exclusive.  Pick one based on the size of the display.
+//#define __SH1107__                                                              // __SSD1306__ and __SH1107__ are mutually exclusive.  Pick one based on the size of the display.
   
 #define ENCODER_NORMAL            0                                             // don't change this.
 #define ENCODER_LEFTY             1                                             // don't change this.
@@ -1295,6 +1295,7 @@
 #define EVENT_SHOW_ORIENT_MENU    36
 #define EVENT_SHOW_GEN_PW_SZ_MENU 37
 #define EVENT_SHOW_INT_CHAR_MENU  38
+#define EVENT_WAKE                39
 #define EVENT_SUSPEND             99                                            // event to set when you want to suspend processing, like after calling factory reset.
                                                                                 // Not using an enum here to save memory.  
 //- States                                                                      
@@ -2735,8 +2736,8 @@ void ProcessEvent() {                                                           
   if (event != EVENT_NONE) {
     if (screenBlank) {                                                          // Added 2023-03-18 to prevent screen burn in. Any event turns screenBlank to false and the event is swallowed.
       screenBlank = false;                                                      // Added 2023-03-18 to prevent screen burn in.
-      //event = EVENT_LONG_CLICK;												// I decided I don't like this behaviour.  2023-11-28
-      event = EVENT_NONE;														// Swallow the event.  2023-11-28
+      //event = EVENT_LONG_CLICK;												                        // I decided I don't like this behaviour.  2023-11-28
+      event = EVENT_WAKE;														                            // Swallow the event.  2024-03-09
     }                                                                           // Added 2023-03-18 to prevent screen burn in. 
     DisableInterrupts();
     lastActivityTime = millis();                                                // bump up the lastActivityTime, we don't reset iterationCount here, not 
@@ -4904,6 +4905,9 @@ void ProcessEvent() {                                                           
     
   } else if (event == EVENT_SUSPEND) {                                          // scroll forward through something depending on state...
     while (1 == 1);
+  } else if (event == EVENT_WAKE) {                                             // bury the user input (returning from screen timeout).
+    DisplayBuffer();
+    event = EVENT_NONE;
   } else {
     DisplayToError("ERR: 007");
   }
