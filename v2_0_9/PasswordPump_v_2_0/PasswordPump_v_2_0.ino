@@ -4,7 +4,7 @@
                 |_| \__,_/__/__/\_/\_/\___/_| \__,_|_|  \_,_|_|_|_| .__/
   Author:       Daniel J. Murphy                                  |_| 
   File:         PasswordPump_v_2_0.ino
-  Version:      2.0.9.01
+  Version:      2.0.9.02
   Date:         2019/07/26 - 2023/03/21
   Language:     Arduino IDE 1.8.13, C++
   Device:       Adafruit ItsyBitsy  M0 Express‎ or Adafruit  ItsyBitsy M4 Express‎
@@ -962,11 +962,11 @@
   Finally, the Program 
   ==============================================================================
 //- Includes/Defines                                                            */
-//#define __SAMD51__                   			   		  												      // <-- set this. Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
-#define __SAMD21__                 	 						  	  										  	// <-- set this. Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
+//#define __SAMD51__                   			   		  												    // <-- set this. Turn this on for Adafruit ItsyBitsy M4. _SAMD21_ and _SAMD51_ are mutually exclusive.
+#define __SAMD21__                 	 						  	  										  	  // <-- set this. Turn this on for Adafruit ItsyBitsy M0. _SAMD21_ and _SAMD51_ are mutually exclusive.
 //#define __RP2040__
-#define __SSD1306__                                                           // __SSD1306__ and __SH1107__ are mutually exclusive.  Pick one based on the size of the display.
-//#define __SH1107__                                                              // __SSD1306__ and __SH1107__ are mutually exclusive.  Pick one based on the size of the display.
+#define __SSD1306__                                                             // __SSD1306__ and __SH1107__ are mutually exclusive.  Pick one based on the size of the display.
+//#define __SH1107__                                                            // __SSD1306__ and __SH1107__ are mutually exclusive.  Pick one based on the size of the display.
   
 #define ENCODER_NORMAL            0                                             // don't change this.
 #define ENCODER_LEFTY             1                                             // don't change this.
@@ -985,7 +985,7 @@
   #define F_CPU                   133000000UL                                   // don't change this. micro-controller clock speed, max clock speed of ItsyBitsy RP2040 is 133MHz
 #endif
 
-#define FIRMWARE_VERSION          "2.0.9.01"                                    // the version of the firmware, this program
+#define FIRMWARE_VERSION          "2.0.9.02"                                    // the version of the firmware, this program
 
 //#define SLOW_SPI
 #define DEBUG_ENABLED             0                                             // <-- set this to 1 if you want debug info written to serial out.
@@ -1009,12 +1009,12 @@
 #include <SHA256.h>                                                             // https://rweather.github.io/arduinolibs/index.html for hashing the master password 
 #include <AES.h>                                                                // https://rweather.github.io/arduinolibs/index.html for encrypting credentials 
 #ifdef __SSD1306__
-  #include <SSD1306Ascii.h>                                                       // https://github.com/greiman/SSD1306Ascii
-  #include <SSD1306AsciiWire.h>                                                   // https://github.com/greiman/SSD1306Ascii
+  #include <SSD1306Ascii.h>                                                     // https://github.com/greiman/SSD1306Ascii
+  #include <SSD1306AsciiWire.h>                                                 // https://github.com/greiman/SSD1306Ascii
 #endif
 #ifdef __SH1107__
-  //#include <Adafruit_GFX.h>                                                     // https://github.com/adafruit/Adafruit-GFX-Library
-  //#include <Adafruit_SH110X.h>                                                  // https://github.com/adafruit/Adafruit_SH110x
+  //#include <Adafruit_GFX.h>                                                   // https://github.com/adafruit/Adafruit-GFX-Library
+  //#include <Adafruit_SH110X.h>                                                // https://github.com/adafruit/Adafruit_SH110x
   #include "lcdgfx.h"
   #include "lcdgfx_gui.h"
 #endif
@@ -4904,10 +4904,12 @@ void ProcessEvent() {                                                           
     }
     
   } else if (event == EVENT_SUSPEND) {                                          // scroll forward through something depending on state...
-    while (1 == 1);
-  } else if (event == EVENT_WAKE) {                                             // bury the user input (returning from screen timeout).
-    DisplayBuffer();
-    event = EVENT_NONE;
+    while (1 == 1);                                                             // suspend forever
+
+  } else if (event == EVENT_WAKE) {                                             // Device wakes from screen timeout
+    DisplayBuffer();                                                            // Show what's in the display buffer
+    event = EVENT_NONE;                                                         // Bury the user input (returning from screen timeout)
+
   } else {
     DisplayToError("ERR: 007");
   }
