@@ -18,7 +18,7 @@ If I shipped to you a PasswordPump which indicates that it is at v2.0.5, it will
   * A new release of the firmware is available, Version:2.0.8.02, which addresses an issue with the handling of group names between the PasswordPump and the PasswordPumpGUI.
   * There is now a new model of PasswordPump available for purchase; the Joystick model.  This PasswordPump has a lower profile, but it does take a little bit longer to scroll through all of your accounts.  It works well.
   * On Windows there exists now a setup program that does not require Python to be installed to get the PasswordPumpGUI up and running.  Click on it's location to download:
-      https://github.com/seawarrior181/PasswordPump_II/raw/master/v2_0_8/PassPumpGUI/inno/PasswordPumpSetup.exe
+      https://github.com/seawarrior181/PasswordPump_II/raw/master/v2_0_9/PassPumpGUI/inno/PasswordPumpSetup.exe
     
     Simply execute the downloaded file to get the PasswordPumpGUI installed.
       
