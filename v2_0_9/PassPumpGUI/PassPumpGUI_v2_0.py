@@ -6,7 +6,7 @@
 # Author:       Daniel J. Murphy                                  |_|
 # File:         PassPumpGUI_v2_0.py
 # Version:      2.0.8.03
-# Date:         2019/07/26 - 2021/02/04
+# Date:         2019/07/26 - 2024/06/19
 # Language:     Python
 #
 # Purpose
@@ -48,9 +48,17 @@
 # - If an account name contains a comma, and you visit the field, after
 #   exiting the GUI and reloading all of the accounts, the comma has changed
 #   into a hashtag and all of the remaining fields are blank.
+# - If the representation of groups selected == 93, import from PasswordPump
+#   export format fails.  To work around this you must convert the export
+#   file to csv (decrypt it), change the 93 to something else, then re-encrypt
+#   the file, then import it.  Then select the account and fix the selected
+#   groups back to what it was, or change the selections so that you don't
+#   run into the same problem.  ASCII 93 == ], not sure why this is a problem,
+#   but there have been many problems with this library.
 # x After adding a new account, if the style isn't specified (or left on the
 #   default), ValueError: invalid literal for int() with base 10: '' occurs
 #   on subsequent visits to that account.
+# * 32 character passwords and old passwords are now accommodated.
 # * Unable so save exported PasswordPump format file under Linux.
 # * During file export if you cancel out of the operation an unencrypted file
 #   is written anyhow.  Present 11/24/2020 - 11/27/2020.
@@ -147,12 +155,23 @@
 # Generating the Executable File
 # ==============================
 # 1) Comment out the code related to tendo.
-# 2) cd E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI
-# 3) pyinstaller cli.py --onefile --paths=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI -w --name PasswordPumpGUI
-# 4) Edit E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\PasswordPumpGUI.spec and add back icon='PasswordPump.ico' in the EXE section.
-# 5) pyinstaller PasswordPumpGUI.spec --onefile --paths=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI -w --name PasswordPumpGUI
-# 6) Commit file E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\PasswordPumpGUI.exe to git
-# 7) Run Inno and do a Build
+# You might need to modify the system path so that pyinstaller is pointing to the same environment as PyCharm.
+#   PATH=C:\Users\dan-m\AppData\Local\Programs\Python\Python312;C:\Users\dan-m\AppData\Local\Programs\Python\Python312;%PATH%
+#   cd E:\
+#   mkdir pyinstaller_sample
+#   pip install virtualenv
+#   cd pyinstaller_sample
+#   virtualenv pp
+#   E:\pyinstaller_sample\pp\bin\activate
+#   pip install pyinstaller
+#   pip install tendo
+#   pip3 install PyCmdMessenger
+#   pip install powned
+#   pip3 install cryptography
+#   Make sure that cli.py and cli.spec are in E:\pyinstaller_sample\
+#   pyinstaller cli.py --onefile  --paths=E:\pyinstaller_sample\pp\Lib\site-packages --name PasswordPumpGUI
+#   Copy E:\pyinstaller_sample\dist\PasswordPumpGUI.exe to E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_9\PassPumpGUI\dist\PasswordPumpGUI.exe to git
+#   Run Inno and do a Build
 #
 # Generating the Executable File on RaspberryPi OS
 # ================================================
@@ -274,7 +293,7 @@ def downloadLatest():
         if platform.system() == "Windows":                                      # Windows
             url = 'https://github.com/seawarrior181/PasswordPump_II/raw/master/v2_0_8/PassPumpGUI/inno/PasswordPumpSetup.exe'
             print(__file__)
-            downloadLocation = get_download_path() + "\PasswordPumpSetup.exe"
+            downloadLocation = get_download_path() + "\\PasswordPumpSetup.exe"
         elif platform.system() == "Darwin":                                     # Macintosh
             url = 'https://raw.githubusercontent.com/seawarrior181/PasswordPump_II/master/v2_0_8/PassPumpGUI/PassPumpGUI_v2_0.py'
             downloadLocation = __file__
@@ -591,7 +610,7 @@ def ShowSettingsWindow():
                                   '10',
                                   '16',
                                   '24',
-                                  '31')
+                                  '32')
     cbPasswordLength.bind('<<ComboboxSelected>>', on_password_length)
     cbPasswordLength.current(newindex=currentPasswordLength)
     cbPasswordLength.pack()
@@ -887,9 +906,9 @@ def clickedUser(ignored):
 
 def clickedPass(ignored):
     global position
-    character_limit(txt_pass,31)
+    character_limit(txt_pass,32)
     aResPass = stripBadChars(txt_pass.get())
-    resPass = aResPass[0:31]                                                    # 32nd char ends up being the null terminator
+    resPass = aResPass[0:32]                                                    # ?? 33rd char ends up being the null terminator
     if len(resPass) > 0:
         c.send("pyUpdatePassword", calcAcctPositionSend(position), resPass)
     else:
@@ -906,9 +925,9 @@ def clickedPass(ignored):
 
 def clickedOldPass(ignored):
     global position
-    character_limit(txt_old_pass,31)
+    character_limit(txt_old_pass,32)
     aResOldPass = stripBadChars(txt_old_pass.get())
-    resOldPass = aResOldPass[0:31]                                              # 32nd char ends up being the null terminator
+    resOldPass = aResOldPass[0:32]                                              # 32nd char ends up being the null terminator
     if len(resOldPass) > 0:
         c.send("pyUpdateOldPassword", calcAcctPositionSend(position), resOldPass)
     else:
@@ -939,6 +958,8 @@ def clickedStyle():
 def updateGroup():
     global position
     global group
+    if group == 93:
+        group = 128
     c.send("pyUpdateGroup", calcAcctPositionSend(position), group + 3)
     response = c.receive()
     response_list = response[1]
@@ -1375,6 +1396,8 @@ def getRecord():
         responseGroup = c.receive()
         group_list = responseGroup[1]
         group = int(group_list[0])
+        if group == 93:
+            group = 92                                                          # 93 doesn't get passed cleanly to and from the C program, change to 92
     except UnicodeDecodeError as ude:
         updateDirections("UnicodeDecodeError during pyReadGroup in getRecord(); " + str(ude))
         group = 0
@@ -2093,7 +2116,7 @@ def generatePassword():
         txt_old_pass.delete(0, END)
         txt_old_pass.insert(END, previousPass)
         txt_old_pass.focus()
-    defPWLen = 31
+    defPWLen = 32
     c.send("pyGetPasswordLength")
     try:
         response = c.receive()
@@ -2111,7 +2134,7 @@ def generatePassword():
     elif defPWType == 3:
         defPWLen = 24
     elif defPWType == 4:
-        defPWLen = 31
+        defPWLen = 32
     characters = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%*()?-_=+:;{}[]"  # These chars are not generated on the PasswordPump:  , " @ ` \ & ~ | \\ ^ /
     while True:                                                                 # emulate a do while loop in python
         password = "".join(choice(characters) for unusedVar in range(defPWLen)) # generate passwords until one passes
@@ -2174,8 +2197,8 @@ def passwordComplexityCheck(passwd):
     passwordOK = True
     rejectReason = 'Password fails complexity\r\ncheck:\r\n'
 
-    if len(passwd) > 31:
-        rejectReason += 'The password length should be\r\nnot be greater than 31.\r\n'
+    if len(passwd) > 32:
+        rejectReason += 'The password length should be\r\nnot be greater than 32.\r\n'
         passwordOK = False
 
     if len(passwd) < 8:
@@ -2195,7 +2218,7 @@ def passwordComplexityCheck(passwd):
         passwordOK = False
 
     if any(char in badSym for char in passwd):
-        rejectReason += 'The password has a forbidden\r\nsymbol: ,"`\/&~|^ \r\n'
+        rejectReason += 'The password has a forbidden\r\nsymbol: ,"`\\/&~|^ \r\n'
         passwordOK = False
 
     if not any(char in specialSym for char in passwd):
@@ -2592,7 +2615,7 @@ exportMenu = Menu(menubar, tearoff=0)
 file.add_cascade(label='Import', menu=importMenu)
 importMenu.add_command(label='Import from Chrome', command=ImportFileChrome)
 importMenu.add_command(label='Import from KeePass', command=ImportFileKeePass)
-importMenu.add_command(label='Import from PasswordPump', command=ImportFilePasswordPump)
+importMenu.add_command(label='Import from PasswordPump Export File', command=ImportFilePasswordPump)
 file.add_cascade(label='Export', menu=exportMenu)
 exportMenu.add_command(label='Export to PasswordPump Format', command=ExportFile)
 # file.add_command(label='Insert', command=clickedInsert)

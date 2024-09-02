@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "PasswordPump"
-#define MyAppVersion "2.0.8"
+#define MyAppVersion "2.0.8.03"
 #define MyAppPublisher "Dan Murphy"
 #define MyAppURL "https://github.com/seawarrior181/PasswordPump_II"
 #define MyAppExeName "PasswordPumpGUI.exe"
@@ -21,12 +21,12 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableDirPage=yes
 DisableProgramGroupPage=yes
-LicenseFile=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\LICENSE.txt
+LicenseFile=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_9\PassPumpGUI\LICENSE.txt
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
-OutputDir=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\inno
+OutputDir=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_9\PassPumpGUI\inno
 OutputBaseFilename=PasswordPumpSetup
-SetupIconFile=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\PasswordPump.ico
+SetupIconFile=E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_9\PassPumpGUI\PasswordPump.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -38,7 +38,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_8\PassPumpGUI\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "E:\C\repos\murphyrepo\dev\GitHub\PasswordPump_II\v2_0_9\PassPumpGUI\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

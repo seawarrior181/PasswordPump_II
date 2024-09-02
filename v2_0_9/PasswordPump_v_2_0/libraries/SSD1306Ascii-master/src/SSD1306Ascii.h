@@ -39,7 +39,8 @@
  *
  * If INCLUDE_SCROLLING is nonzero, the scroll feature will included.
  */
-#define INCLUDE_SCROLLING 1
+//#define INCLUDE_SCROLLING 1
+#define INCLUDE_SCROLLING 0		// Set to 0 by DJM 2024-04-15
 
 /** Initial scroll mode, SCROLL_MODE_OFF,
     SCROLL_MODE_AUTO, or SCROLL_MODE_APP. */

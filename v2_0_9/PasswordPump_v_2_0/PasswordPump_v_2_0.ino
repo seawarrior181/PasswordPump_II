@@ -4308,6 +4308,7 @@ void ProcessEvent() {                                                           
                (STATE_CONFIRM_IMP_PP_CSV    == machineState) ||
                (STATE_CONFIRM_IMP_CP_CSV    == machineState)) {
       event = EVENT_SHOW_MAIN_MENU;
+      position = FIND_FAVORITE;
     } else if (STATE_CONFIRM_DEL_ACCT == machineState) {                        // EVENT_LONG_CLICK
       switchToSendCredsMenu();
       DisplayToHelp("Select attribute.");

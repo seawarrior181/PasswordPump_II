@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['cli.py'],
-             pathex=['E:\\C\\repos\\murphyrepo\\dev\\GitHub\\PasswordPump_II\\v2_0_8\\PassPumpGUI', 'E:\\C\\repos\\murphyrepo\\dev\\GitHub\\PasswordPump_II\\v2_0_8\\PassPumpGUI'],
+             pathex=['E:\\C\\repos\\murphyrepo\\dev\\GitHub\\PasswordPump_II\\v2_0_9\\PassPumpGUI', 'E:\\C\\repos\\murphyrepo\\dev\\GitHub\\PasswordPump_II\\v2_0_9\\PassPumpGUI'],
              binaries=[],
              datas=[],
              hiddenimports=[],
